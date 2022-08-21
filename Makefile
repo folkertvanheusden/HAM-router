@@ -1,7 +1,18 @@
-all: receive_implicit receive_explicit transmit_implicit transmit_explicit ping pong
+CXXFLAGS=-Wall -pedantic
+
+all: receive_implicit receive_explicit transmit_implicit transmit_explicit ping pong gateway
 
 LoRa.o: LoRa.c
-	gcc -c LoRa.c -o LoRa.o -lpigpio -lrt -pthread -lm
+	gcc -ggdb3 -Ofast -c LoRa.c -o LoRa.o -lpigpio -lrt -pthread -lm
+
+gateway.o: gateway.cpp
+	g++ -ggdb3 -Ofast -c gateway.cpp -o gateway.o
+
+error.o: error.cpp
+	g++ -ggdb3 -Ofast -c error.cpp -o error.o
+
+gateway: LoRa.o gateway.o error.o
+	g++ $(CXXFLAGS) -o gateway -ggdb3 -Ofast gateway.o error.o LoRa.o -lpigpio -lrt -pthread -lax25 -lutil -lm
 
 tx_implicit_example.o: tx_implicit_example.c
 	gcc -c tx_implicit_example.c -o tx_implicit_example.o -lpigpio -lrt -pthread -lm
