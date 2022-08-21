@@ -8,11 +8,20 @@ LoRa.o: LoRa.c
 gateway.o: gateway.cpp
 	g++ -ggdb3 -Ofast -c gateway.cpp -o gateway.o
 
+db.o: db.cpp
+	g++ -ggdb3 -Ofast -c db.cpp -o db.o
+
 error.o: error.cpp
 	g++ -ggdb3 -Ofast -c error.cpp -o error.o
 
-gateway: LoRa.o gateway.o error.o
-	g++ $(CXXFLAGS) -o gateway -ggdb3 -Ofast gateway.o error.o LoRa.o -lpigpio -lrt -pthread -lax25 -lutil -lm
+log.o: log.cpp
+	g++ -ggdb3 -Ofast -c log.cpp -o log.o
+
+utils.o: utils.cpp
+	g++ -ggdb3 -Ofast -c utils.cpp -o utils.o
+
+gateway: LoRa.o gateway.o error.o db.o log.o utils.o
+	g++ $(CXXFLAGS) -o gateway -ggdb3 -Ofast gateway.o error.o LoRa.o log.o db.o utils.o -lpigpio -lrt -pthread -lax25 -lutil -lm -lmysqlcppconn
 
 tx_implicit_example.o: tx_implicit_example.c
 	gcc -c tx_implicit_example.c -o tx_implicit_example.o -lpigpio -lrt -pthread -lm

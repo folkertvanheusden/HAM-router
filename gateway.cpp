@@ -1,5 +1,6 @@
 #include <condition_variable>
 #include <errno.h>
+#include <math.h>
 #include <mutex>
 #include <netdb.h>
 #include <poll.h>
@@ -24,10 +25,16 @@ extern "C" {
 }
 
 #include "error.h"
+#include "log.h"
+#include "db.h"
 
 constexpr char callsign[] = "PD9FVH";
 const std::string aprs_user = "PD9FVH";
 const std::string aprs_pass = "19624";
+constexpr double local_lat = 52.0275;
+constexpr double local_lng = 4.6955;
+
+db *d = nullptr;
 
 #define MAX_PACKET_SIZE 254
 
@@ -314,6 +321,65 @@ void tx_f(txData *tx)
 	printf("transmitted\n");
 }
 
+// https://stackoverflow.com/questions/27126714/c-latitude-and-longitude-distance-calculator
+#define RADIO_TERRESTRE 6372797.56085
+#define GRADOS_RADIANES M_PI / 180.0
+#define RADIANES_GRADOS 180.0 / M_PI
+
+double calcGPSDistance(double latitude_new, double longitude_new, double latitude_old, double longitude_old)
+{
+    double  lat_new = latitude_old * GRADOS_RADIANES;
+    double  lat_old = latitude_new * GRADOS_RADIANES;
+    double  lat_diff = (latitude_new-latitude_old) * GRADOS_RADIANES;
+    double  lng_diff = (longitude_new-longitude_old) * GRADOS_RADIANES;
+
+    double  a = sin(lat_diff/2) * sin(lat_diff/2) +
+                cos(lat_new) * cos(lat_old) *
+                sin(lng_diff/2) * sin(lng_diff/2);
+    double  c = 2 * atan2(sqrt(a), sqrt(1-a));
+
+    double  distance = RADIO_TERRESTRE * c;
+
+    return distance;
+}
+
+// from https://stackoverflow.com/questions/36254363/how-to-convert-latitude-and-longitude-of-nmea-format-data-to-decimal
+double convertToDecimalDegrees(const char *latLon, const char direction)
+{
+	char deg[4] = { 0 };
+	const char *dot = nullptr, *min = nullptr;
+	int len;
+	double dec = 0;
+
+	if ((dot = strchr(latLon, '.')))
+	{                                         // decimal point was found
+		min = dot - 2;                          // mark the start of minutes 2 chars back
+		len = min - latLon;                     // find the length of degrees
+		strncpy(deg, latLon, len);              // copy the degree string to allow conversion to float
+		dec = atof(deg) + atof(min) / 60;       // convert to float
+		if (direction == 'S' || direction == 'W')
+			dec *= -1;
+	}
+
+	return dec;
+}
+
+void parse_nmea_pos(const char *what, double *const lat, double *const lng)
+{
+	if (what[0] == '@') {  // ignore time code
+		what += 7;
+		// TODO
+	}
+	else if (what[0] == '!') {  // straight away position
+		what++;
+
+		*lat = convertToDecimalDegrees(what, what[6]);
+
+		what += 9;
+		*lng = convertToDecimalDegrees(what, what[6]);
+	}
+}
+
 void rx_f(rxData *rx)
 {
 	if (rx->size == 0 || rx->CRC)
@@ -327,13 +393,25 @@ void rx_f(rxData *rx)
 	unsigned current_count = ++count;
 	packets_lock.unlock();
 
+	double latitude = 0, longitude = 0, distance = -1.0;
+
+	char *colon = strchr(rx->buf, ':');
+	if (rx->size - (rx->buf - colon) >= 7) {
+		parse_nmea_pos(colon + 1, &latitude, &longitude);
+
+		distance = calcGPSDistance(latitude, longitude, local_lat, local_lng);
+	}
+
+	d->insert_message(reinterpret_cast<uint8_t *>(rx->buf), rx->size, rx->RSSI, rx->SNR, rx->CRC, latitude, longitude, distance);
+
 	time_t now = time(NULL);
 
 	char *buffer = ctime(&now);
 	char *temp = strchr(buffer, '\n');
 	if (temp)
 		*temp = 0x00;
-	printf("RX finished of %dth message @ timestamp: %s, CRC error: %d, RSSI: %d, SNR: %f\n", current_count, buffer, rx->CRC, rx->RSSI, rx->SNR);
+
+	printf("RX finished of %dth message @ timestamp: %s, CRC error: %d, RSSI: %d, SNR: %f (%f,%f => distance: %fm)\n", current_count, buffer, rx->CRC, rx->RSSI, rx->SNR, latitude, longitude, distance);
 }
 
 std::string get_addr(const uint8_t *const in)
@@ -374,6 +452,10 @@ int setifcall(int fd, const char *name)
 
 int main(int argc, char *argv[])
 {
+	setlogfile("gateway.log", LL_DEBUG);
+
+	d = new db("tcp://192.168.64.1/lora-aprs", "lora", "mauw");
+
 	char rxbuf[255];
 	char txbuf[MAX_PACKET_SIZE];
 	LoRa_ctl modem;
