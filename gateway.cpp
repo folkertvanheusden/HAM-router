@@ -369,7 +369,7 @@ int main(int argc, char *argv[])
 				std::string to   = get_ax25_addr(&data[0]);
 				std::string from = get_ax25_addr(&data[7]);
 
-				log(LL_INFO, "Received AX.25 over LoRa: %s -> %s\n", from.c_str(), to.c_str());
+				log(LL_INFO, "Received AX.25 over LoRa: %s -> %s", from.c_str(), to.c_str());
 
 				send_mkiss(fdmaster, 0, data, p->get_size());
 			}
