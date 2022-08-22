@@ -28,4 +28,4 @@ kiss.o: kiss.cpp
 	g++ $(CXXFLAGS) -c kiss.cpp -o kiss.o
 
 gateway: gateway.o error.o db.o log.o utils.o net.o kiss.o LoRa.o
-	g++ $(CXXFLAGS) -o gateway gateway.o error.o LoRa.o log.o db.o utils.o net.o kiss.o -lpigpio -lrt -pthread -lax25 -lutil -lm -lmysqlcppconn
+	g++ $(CXXFLAGS) -o gateway gateway.o error.o LoRa.o log.o db.o utils.o net.o kiss.o -lpigpio -lrt -pthread -lax25 -lutil -lm -lmysqlcppconn -linih
