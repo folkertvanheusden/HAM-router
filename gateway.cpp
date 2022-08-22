@@ -7,6 +7,7 @@
 #include <pthread.h>
 #include <pty.h>
 #include <queue>
+#include <signal.h>
 #include <stdbool.h>
 #include <string.h>
 #include <thread>
@@ -33,6 +34,9 @@ const std::string aprs_user = "PD9FVH";
 const std::string aprs_pass = "19624";
 constexpr double local_lat = 52.0275;
 constexpr double local_lng = 4.6955;
+const std::string db_url = "tcp://192.168.64.1/lora-aprs";
+const std::string db_user = "lora";
+const std::string db_pass = "mauw";
 
 db *d = nullptr;
 
@@ -396,7 +400,7 @@ void rx_f(rxData *rx)
 	double latitude = 0, longitude = 0, distance = -1.0;
 
 	char *colon = strchr(rx->buf, ':');
-	if (rx->size - (rx->buf - colon) >= 7) {
+	if (colon && rx->size - (rx->buf - colon) >= 7) {
 		parse_nmea_pos(colon + 1, &latitude, &longitude);
 
 		distance = calcGPSDistance(latitude, longitude, local_lat, local_lng);
@@ -454,10 +458,11 @@ int main(int argc, char *argv[])
 {
 	setlogfile("gateway.log", LL_DEBUG);
 
-	d = new db("tcp://192.168.64.1/lora-aprs", "lora", "mauw");
+	d = new db(db_url, db_user, db_pass);
 
-	char rxbuf[255];
-	char txbuf[MAX_PACKET_SIZE];
+	char rxbuf[255] { 0 };
+	char txbuf[MAX_PACKET_SIZE] { 0 };
+
 	LoRa_ctl modem;
 
 	memset(&modem, 0x00, sizeof modem);
@@ -485,6 +490,8 @@ int main(int argc, char *argv[])
 	//For detail information about SF, Error Coding Rate, Explicit header, Bandwidth, AGC, Over current protection and other features refer to sx127x datasheet https://www.semtech.com/uploads/documents/DS_SX1276-7-8-9_W_APP_V5.pdf
 
 	LoRa_begin(&modem);
+
+	signal(11, SIG_DFL);
 
 	LoRa_receive(&modem);
 
