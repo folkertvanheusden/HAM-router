@@ -1,6 +1,8 @@
+#include <pigpio.h>
+
 #include "LoRa.h"
 
-int LoRa_begin(LoRa_ctl *modem){
+int LoRa_begin(LoRa_ctl *modem) {
 	if (gpioInitialise() < 0)
 	{
 		printf("Pigpio init error\n");
@@ -14,7 +16,7 @@ int LoRa_begin(LoRa_ctl *modem){
 
 	lora_set_lora_mode(modem->spid);
 
-	if(modem->eth.implicitHeader){
+	if(modem->eth.implicitHeader) {
 		lora_set_implicit_header(modem->spid);
 		lora_set_payload(modem->spid, modem->eth.payloadLen);
 	}
@@ -26,7 +28,7 @@ int LoRa_begin(LoRa_ctl *modem){
 	lora_set_bandwidth(modem->spid, modem->eth.bw);
 	lora_set_sf(modem->spid, modem->eth.sf);
 
-	if(modem->eth.CRC){
+	if(modem->eth.CRC) {
 		lora_set_crc_on(modem->spid);
 	}
 	else{
@@ -50,12 +52,12 @@ int LoRa_begin(LoRa_ctl *modem){
 }
 
 
-void lora_set_ocp(int spid, unsigned char OCP){
+void lora_set_ocp(int spid, unsigned char OCP) {
 	unsigned char OcpTrim;
-	if(OCP == 0){//turn off OCP
+	if(OCP == 0) {//turn off OCP
 		lora_reg_write_byte(spid, REG_OCP, (lora_reg_read_byte(spid, REG_OCP) & 0xdf));
 	}
-	else if(OCP > 0 && OCP <= 120){
+	else if(OCP > 0 && OCP <= 120) {
 		if(OCP < 50){OCP = 50;}
 
 		OcpTrim = (OCP-45)/5 + 0x20;
@@ -187,8 +189,11 @@ void lora_get_snr(LoRa_ctl *modem){
 void rxDoneISRf(int gpio_n, int level, uint32_t tick, void *modemptr){
 	LoRa_ctl *modem = (LoRa_ctl *)modemptr;
 	unsigned char rx_nb_bytes;
+
 	if(lora_reg_read_byte(modem->spid, REG_IRQ_FLAGS) & IRQ_RXDONE){
 		lora_reg_write_byte(modem->spid, REG_FIFO_ADDR_PTR, lora_reg_read_byte(modem->spid, REG_FIFO_RX_CURRENT_ADDR));
+
+		gettimeofday(&modem->rx.data.last_time, NULL);
 
 		if(modem->eth.implicitHeader){
 			lora_reg_read_bytes(modem->spid, REG_FIFO, modem->rx.data.buf, modem->eth.payloadLen);
