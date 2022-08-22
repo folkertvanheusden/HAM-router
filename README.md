@@ -5,7 +5,8 @@ The original files are in the history of this git repository.
 requires:
 * libax25-dev
 * libinih-dev
-
+* libjansson-dev
+* libmosquitto-dev
 
 (optional) database schema:
 

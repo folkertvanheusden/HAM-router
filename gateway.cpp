@@ -1,6 +1,8 @@
 #include <condition_variable>
 #include <errno.h>
+#include <jansson.h>
 #include <math.h>
+#include <mosquitto.h>
 #include <mutex>
 #include <poll.h>
 #include <pthread.h>
@@ -36,6 +38,12 @@ std::string logfile;
 int gpio_lora_reset = 0;
 int gpio_lora_dio0 = 0;
 bool local_ax25 = true;
+std::string mqtt_host;
+int         mqtt_port;
+std::string mqtt_aprs_packet_meta;
+std::string mqtt_aprs_packet_as_is;
+std::string mqtt_ax25_packet_meta;
+std::string mqtt_ax25_packet_as_is;
 
 #define INI_MATCH(s, n) (strcmp(section, s) == 0 && strcmp(name, n) == 0)
 
@@ -76,6 +84,24 @@ int handler_ini(void* user, const char* section, const char* name, const char* v
 	}
 	else if (INI_MATCH("tranceiver", "dio0-pin")) {
 		gpio_lora_dio0 = atoi(value);
+	}
+	else if (INI_MATCH("mqtt", "host")) {
+		mqtt_host = value;
+	}
+	else if (INI_MATCH("mqtt", "port")) {
+		mqtt_port = atoi(value);
+	}
+	else if (INI_MATCH("mqtt", "aprs-packet-meta-topic")) {
+		mqtt_aprs_packet_meta = value;
+	}
+	else if (INI_MATCH("mqtt", "aprs-packet-as-is-topic")) {
+		mqtt_aprs_packet_as_is = value;
+	}
+	else if (INI_MATCH("mqtt", "ax25-packet-meta-topic")) {
+		mqtt_ax25_packet_meta = value;
+	}
+	else if (INI_MATCH("mqtt", "ax25-packet-as-is-topic")) {
+		mqtt_ax25_packet_as_is = value;
 	}
 	else {
 		return 0;
@@ -247,7 +273,22 @@ int main(int argc, char *argv[])
 		startiface(dev_name);
 	}
 
-	std::thread tx_thread([fdmaster] {
+	struct mosquitto *mi = nullptr;
+
+	int err = 0;
+	if (mqtt_host.empty() == false) {
+		mi = mosquitto_new(nullptr, true, nullptr);
+		if (!mi)
+			error_exit(false, "Cannot crate mosquitto instance");
+
+		if ((err = mosquitto_connect(mi, mqtt_host.c_str(), mqtt_port, 30)) != MOSQ_ERR_SUCCESS)
+			error_exit(false, "mqtt failed to connect (%s)", mosquitto_strerror(err));
+
+		if ((err = mosquitto_loop_start(mi)) != MOSQ_ERR_SUCCESS)
+			error_exit(false, "mqtt failed to start thread (%s)", mosquitto_strerror(err));
+	}
+
+	std::thread tx_thread([fdmaster, mi] {
 		log(LL_INFO, "Starting transmit (LoRa APRS -> aprsi) thread");
 
 		int fd = -1;
@@ -285,6 +326,42 @@ int main(int argc, char *argv[])
 				*temp = 0x00;
 
 			log(LL_INFO, "RX message @ timestamp: %s, CRC error: %d, RSSI: %d, SNR: %f (%f,%f => distance: %fm)", buffer, rx.CRC, rx.RSSI, rx.SNR, latitude, longitude, distance);
+
+			json_t     *meta         = nullptr;
+			const char *meta_str     = nullptr;
+			int         meta_str_len = 0;
+
+			if (mi && (mqtt_aprs_packet_meta.empty() == false || mqtt_ax25_packet_meta.empty() == false)) {
+				meta = json_object();
+
+				json_object_set(meta, "timestamp", json_integer(rx.last_time.tv_sec));
+
+				json_object_set(meta, "CRC-error", json_integer(rx.CRC));
+
+				json_object_set(meta, "RSSI", json_real(double(rx.RSSI)));
+
+				json_object_set(meta, "SNR", json_real(rx.SNR));
+
+				if (latitude != 0. || longitude != 0.) {
+					json_object_set(meta, "latitude", json_real(latitude));
+
+					json_object_set(meta, "longitude", json_real(longitude));
+
+					if (distance >= 0.)
+						json_object_set(meta, "distance", json_real(distance));
+				}
+
+				json_object_set(meta, "data", json_string(dump_hex(reinterpret_cast<const uint8_t *>(rx.buf), rx.size).c_str()));
+
+				meta_str     = json_dumps(meta, 0);
+				meta_str_len = strlen(meta_str);
+			}
+
+			if (mi && mqtt_aprs_packet_meta.empty() == false) {
+				int err = 0;
+				if ((err = mosquitto_publish(mi, nullptr, mqtt_aprs_packet_meta.c_str(), meta_str_len, meta_str, 0, false)) != MOSQ_ERR_SUCCESS)
+					log(LL_WARNING, "mqtt failed to publish (%s)", mosquitto_strerror(err));
+			}
 
 			const uint8_t *const data = reinterpret_cast<const uint8_t *>(rx.buf);
 
@@ -337,6 +414,18 @@ int main(int argc, char *argv[])
 						log(LL_WARNING, "Failed to transmit APRS data to aprsi");
 					}
 				}
+
+				if (mi && mqtt_aprs_packet_as_is.empty() == false) {
+					int err = 0;
+					if ((err = mosquitto_publish(mi, nullptr, mqtt_aprs_packet_as_is.c_str(), rx.size, data, 0, false)) != MOSQ_ERR_SUCCESS)
+						log(LL_WARNING, "mqtt failed to publish (%s)", mosquitto_strerror(err));
+				}
+
+				if (mi && mqtt_aprs_packet_meta.empty() == false) {
+					int err = 0;
+					if ((err = mosquitto_publish(mi, nullptr, mqtt_aprs_packet_meta.c_str(), meta_str_len, meta_str, 0, false)) != MOSQ_ERR_SUCCESS)
+						log(LL_WARNING, "mqtt failed to publish (%s)", mosquitto_strerror(err));
+				}
 			}
 			else {
 				std::string to   = get_ax25_addr(&data[0]);
@@ -346,6 +435,24 @@ int main(int argc, char *argv[])
 
 				if (fdmaster != -1)
 					send_mkiss(fdmaster, 0, data, rx.size);
+
+				if (mi && mqtt_ax25_packet_as_is.empty() == false) {
+					int err = 0;
+					if ((err = mosquitto_publish(mi, nullptr, mqtt_ax25_packet_as_is.c_str(), rx.size, data, 0, false)) != MOSQ_ERR_SUCCESS)
+						log(LL_WARNING, "mqtt failed to publish (%s)", mosquitto_strerror(err));
+				}
+
+				if (mi && mqtt_ax25_packet_meta.empty() == false) {
+					int err = 0;
+					if ((err = mosquitto_publish(mi, nullptr, mqtt_ax25_packet_meta.c_str(), meta_str_len, meta_str, 0, false)) != MOSQ_ERR_SUCCESS)
+						log(LL_WARNING, "mqtt failed to publish (%s)", mosquitto_strerror(err));
+				}
+			}
+
+			if (meta) {
+				json_decref(meta);
+
+				free((void *)meta_str);
 			}
 		}
 
