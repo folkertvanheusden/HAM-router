@@ -377,7 +377,7 @@ int main(int argc, char *argv[])
 	pthread_setname_np(pthread_self(), "rx_thread");
 
 	for(;;) {
-		if (poll(fds, 1, 0) == -1) {
+		if (poll(fds, 1, -1) == -1) {
 			log(LL_WARNING, "TERMINATE: (%s)", strerror(errno));
 			break;
 		}
