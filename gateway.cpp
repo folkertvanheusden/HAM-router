@@ -35,6 +35,7 @@ std::string db_pass;
 std::string logfile;
 int gpio_lora_reset = 0;
 int gpio_lora_dio0 = 0;
+bool local_ax25 = true;
 
 #define INI_MATCH(s, n) (strcmp(section, s) == 0 && strcmp(name, n) == 0)
 
@@ -51,6 +52,9 @@ int handler_ini(void* user, const char* section, const char* name, const char* v
 	}
 	else if (INI_MATCH("general", "logfile")) {
 		logfile = value;
+	}
+	else if (INI_MATCH("general", "local-ax25")) {
+		local_ax25 = strcasecmp(value, "true") == 0;
 	}
 	else if (INI_MATCH("aprsi", "user")) {
 		aprs_user = value;
@@ -220,25 +224,28 @@ int main(int argc, char *argv[])
 	LoRa_receive(&modem);
 
 	int fdmaster = -1, fdslave = -1;
-	if (openpty(&fdmaster, &fdslave, NULL, NULL, NULL) == -1)
-		error_exit(true, "openpty failed");
 
-	int disc = N_AX25;
-	if (ioctl(fdslave, TIOCSETD, &disc) == -1)
-		error_exit(true, "error setting line discipline");
+	if (local_ax25) {
+		if (openpty(&fdmaster, &fdslave, NULL, NULL, NULL) == -1)
+			error_exit(true, "openpty failed");
 
-	if (setifcall(fdslave, callsign.c_str()) == -1)
-		error_exit(false, "cannot set call");
+		int disc = N_AX25;
+		if (ioctl(fdslave, TIOCSETD, &disc) == -1)
+			error_exit(true, "error setting line discipline");
 
-	int v = 4;
-	if (ioctl(fdslave, SIOCSIFENCAP, &v) == -1)
-		error_exit(true, "failed to set encapsulation");
+		if (setifcall(fdslave, callsign.c_str()) == -1)
+			error_exit(false, "cannot set call");
 
-	char dev_name[64] = { 0 };
-	if (ioctl(fdslave, SIOCGIFNAME, dev_name) == -1)
-		error_exit(true, "failed retrieving name of ax25 network device name");
+		int v = 4;
+		if (ioctl(fdslave, SIOCSIFENCAP, &v) == -1)
+			error_exit(true, "failed to set encapsulation");
 
-	startiface(dev_name);
+		char dev_name[64] = { 0 };
+		if (ioctl(fdslave, SIOCGIFNAME, dev_name) == -1)
+			error_exit(true, "failed retrieving name of ax25 network device name");
+
+		startiface(dev_name);
+	}
 
 	std::thread tx_thread([fdmaster] {
 		log(LL_INFO, "Starting transmit (LoRa APRS -> aprsi) thread");
@@ -337,7 +344,8 @@ int main(int argc, char *argv[])
 
 				log(LL_INFO, "Received AX.25 over LoRa: %s -> %s", from.c_str(), to.c_str());
 
-				send_mkiss(fdmaster, 0, data, rx.size);
+				if (fdmaster != -1)
+					send_mkiss(fdmaster, 0, data, rx.size);
 			}
 		}
 
@@ -345,47 +353,53 @@ int main(int argc, char *argv[])
 			close(fd);
 	});
 
-	log(LL_INFO, "Starting transmit (local AX.25 stack to LoRa)");
+	if (local_ax25) {
+		log(LL_INFO, "Starting transmit (local AX.25 stack to LoRa)");
 
-	struct pollfd fds[] = { { fdmaster, POLLIN, 0 } };
+		struct pollfd fds[] = { { fdmaster, POLLIN, 0 } };
 
-	for(;;) {
-		if (poll(fds, 1, -1) == -1) {
-			if (errno != EINTR) {
-				log(LL_WARNING, "TERMINATE: (%s)", strerror(errno));
-				break;
-			}
-		}
-
-		if (fds[0].revents) {
-			uint8_t *p = NULL;
-			int plen = 0;
-			if (!recv_mkiss(fdmaster, &p, &plen, true)) {
-				log(LL_WARNING, "TERMINATE");
-				break;
+		for(;;) {
+			if (poll(fds, 1, -1) == -1) {
+				if (errno != EINTR) {
+					log(LL_WARNING, "TERMINATE: (%s)", strerror(errno));
+					break;
+				}
 			}
 
-			memcpy(txbuf, p, plen);
-			free(p);
+			if (fds[0].revents) {
+				uint8_t *p = NULL;
+				int plen = 0;
+				if (!recv_mkiss(fdmaster, &p, &plen, true)) {
+					log(LL_WARNING, "TERMINATE");
+					break;
+				}
 
-			log(LL_DEBUG, "transmit: %s", dump_hex(reinterpret_cast<const uint8_t *>(txbuf), plen).c_str());
+				memcpy(txbuf, p, plen);
+				free(p);
 
-			LoRa_stop_receive(&modem); //manually stoping RxCont mode
+				log(LL_DEBUG, "transmit: %s", dump_hex(reinterpret_cast<const uint8_t *>(txbuf), plen).c_str());
 
-			while(LoRa_get_op_mode(&modem) != STDBY_MODE)
-				usleep(101000);
+				LoRa_stop_receive(&modem); //manually stoping RxCont mode
 
-			modem.tx.data.size = plen;
+				while(LoRa_get_op_mode(&modem) != STDBY_MODE)
+					usleep(101000);
 
-			LoRa_send(&modem);
+				modem.tx.data.size = plen;
 
-			while(LoRa_get_op_mode(&modem) != STDBY_MODE)
-				usleep(101000);
+				LoRa_send(&modem);
 
-			log(LL_DEBUG, "Time on air data - Tsym: %f; Tpkt: %f; payloadSymbNb: %u", modem.tx.data.Tsym, modem.tx.data.Tpkt, modem.tx.data.payloadSymbNb);
+				while(LoRa_get_op_mode(&modem) != STDBY_MODE)
+					usleep(101000);
 
-			LoRa_receive(&modem);
+				log(LL_DEBUG, "Time on air data - Tsym: %f; Tpkt: %f; payloadSymbNb: %u", modem.tx.data.Tsym, modem.tx.data.Tpkt, modem.tx.data.payloadSymbNb);
+
+				LoRa_receive(&modem);
+			}
 		}
+	}
+	else {
+		for(;;)
+			sleep(86400);
 	}
 
 	LoRa_end(&modem);
