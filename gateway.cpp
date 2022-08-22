@@ -277,6 +277,8 @@ int main(int argc, char *argv[])
 
 	int err = 0;
 	if (mqtt_host.empty() == false) {
+		log(LL_INFO, "Initializing MQTT");
+
 		mi = mosquitto_new(nullptr, true, nullptr);
 		if (!mi)
 			error_exit(false, "Cannot crate mosquitto instance");
