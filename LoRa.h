@@ -1,3 +1,4 @@
+#include <pigpio.h>
 #include <pthread.h>
 #include <string.h>
 #include <unistd.h>
@@ -164,7 +165,7 @@ typedef struct{
 typedef void (*txDoneISR)(int gpio_n, int level, uint32_t tick, void *userdata);
 
 typedef struct{
-    char *buf;
+    char buf[256];
     unsigned char size;
     struct timeval last_time;
     float SNR;
@@ -173,7 +174,7 @@ typedef struct{
     void *userPtr;//user pointer passing to user callback
 } rxData;
 
-typedef void (*UserRxDoneCallback)(rxData *rx);
+typedef void * (*UserRxDoneCallback)(void *rx);
 
 typedef struct{
     rxData data;

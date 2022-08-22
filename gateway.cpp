@@ -185,11 +185,13 @@ void parse_nmea_pos(const char *what, double *const lat, double *const lng)
 	}
 }
 
-void rx_f(rxData *rx)
+void * rx_f(void *in)
 {
+	rxData *rx = reinterpret_cast<rxData *>(in);
 	if (rx->size == 0 || rx->CRC)
-		return;
+		return NULL;
 
+	// TODO wrap rxData directly instead
 	packet *p = new packet(reinterpret_cast<uint8_t *>(rx->buf), rx->size);
 
 	packets_lock.lock();
@@ -198,6 +200,7 @@ void rx_f(rxData *rx)
 	unsigned current_count = ++count;
 	packets_lock.unlock();
 
+	// TODO move this to main
 	double latitude = 0, longitude = 0, distance = -1.0;
 
 	char *colon = strchr(rx->buf, ':');
@@ -218,6 +221,10 @@ void rx_f(rxData *rx)
 		*temp = 0x00;
 
 	log(LL_INFO, "RX finished of %dth message @ timestamp: %s, CRC error: %d, RSSI: %d, SNR: %f (%f,%f => distance: %fm)", current_count, buffer, rx->CRC, rx->RSSI, rx->SNR, latitude, longitude, distance);
+
+	free(rx);
+
+	return NULL;
 }
 
 int main(int argc, char *argv[])
@@ -234,7 +241,6 @@ int main(int argc, char *argv[])
 	if (db_url.empty() == false)
 		d = new db(db_url, db_user, db_pass);
 
-	char rxbuf[255] { 0 };
 	char txbuf[MAX_PACKET_SIZE] { 0 };
 
 	LoRa_ctl modem;
@@ -244,7 +250,6 @@ int main(int argc, char *argv[])
 	//See for typedefs, enumerations and there values in LoRa.h header file
 	modem.spiCS = 0;//Raspberry SPI CE pin number
 	modem.rx.callback = rx_f;
-	modem.rx.data.buf = rxbuf;
 	modem.tx.data.buf = txbuf;
 	modem.tx.callback = tx_f;
 	modem.eth.preambleLen = 8;
