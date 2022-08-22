@@ -380,41 +380,43 @@ int main(int argc, char *argv[])
 
 	struct pollfd fds[] = { { fdmaster, POLLIN, 0 } };
 
-	pthread_setname_np(pthread_self(), "rx_thread");
-
 	for(;;) {
 		if (poll(fds, 1, -1) == -1) {
-			log(LL_WARNING, "TERMINATE: (%s)", strerror(errno));
-			break;
+			if (errno != EINTR) {
+				log(LL_WARNING, "TERMINATE: (%s)", strerror(errno));
+				break;
+			}
 		}
 
-		uint8_t *p = NULL;
-		int plen = 0;
-		if (!recv_mkiss(fdmaster, &p, &plen, true)) {
-			log(LL_WARNING, "TERMINATE");
-			break;
+		if (fds[0].revents) {
+			uint8_t *p = NULL;
+			int plen = 0;
+			if (!recv_mkiss(fdmaster, &p, &plen, true)) {
+				log(LL_WARNING, "TERMINATE");
+				break;
+			}
+
+			memcpy(txbuf, p, plen);
+			free(p);
+
+			log(LL_DEBUG, "transmit: %s", dump_hex(reinterpret_cast<const uint8_t *>(txbuf), plen).c_str());
+
+			LoRa_stop_receive(&modem); //manually stoping RxCont mode
+
+			while(LoRa_get_op_mode(&modem) != STDBY_MODE)
+				usleep(101000);
+
+			modem.tx.data.size = plen;
+
+			LoRa_send(&modem);
+
+			while(LoRa_get_op_mode(&modem) != STDBY_MODE)
+				usleep(101000);
+
+			log(LL_DEBUG, "Time on air data - Tsym: %f; Tpkt: %f; payloadSymbNb: %u", modem.tx.data.Tsym, modem.tx.data.Tpkt, modem.tx.data.payloadSymbNb);
+
+			LoRa_receive(&modem);
 		}
-
-		memcpy(txbuf, p, plen);
-		free(p);
-
-		log(LL_DEBUG, "transmit: %s", dump_hex(reinterpret_cast<const uint8_t *>(txbuf), plen).c_str());
-
-		LoRa_stop_receive(&modem); //manually stoping RxCont mode
-
-		while(LoRa_get_op_mode(&modem) != STDBY_MODE)
-			usleep(101000);
-
-		modem.tx.data.size = plen;
-
-		LoRa_send(&modem);
-
-		while(LoRa_get_op_mode(&modem) != STDBY_MODE)
-			usleep(101000);
-
-		log(LL_DEBUG, "Time on air data - Tsym: %f; Tpkt: %f; payloadSymbNb: %u", modem.tx.data.Tsym, modem.tx.data.Tpkt, modem.tx.data.payloadSymbNb);
-
-		LoRa_receive(&modem);
 	}
 
 	LoRa_end(&modem);

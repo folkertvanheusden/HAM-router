@@ -141,8 +141,12 @@ void send_mkiss(int fd, int channel, const unsigned char *p, const int len)
 	{
 		int rc = write(fd, tmp, out_len);
 
-		if (rc == -1 || rc == 0)
+		if (rc == -1 || rc == 0) {
+			if (rc == -1 && errno == EINTR)
+				continue;
+
 			error_exit(true, "failed writing to mkiss device");
+		}
 
 		tmp += rc;
 		out_len -= rc;
