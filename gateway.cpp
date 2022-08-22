@@ -24,21 +24,21 @@ extern "C" {
 #include "net.h"
 #include "utils.h"
 
-std::string callsign = "PD9FVH";
-std::string aprs_user = "PD9FVH";
-std::string aprs_pass = "19624";
-double local_lat = 52.0275;
-double local_lng = 4.6955;
-std::string db_url = "tcp://192.168.64.1/lora-aprs";
-std::string db_user = "lora";
-std::string db_pass = "mauw";
-std::string logfile = "gateway.log";
-int gpio_lora_reset = 27;
-int gpio_lora_dio0  = 17;
+std::string callsign;
+std::string aprs_user;
+std::string aprs_pass;
+double local_lat = 0;
+double local_lng = 0;
+std::string db_url;
+std::string db_user;
+std::string db_pass;
+std::string logfile;
+int gpio_lora_reset = 0;
+int gpio_lora_dio0 = 0;
 
 #define INI_MATCH(s, n) (strcmp(section, s) == 0 && strcmp(name, n) == 0)
 
-static int handler_ini(void* user, const char* section, const char* name, const char* value)
+int handler_ini(void* user, const char* section, const char* name, const char* value)
 {
 	if (INI_MATCH("general", "callsign")) {
 		callsign = value;
