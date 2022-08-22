@@ -327,9 +327,14 @@ int main(int argc, char *argv[])
 
 			log(LL_INFO, "RX message @ timestamp: %s, CRC error: %d, RSSI: %d, SNR: %f (%f,%f => distance: %fm)", buffer, rx.CRC, rx.RSSI, rx.SNR, latitude, longitude, distance);
 
+			const uint8_t *const data = reinterpret_cast<const uint8_t *>(rx.buf);
+
 			json_t     *meta         = nullptr;
 			const char *meta_str     = nullptr;
 			int         meta_str_len = 0;
+
+			std::string to;
+			std::string from;
 
 			if (mi && (mqtt_aprs_packet_meta.empty() == false || mqtt_ax25_packet_meta.empty() == false)) {
 				meta = json_object();
@@ -351,6 +356,27 @@ int main(int argc, char *argv[])
 						json_object_set(meta, "distance", json_real(distance));
 				}
 
+				if (data[0] == 0x3c && data[1] == 0xff && data[2] == 0x01) {  // OE_
+					const char *const gt = strchr(&rx.buf[3], '>');
+					if (gt) {
+						const char *const colon = strchr(gt, ':');
+						if (colon) {
+							to   = std::string(gt + 1, colon - gt - 1);
+							from = std::string(&rx.buf[3], gt - rx.buf - 3);
+						}
+					}
+				}
+				else {  // assuming AX.25
+					to   = get_ax25_addr(&data[0]);
+					from = get_ax25_addr(&data[7]);
+				}
+
+				if (to.empty() == false)
+					json_object_set(meta, "callsign-to", json_string(to.c_str()));
+
+				if (from.empty() == false)
+					json_object_set(meta, "callsign-from", json_string(from.c_str()));
+
 				json_object_set(meta, "data", json_string(dump_hex(reinterpret_cast<const uint8_t *>(rx.buf), rx.size).c_str()));
 
 				meta_str     = json_dumps(meta, 0);
@@ -362,8 +388,6 @@ int main(int argc, char *argv[])
 				if ((err = mosquitto_publish(mi, nullptr, mqtt_aprs_packet_meta.c_str(), meta_str_len, meta_str, 0, false)) != MOSQ_ERR_SUCCESS)
 					log(LL_WARNING, "mqtt failed to publish (%s)", mosquitto_strerror(err));
 			}
-
-			const uint8_t *const data = reinterpret_cast<const uint8_t *>(rx.buf);
 
 			if (data[0] == 0x3c) {  // OE_
 				if (fd == -1 && aprs_user.empty() == false) {
@@ -422,9 +446,6 @@ int main(int argc, char *argv[])
 				}
 			}
 			else {
-				std::string to   = get_ax25_addr(&data[0]);
-				std::string from = get_ax25_addr(&data[7]);
-
 				log(LL_INFO, "Received AX.25 over LoRa: %s -> %s", from.c_str(), to.c_str());
 
 				if (fdmaster != -1)
