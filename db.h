@@ -30,5 +30,5 @@ public:
 
 	bool using_db() const { return con != nullptr; }
 
-	void insert_message(uint8_t *msg, int msg_size, double rssi, double snr, int crc, double latitude, double longitude, double distance);
+	void insert_message(uint8_t *msg, int msg_size, double rssi, double snr, int crc, double latitude, double longitude, double distance, std::string callsign_to, std::string callsign_from);
 };

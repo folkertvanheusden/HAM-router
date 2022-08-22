@@ -315,9 +315,6 @@ int main(int argc, char *argv[])
 				distance = calcGPSDistance(latitude, longitude, local_lat, local_lng);
 			}
 
-			if (d)
-				d->insert_message(reinterpret_cast<uint8_t *>(rx.buf), rx.size, rx.RSSI, rx.SNR, rx.CRC, latitude, longitude, distance);
-
 			char buffer[32] { 0 };
 			ctime_r(&rx.last_time.tv_sec, buffer);
 
@@ -335,6 +332,21 @@ int main(int argc, char *argv[])
 
 			std::string to;
 			std::string from;
+
+			if (data[0] == 0x3c && data[1] == 0xff && data[2] == 0x01) {  // OE_
+				const char *const gt = strchr(&rx.buf[3], '>');
+				if (gt) {
+					const char *const colon = strchr(gt, ':');
+					if (colon) {
+						to   = std::string(gt + 1, colon - gt - 1);
+						from = std::string(&rx.buf[3], gt - rx.buf - 3);
+					}
+				}
+			}
+			else {  // assuming AX.25
+				to   = get_ax25_addr(&data[0]);
+				from = get_ax25_addr(&data[7]);
+			}
 
 			if (mi && (mqtt_aprs_packet_meta.empty() == false || mqtt_ax25_packet_meta.empty() == false)) {
 				meta = json_object();
@@ -356,21 +368,6 @@ int main(int argc, char *argv[])
 						json_object_set(meta, "distance", json_real(distance));
 				}
 
-				if (data[0] == 0x3c && data[1] == 0xff && data[2] == 0x01) {  // OE_
-					const char *const gt = strchr(&rx.buf[3], '>');
-					if (gt) {
-						const char *const colon = strchr(gt, ':');
-						if (colon) {
-							to   = std::string(gt + 1, colon - gt - 1);
-							from = std::string(&rx.buf[3], gt - rx.buf - 3);
-						}
-					}
-				}
-				else {  // assuming AX.25
-					to   = get_ax25_addr(&data[0]);
-					from = get_ax25_addr(&data[7]);
-				}
-
 				if (to.empty() == false)
 					json_object_set(meta, "callsign-to", json_string(to.c_str()));
 
@@ -382,6 +379,9 @@ int main(int argc, char *argv[])
 				meta_str     = json_dumps(meta, 0);
 				meta_str_len = strlen(meta_str);
 			}
+
+			if (d)
+				d->insert_message(reinterpret_cast<uint8_t *>(rx.buf), rx.size, rx.RSSI, rx.SNR, rx.CRC, latitude, longitude, distance, to, from);
 
 			if (mi && mqtt_aprs_packet_meta.empty() == false) {
 				int err = 0;

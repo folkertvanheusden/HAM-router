@@ -93,7 +93,7 @@ db::db(const std::string & url, const std::string & username, const std::string 
 
 		if (!check_table_exists("APRS")) {
 			sql::Statement *stmt = con->createStatement();
-			stmt->execute("CREATE TABLE APRS(ts datetime not null, rssi double, snr double, crc int(1) not null, content blob, latitude double, longitude double, distance double)");
+			stmt->execute("CREATE TABLE APRS(ts datetime not null, rssi double, snr double, crc int(1) not null, content blob, latitude double, longitude double, distance double, callsign_to varchar(7), callsign_from varchar(7))");
 			delete stmt;
 		}
 	}
@@ -108,7 +108,7 @@ db::~db()
 }
 
 
-void db::insert_message(uint8_t *msg, int msg_size, double rssi, double snr, int crc, double latitude, double longitude, double distance)
+void db::insert_message(uint8_t *msg, int msg_size, double rssi, double snr, int crc, double latitude, double longitude, double distance, std::string callsign_to, std::string callsign_from)
 {
 	if (!driver)
 		return;
@@ -120,7 +120,7 @@ void db::insert_message(uint8_t *msg, int msg_size, double rssi, double snr, int
 	sql::PreparedStatement *stmt { nullptr };
 
 	try {
-		stmt = con->prepareStatement("INSERT INTO APRS(ts, rssi, snr, crc, content, latitude, longitude, distance) VALUES(NOW(), ?, ?, ?, ?, ?, ?, ?)");
+		stmt = con->prepareStatement("INSERT INTO APRS(ts, rssi, snr, crc, content, latitude, longitude, distance, callsign_to, callsign_from) VALUES(NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
 		stmt->setDouble(1, rssi);
 		stmt->setDouble(2, snr);
@@ -133,6 +133,8 @@ void db::insert_message(uint8_t *msg, int msg_size, double rssi, double snr, int
 		stmt->setDouble(5, latitude);
 		stmt->setDouble(6, longitude);
 		stmt->setDouble(7, distance);
+		stmt->setString(8, callsign_to);
+		stmt->setString(9, callsign_from);
 		stmt->execute();
 	}
 	catch(sql::SQLException & e) {
