@@ -21,5 +21,11 @@ log.o: log.cpp
 utils.o: utils.cpp
 	g++ $(CXXFLAGS) -c utils.cpp -o utils.o
 
-gateway: LoRa.o gateway.o error.o db.o log.o utils.o
-	g++ $(CXXFLAGS) -o gateway gateway.o error.o LoRa.o log.o db.o utils.o -lpigpio -lrt -pthread -lax25 -lutil -lm -lmysqlcppconn
+net.o: net.cpp
+	g++ $(CXXFLAGS) -c net.cpp -o net.o
+
+kiss.o: kiss.cpp
+	g++ $(CXXFLAGS) -c kiss.cpp -o kiss.o
+
+gateway: gateway.o error.o db.o log.o utils.o net.o kiss.o LoRa.o
+	g++ $(CXXFLAGS) -o gateway gateway.o error.o LoRa.o log.o db.o utils.o net.o kiss.o -lpigpio -lrt -pthread -lax25 -lutil -lm -lmysqlcppconn

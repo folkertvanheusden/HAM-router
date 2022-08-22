@@ -30,3 +30,9 @@ std::string myformat(const char *const fmt, ...)
 
 	return result;
 }
+
+void dump_hex(const unsigned char *p, int len)
+{
+	for(int i=0; i<len; i++)
+		printf("%d[%c] ", p[i], p[i] > 32 && p[i] < 127 ? p[i] : '.');
+}

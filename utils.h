@@ -5,3 +5,4 @@
 
 uint64_t get_us();
 std::string myformat(const char *const fmt, ...);
+void dump_hex(const unsigned char *p, int len);
