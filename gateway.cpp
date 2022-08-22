@@ -229,6 +229,8 @@ int main(int argc, char *argv[])
 
 	setlogfile(logfile.c_str(), LL_DEBUG);
 
+	log(LL_INFO, "Configuration-file loaded");
+
 	if (db_url.empty() == false)
 		d = new db(db_url, db_user, db_pass);
 
@@ -289,6 +291,8 @@ int main(int argc, char *argv[])
 	startiface(dev_name);
 
 	std::thread tx_thread([fdmaster] {
+		log(LL_INFO, "Starting transmit (LoRa APRS -> aprsi) thread");
+
 		int fd = -1;
 
 		for(;;) {
@@ -371,6 +375,8 @@ int main(int argc, char *argv[])
 		if (fd != -1)
 			close(fd);
 	});
+
+	log(LL_INFO, "Starting transmit (local AX.25 stack to LoRa)");
 
 	struct pollfd fds[] = { { fdmaster, POLLIN, 0 } };
 
