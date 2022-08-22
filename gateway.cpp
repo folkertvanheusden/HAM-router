@@ -88,38 +88,9 @@ void load_ini_file(const std::string & file)
 
 db *d = nullptr;
 
-class packet
-{
-private:
-	uint8_t *data;
-	int      size;
-
-public:
-	packet(const uint8_t *const in, const int in_size) {
-		data = (uint8_t *)calloc(in_size + 1, 1);
-
-		memcpy(data, in, in_size);
-
-		size = in_size;
-	}
-
-	~packet() {
-		free(data);
-	}
-
-	const uint8_t *get_data() const {
-		return data;
-	}
-
-	int get_size() const {
-		return size;
-	}
-};
-
-std::queue<packet *>    packets;
+std::queue<rxData>      packets;
 std::mutex              packets_lock;
 std::condition_variable packets_cv;
-unsigned                count { 0 };
 
 void tx_f(txData *tx)
 {
@@ -191,36 +162,10 @@ void * rx_f(void *in)
 	if (rx->size == 0 || rx->CRC)
 		return NULL;
 
-	// TODO wrap rxData directly instead
-	packet *p = new packet(reinterpret_cast<uint8_t *>(rx->buf), rx->size);
-
 	packets_lock.lock();
-	packets.push(p);
+	packets.push(*rx);
 	packets_cv.notify_one();
-	unsigned current_count = ++count;
 	packets_lock.unlock();
-
-	// TODO move this to main
-	double latitude = 0, longitude = 0, distance = -1.0;
-
-	char *colon = strchr(rx->buf, ':');
-	if (colon && rx->size - (rx->buf - colon) >= 7) {
-		parse_nmea_pos(colon + 1, &latitude, &longitude);
-
-		distance = calcGPSDistance(latitude, longitude, local_lat, local_lng);
-	}
-
-	if (d)
-		d->insert_message(reinterpret_cast<uint8_t *>(rx->buf), rx->size, rx->RSSI, rx->SNR, rx->CRC, latitude, longitude, distance);
-
-	time_t now = time(NULL);
-
-	char *buffer = ctime(&now);
-	char *temp = strchr(buffer, '\n');
-	if (temp)
-		*temp = 0x00;
-
-	log(LL_INFO, "RX finished of %dth message @ timestamp: %s, CRC error: %d, RSSI: %d, SNR: %f (%f,%f => distance: %fm)", current_count, buffer, rx->CRC, rx->RSSI, rx->SNR, latitude, longitude, distance);
 
 	free(rx);
 
@@ -308,12 +253,33 @@ int main(int argc, char *argv[])
 			while(packets.empty())
 				packets_cv.wait(lck);
 
-			packet *p = packets.front();
+			rxData rx = packets.front();
 			packets.pop();
 
 			lck.unlock();
 
-			const uint8_t *const data = p->get_data();
+			double latitude = 0, longitude = 0, distance = -1.0;
+
+			char *colon = strchr(rx.buf, ':');
+			if (colon && rx.size - (rx.buf - colon) >= 7) {
+				parse_nmea_pos(colon + 1, &latitude, &longitude);
+
+				distance = calcGPSDistance(latitude, longitude, local_lat, local_lng);
+			}
+
+			if (d)
+				d->insert_message(reinterpret_cast<uint8_t *>(rx.buf), rx.size, rx.RSSI, rx.SNR, rx.CRC, latitude, longitude, distance);
+
+			char buffer[32] { 0 };
+			ctime_r(&rx.last_time.tv_sec, buffer);
+
+			char *temp = strchr(buffer, '\n');
+			if (temp)
+				*temp = 0x00;
+
+			log(LL_INFO, "RX message @ timestamp: %s, CRC error: %d, RSSI: %d, SNR: %f (%f,%f => distance: %fm)", buffer, rx.CRC, rx.RSSI, rx.SNR, latitude, longitude, distance);
+
+			const uint8_t *const data = reinterpret_cast<const uint8_t *>(rx.buf);
 
 			if (data[0] == 0x3c) {  // OE_
 				if (fd == -1 && aprs_user.empty() == false) {
@@ -355,7 +321,7 @@ int main(int argc, char *argv[])
 				}
 
 				if (fd != -1) {
-					std::string payload(reinterpret_cast<const char *>(&data[3]), p->get_size() - 3);
+					std::string payload(reinterpret_cast<const char *>(&data[3]), rx.size - 3);
 					payload += "\r\n";
 
 					if (WRITE(fd, reinterpret_cast<const uint8_t *>(payload.c_str()), payload.size()) != ssize_t(payload.size())) {
@@ -371,10 +337,8 @@ int main(int argc, char *argv[])
 
 				log(LL_INFO, "Received AX.25 over LoRa: %s -> %s", from.c_str(), to.c_str());
 
-				send_mkiss(fdmaster, 0, data, p->get_size());
+				send_mkiss(fdmaster, 0, data, rx.size);
 			}
-
-			delete p;
 		}
 
 		if (fd != -1)
