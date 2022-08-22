@@ -316,7 +316,7 @@ int main(int argc, char *argv[])
 			const uint8_t *const data = p->get_data();
 
 			if (data[0] == 0x3c) {  // OE_
-				if (fd == -1) {
+				if (fd == -1 && aprs_user.empty() == false) {
 					log(LL_INFO, "(re-)connecting to aprs2.net");
 
 					fd = connect_to("rotate.aprs2.net", 14580);
