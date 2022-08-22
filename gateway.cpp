@@ -49,7 +49,7 @@ void set_nodelay(int fd)
                 error_exit(true, "TCP_NODELAY");
 }
 
-int WRITE(int fd, const uint8_t *whereto, size_t len)
+ssize_t WRITE(int fd, const uint8_t *whereto, size_t len)
 {
         ssize_t cnt=0;
 
@@ -545,7 +545,7 @@ int main(int argc, char *argv[])
 					if (fd != -1) {
 						std::string login = "user " + aprs_user + " pass " + aprs_pass + " vers MyAprsGw softwarevers 0.1\r\n";
 
-						if (WRITE(fd, reinterpret_cast<const uint8_t *>(login.c_str()), login.size()) != login.size()) {
+						if (WRITE(fd, reinterpret_cast<const uint8_t *>(login.c_str()), login.size()) != ssize_t(login.size())) {
 							close(fd);
 							fd = -1;
 						}
@@ -578,7 +578,7 @@ int main(int argc, char *argv[])
 					std::string payload(reinterpret_cast<const char *>(&data[3]), p->get_size() - 3);
 					payload += "\r\n";
 
-					if (WRITE(fd, reinterpret_cast<const uint8_t *>(payload.c_str()), payload.size()) != payload.size()) {
+					if (WRITE(fd, reinterpret_cast<const uint8_t *>(payload.c_str()), payload.size()) != ssize_t(payload.size())) {
 						close(fd);
 						fd = -1;
 						printf("failed to send (1)\n");
