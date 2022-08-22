@@ -420,12 +420,6 @@ int main(int argc, char *argv[])
 					if ((err = mosquitto_publish(mi, nullptr, mqtt_aprs_packet_as_is.c_str(), rx.size, data, 0, false)) != MOSQ_ERR_SUCCESS)
 						log(LL_WARNING, "mqtt failed to publish (%s)", mosquitto_strerror(err));
 				}
-
-				if (mi && mqtt_aprs_packet_meta.empty() == false) {
-					int err = 0;
-					if ((err = mosquitto_publish(mi, nullptr, mqtt_aprs_packet_meta.c_str(), meta_str_len, meta_str, 0, false)) != MOSQ_ERR_SUCCESS)
-						log(LL_WARNING, "mqtt failed to publish (%s)", mosquitto_strerror(err));
-				}
 			}
 			else {
 				std::string to   = get_ax25_addr(&data[0]);
