@@ -3,6 +3,7 @@
 #include <unistd.h>
 
 #include "error.h"
+#include "log.h"
 #include "net.h"
 #include "utils.h"
 
@@ -39,7 +40,7 @@ bool recv_mkiss(int fd, unsigned char **p, int *len, bool verbose)
 			else if (buffer == TFESC)
 				(*p)[(*len)++] = FESC;
 			else if (verbose)
-				printf("unexpected mkiss escape %02x\n", buffer);
+				log(LL_ERR, "unexpected mkiss escape %02x", buffer);
 
 			escape = false;
 		}
@@ -69,7 +70,7 @@ bool recv_mkiss(int fd, unsigned char **p, int *len, bool verbose)
 		int cmd = (*p)[0] & 0x0f;
 
 		if (verbose)
-			printf("port: %d\n", ((*p)[0] >> 4) & 0x0f);
+			log(LL_DEBUG, "port: %d", ((*p)[0] >> 4) & 0x0f);
 
 		if (cmd == 0x00) // data frame
 		{
@@ -81,22 +82,19 @@ bool recv_mkiss(int fd, unsigned char **p, int *len, bool verbose)
 			if (verbose)
 			{
 				if (cmd == 1)
-					printf("TX delay: %d\n", (*p)[1] * 10);
+					log(LL_DEBUG, "TX delay: %d\n", (*p)[1] * 10);
 				else if (cmd == 2)
-					printf("persistance: %d\n", (*p)[1] * 256 - 1);
+					log(LL_DEBUG, "persistance: %d\n", (*p)[1] * 256 - 1);
 				else if (cmd == 3)
-					printf("slot time: %dms\n", (*p)[1] * 10);
+					log(LL_DEBUG, "slot time: %dms\n", (*p)[1] * 10);
 				else if (cmd == 4)
-					printf("txtail: %dms\n", (*p)[1] * 10);
+					log(LL_DEBUG, "txtail: %dms\n", (*p)[1] * 10);
 				else if (cmd == 5)
-					printf("full duplex: %d\n", (*p)[1]);
-				else if (cmd == 6)
-				{
-					printf("set hardware: ");
-					dump_hex(&(*p)[1], *len - 1);
+					log(LL_DEBUG, "full duplex: %d\n", (*p)[1]);
+				else if (cmd == 6) {
+					log(LL_DEBUG, "set hardware: %s", dump_hex(&(*p)[1], *len - 1));
 				}
-				else if (cmd == 15)
-				{
+				else if (cmd == 15) {
 					error_exit(false, "kernal asked for shutdown");
 				}
 			}

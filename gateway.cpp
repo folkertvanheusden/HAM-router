@@ -16,21 +16,75 @@ extern "C" {
 #include "LoRa.h"
 }
 
-#include "error.h"
 #include "db.h"
+#include "error.h"
+#include "ini.h"
 #include "kiss.h"
 #include "log.h"
 #include "net.h"
 #include "utils.h"
 
-constexpr char callsign[] = "PD9FVH";
-const std::string aprs_user = "PD9FVH";
-const std::string aprs_pass = "19624";
-constexpr double local_lat = 52.0275;
-constexpr double local_lng = 4.6955;
-const std::string db_url = "tcp://192.168.64.1/lora-aprs";
-const std::string db_user = "lora";
-const std::string db_pass = "mauw";
+std::string callsign = "PD9FVH";
+std::string aprs_user = "PD9FVH";
+std::string aprs_pass = "19624";
+double local_lat = 52.0275;
+double local_lng = 4.6955;
+std::string db_url = "tcp://192.168.64.1/lora-aprs";
+std::string db_user = "lora";
+std::string db_pass = "mauw";
+std::string logfile = "gateway.log";
+int gpio_lora_reset = 27;
+int gpio_lora_dio0  = 17;
+
+#define INI_MATCH(s, n) (strcmp(section, s) == 0 && strcmp(name, n) == 0)
+
+static int handler_ini(void* user, const char* section, const char* name, const char* value)
+{
+	if (INI_MATCH("general", "callsign")) {
+		callsign = value;
+	}
+	else if (INI_MATCH("general", "local-latitude")) {
+		local_lat = atof(value);
+	}
+	else if (INI_MATCH("general", "local-longitude")) {
+		local_lng = atof(value);
+	}
+	else if (INI_MATCH("general", "logfile")) {
+		logfile = value;
+	}
+	else if (INI_MATCH("aprsi", "user")) {
+		aprs_user = value;
+	}
+	else if (INI_MATCH("aprsi", "password")) {
+		aprs_pass = value;
+	}
+	else if (INI_MATCH("db", "url")) {
+		db_url = value;
+	}
+	else if (INI_MATCH("db", "user")) {
+		db_user = value;
+	}
+	else if (INI_MATCH("db", "password")) {
+		db_pass = value;
+	}
+	else if (INI_MATCH("tranceiver", "reset-pin")) {
+		gpio_lora_reset = atoi(value);
+	}
+	else if (INI_MATCH("tranceiver", "dio0-pin")) {
+		gpio_lora_dio0 = atoi(value);
+	}
+	else {
+		return 0;
+	}
+
+	return 1;
+}
+
+void load_ini_file(const std::string & file)
+{
+	if (ini_parse(file.c_str(), handler_ini, nullptr) < 0)
+		error_exit(true, "Cannot process INI-file \"%s\"", file.c_str());
+}
 
 db *d = nullptr;
 
@@ -69,7 +123,7 @@ unsigned                count { 0 };
 
 void tx_f(txData *tx)
 {
-	printf("transmitted\n");
+	log(LL_DEBUG, "transmitted");
 }
 
 // https://stackoverflow.com/questions/27126714/c-latitude-and-longitude-distance-calculator
@@ -153,7 +207,8 @@ void rx_f(rxData *rx)
 		distance = calcGPSDistance(latitude, longitude, local_lat, local_lng);
 	}
 
-	d->insert_message(reinterpret_cast<uint8_t *>(rx->buf), rx->size, rx->RSSI, rx->SNR, rx->CRC, latitude, longitude, distance);
+	if (d)
+		d->insert_message(reinterpret_cast<uint8_t *>(rx->buf), rx->size, rx->RSSI, rx->SNR, rx->CRC, latitude, longitude, distance);
 
 	time_t now = time(NULL);
 
@@ -162,15 +217,20 @@ void rx_f(rxData *rx)
 	if (temp)
 		*temp = 0x00;
 
-	printf("RX finished of %dth message @ timestamp: %s, CRC error: %d, RSSI: %d, SNR: %f (%f,%f => distance: %fm)\n", current_count, buffer, rx->CRC, rx->RSSI, rx->SNR, latitude, longitude, distance);
+	log(LL_INFO, "RX finished of %dth message @ timestamp: %s, CRC error: %d, RSSI: %d, SNR: %f (%f,%f => distance: %fm)", current_count, buffer, rx->CRC, rx->RSSI, rx->SNR, latitude, longitude, distance);
 }
-
 
 int main(int argc, char *argv[])
 {
-	setlogfile("gateway.log", LL_DEBUG);
+	if (argc != 2)
+		error_exit(false, "Requires filename of configuration ini-file");
 
-	d = new db(db_url, db_user, db_pass);
+	load_ini_file(argv[1]);
+
+	setlogfile(logfile.c_str(), LL_DEBUG);
+
+	if (db_url.empty() == false)
+		d = new db(db_url, db_user, db_pass);
 
 	char rxbuf[255] { 0 };
 	char txbuf[MAX_PACKET_SIZE] { 0 };
@@ -190,8 +250,8 @@ int main(int argc, char *argv[])
 	modem.eth.sf = SF12;//Spreading Factor 12
 	modem.eth.ecr = CR5;//Error coding rate CR4/8
 	modem.eth.freq = 433775000;// 434.8MHz
-	modem.eth.resetGpioN = 27;//GPIO4 on lora RESET pi
-	modem.eth.dio0GpioN = 17;//GPIO17 on lora DIO0 pin to control Rxdone and Txdone interrupts
+	modem.eth.resetGpioN = gpio_lora_reset;
+	modem.eth.dio0GpioN = gpio_lora_dio0;
 	modem.eth.outPower = OP20;//Output power
 	modem.eth.powerOutPin = PA_BOOST;//Power Amplifire pin
 	modem.eth.AGC = 1;//Auto Gain Control
@@ -215,7 +275,7 @@ int main(int argc, char *argv[])
 	if (ioctl(fdslave, TIOCSETD, &disc) == -1)
 		error_exit(true, "error setting line discipline");
 
-	if (setifcall(fdslave, callsign) == -1)
+	if (setifcall(fdslave, callsign.c_str()) == -1)
 		error_exit(false, "cannot set call");
 
 	int v = 4;
@@ -247,10 +307,8 @@ int main(int argc, char *argv[])
 			const uint8_t *const data = p->get_data();
 
 			if (data[0] == 0x3c) {  // OE_
-				printf("LoRa: %s\n", data);
-
 				if (fd == -1) {
-					printf("(re-)connecting to aprs2.net\n");
+					log(LL_INFO, "(re-)connecting to aprs2.net");
 
 					fd = connect_to("rotate.aprs2.net", 14580);
 
@@ -260,6 +318,7 @@ int main(int argc, char *argv[])
 						if (WRITE(fd, reinterpret_cast<const uint8_t *>(login.c_str()), login.size()) != ssize_t(login.size())) {
 							close(fd);
 							fd = -1;
+							log(LL_WARNING, "Failed aprsi handshake (send)");
 						}
 
 						std::string reply;
@@ -267,9 +326,9 @@ int main(int argc, char *argv[])
 						for(;;) {
 							char c = 0;
 							if (read(fd, &c, 1) <= 0) {
-								printf("failed receive\n");
 								close(fd);
 								fd = -1;
+								log(LL_WARNING, "Failed aprsi handshake (receive)");
 								break;
 							}
 
@@ -279,10 +338,10 @@ int main(int argc, char *argv[])
 							reply += c;
 						}
 
-						printf("recv: %s\n", reply.c_str());
+						log(LL_DEBUG, "recv: %s", reply.c_str());
 					}
 					else {
-						printf("failed to connect: %s\n", strerror(errno));
+						log(LL_ERR, "failed to connect: %s", strerror(errno));
 					}
 				}
 
@@ -293,7 +352,7 @@ int main(int argc, char *argv[])
 					if (WRITE(fd, reinterpret_cast<const uint8_t *>(payload.c_str()), payload.size()) != ssize_t(payload.size())) {
 						close(fd);
 						fd = -1;
-						printf("failed to send (1)\n");
+						log(LL_WARNING, "Failed to transmit APRS data to aprsi");
 					}
 				}
 			}
@@ -301,7 +360,7 @@ int main(int argc, char *argv[])
 				std::string to   = get_ax25_addr(&data[0]);
 				std::string from = get_ax25_addr(&data[7]);
 
-				printf("LoRa: %s -> %s\n", from.c_str(), to.c_str());
+				log(LL_INFO, "Received AX.25 over LoRa: %s -> %s\n", from.c_str(), to.c_str());
 
 				send_mkiss(fdmaster, 0, data, p->get_size());
 			}
@@ -319,29 +378,21 @@ int main(int argc, char *argv[])
 
 	for(;;) {
 		if (poll(fds, 1, 0) == -1) {
-			printf("TERMINATE: (%s)\n", strerror(errno));
+			log(LL_WARNING, "TERMINATE: (%s)", strerror(errno));
 			break;
 		}
 
 		uint8_t *p = NULL;
 		int plen = 0;
 		if (!recv_mkiss(fdmaster, &p, &plen, true)) {
-			printf("TERMINATE\n");
+			log(LL_WARNING, "TERMINATE");
 			break;
 		}
 
 		memcpy(txbuf, p, plen);
 		free(p);
 
-		time_t now = time(NULL);
-		char *buffer = ctime(&now);
-		char *temp = strchr(buffer, '\n');
-		if (temp)
-			*temp = 0x00;
-
-		printf("%s: transmit ", buffer);
-		dump_hex(reinterpret_cast<const uint8_t *>(txbuf), plen);
-		printf("\n");
+		log(LL_DEBUG, "transmit: %s", dump_hex(reinterpret_cast<const uint8_t *>(txbuf), plen).c_str());
 
 		LoRa_stop_receive(&modem); //manually stoping RxCont mode
 
@@ -355,14 +406,12 @@ int main(int argc, char *argv[])
 		while(LoRa_get_op_mode(&modem) != STDBY_MODE)
 			usleep(101000);
 
-		printf("Time on air data - Tsym: %f;\t", modem.tx.data.Tsym);
-		printf("Tpkt: %f;\t", modem.tx.data.Tpkt);
-		printf("payloadSymbNb: %u\n", modem.tx.data.payloadSymbNb);
+		log(LL_DEBUG, "Time on air data - Tsym: %f; Tpkt: %f; payloadSymbNb: %u", modem.tx.data.Tsym, modem.tx.data.Tpkt, modem.tx.data.payloadSymbNb);
 
 		LoRa_receive(&modem);
 	}
 
 	LoRa_end(&modem);
 
-	printf("end\n");
+	log(LL_INFO, "END");
 }
