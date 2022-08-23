@@ -25,6 +25,7 @@ extern "C" {
 #include "log.h"
 #include "net.h"
 #include "utils.h"
+#include "websockets.h"
 
 std::string callsign;
 std::string aprs_user;
@@ -39,13 +40,14 @@ int gpio_lora_reset = 0;
 int gpio_lora_dio0 = 0;
 bool local_ax25 = true;
 std::string mqtt_host;
-int         mqtt_port;
+int         mqtt_port = -1;
 std::string mqtt_aprs_packet_meta;
 std::string mqtt_aprs_packet_as_is;
 std::string mqtt_ax25_packet_meta;
 std::string mqtt_ax25_packet_as_is;
 std::string syslog_host;
-int         syslog_port;
+int         syslog_port = -1;
+int         ws_port = -1;
 
 #define INI_MATCH(s, n) (strcmp(section, s) == 0 && strcmp(name, n) == 0)
 
@@ -110,6 +112,9 @@ int handler_ini(void* user, const char* section, const char* name, const char* v
 	}
 	else if (INI_MATCH("syslog", "port")) {
 		syslog_port = atoi(value);
+	}
+	else if (INI_MATCH("websockets", "port")) {
+		ws_port = atoi(value);
 	}
 	else {
 		return 0;
@@ -210,11 +215,45 @@ void * rx_f(void *in)
 	return NULL;
 }
 
-void process_incoming(const int fdmaster, struct mosquitto *const mi)
+void push_to_websockets(ws_global_context_t *const ws, const std::string & json_data)
+{
+	ws->lock.lock();
+	ws->json_data = json_data;
+	ws->ts        = get_us();
+	ws->lock.unlock();
+}
+
+std::string receive_string(const int fd)
+{
+	std::string reply;
+
+	for(;;) {
+		char c = 0;
+		if (read(fd, &c, 1) <= 0) {
+			log(LL_WARNING, "Receive failed: %s", strerror(errno));
+			return "";
+		}
+
+		if (c == 10)
+			break;
+
+		reply += c;
+	}
+
+	return reply;
+}
+
+void process_incoming(const int fdmaster, struct mosquitto *const mi, const int ws_port)
 {
 	log(LL_INFO, "Starting \"LoRa APRS -> aprsi/mqtt/syslog/db\"-thread");
 
 	int fd = -1;
+
+	ws_global_context_t ws;
+	ws.ts = 0;
+
+	if (ws_port != -1)
+		start_websocket_thread(ws_port, &ws);
 
 	for(;;) {
 		pthread_setname_np(pthread_self(), "tx_thread");
@@ -272,7 +311,7 @@ void process_incoming(const int fdmaster, struct mosquitto *const mi)
 			from = get_ax25_addr(&data[7]);
 		}
 
-		if (mi && (mqtt_aprs_packet_meta.empty() == false || mqtt_ax25_packet_meta.empty() == false || syslog_host.empty() == false)) {
+		if (mi && (mqtt_aprs_packet_meta.empty() == false || mqtt_ax25_packet_meta.empty() == false || syslog_host.empty() == false || ws_port != -1)) {
 			meta = json_object();
 
 			json_object_set(meta, "timestamp", json_integer(rx.last_time.tv_sec));
@@ -316,6 +355,9 @@ void process_incoming(const int fdmaster, struct mosquitto *const mi)
 		if (syslog_host.empty() == false)
 			transmit_udp(syslog_host, syslog_port, reinterpret_cast<const uint8_t *>(meta_str), meta_str_len);
 
+		if (ws_port != -1)
+			push_to_websockets(&ws, meta_str);
+
 		if (data[0] == 0x3c) {  // OE_
 			if (fd == -1 && aprs_user.empty() == false) {
 				log(LL_INFO, "(re-)connecting to aprs2.net");
@@ -331,24 +373,16 @@ void process_incoming(const int fdmaster, struct mosquitto *const mi)
 						log(LL_WARNING, "Failed aprsi handshake (send)");
 					}
 
-					std::string reply;
+					std::string reply = receive_string(fd);
 
-					for(;;) {
-						char c = 0;
-						if (read(fd, &c, 1) <= 0) {
-							close(fd);
-							fd = -1;
-							log(LL_WARNING, "Failed aprsi handshake (receive)");
-							break;
-						}
-
-						if (c == 10)
-							break;
-
-						reply += c;
+					if (reply.empty()) {
+						log(LL_WARNING, "Failed aprsi handshake (receive)");
+						close(fd);
+						fd = -1;
 					}
-
-					log(LL_DEBUG, "recv: %s", reply.c_str());
+					else {
+						log(LL_DEBUG, "recv: %s", reply.c_str());
+					}
 				}
 				else {
 					log(LL_ERR, "failed to connect: %s", strerror(errno));
@@ -490,8 +524,8 @@ int main(int argc, char *argv[])
 			error_exit(false, "mqtt failed to start thread (%s)", mosquitto_strerror(err));
 	}
 
-	std::thread tx_thread([fdmaster, mi] {
-		process_incoming(fdmaster, mi);
+	std::thread tx_thread([fdmaster, mi, ws_port] {
+		process_incoming(fdmaster, mi, ws_port);
 		});
 
 	if (local_ax25) {

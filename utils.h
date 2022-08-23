@@ -3,6 +3,6 @@
 #include <stdint.h>
 #include <string>
 
-uint64_t get_us();
+uint64_t    get_us();
 std::string myformat(const char *const fmt, ...);
 std::string dump_hex(const unsigned char *p, int len);
