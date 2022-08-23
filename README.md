@@ -12,7 +12,7 @@ requires:
 
 (optional) database schema:
 
-`
+```
   CREATE TABLE APRS (
     ts datetime NOT NULL,
     rssi double DEFAULT NULL,
@@ -23,7 +23,7 @@ requires:
     longitude double DEFAULT NULL,
     distance double DEFAULT NULL
   );
-`
+```
 
 
 Folkert van Heusden <mail@vanheusden.com>
