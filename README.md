@@ -25,5 +25,7 @@ requires:
   );
 ```
 
+Configuration: gateway.ini 
+
 
 Folkert van Heusden <mail@vanheusden.com>
