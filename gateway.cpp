@@ -44,6 +44,8 @@ std::string mqtt_aprs_packet_meta;
 std::string mqtt_aprs_packet_as_is;
 std::string mqtt_ax25_packet_meta;
 std::string mqtt_ax25_packet_as_is;
+std::string syslog_host;
+int         syslog_port;
 
 #define INI_MATCH(s, n) (strcmp(section, s) == 0 && strcmp(name, n) == 0)
 
@@ -102,6 +104,12 @@ int handler_ini(void* user, const char* section, const char* name, const char* v
 	}
 	else if (INI_MATCH("mqtt", "ax25-packet-as-is-topic")) {
 		mqtt_ax25_packet_as_is = value;
+	}
+	else if (INI_MATCH("syslog", "host")) {
+		syslog_host = value;
+	}
+	else if (INI_MATCH("syslog", "port")) {
+		syslog_port = atoi(value);
 	}
 	else {
 		return 0;
@@ -202,6 +210,198 @@ void * rx_f(void *in)
 	return NULL;
 }
 
+void process_incoming(const int fdmaster, struct mosquitto *const mi)
+{
+	log(LL_INFO, "Starting \"LoRa APRS -> aprsi/mqtt/syslog/db\"-thread");
+
+	int fd = -1;
+
+	for(;;) {
+		pthread_setname_np(pthread_self(), "tx_thread");
+
+		std::unique_lock<std::mutex> lck(packets_lock);
+
+		while(packets.empty())
+			packets_cv.wait(lck);
+
+		rxData rx = packets.front();
+		packets.pop();
+
+		lck.unlock();
+
+		double latitude = 0, longitude = 0, distance = -1.0;
+
+		char *colon = strchr(rx.buf, ':');
+		if (colon && rx.size - (rx.buf - colon) >= 7) {
+			parse_nmea_pos(colon + 1, &latitude, &longitude);
+
+			if (latitude != 0. || longitude != 0.)
+				distance = calcGPSDistance(latitude, longitude, local_lat, local_lng);
+		}
+
+		char buffer[32] { 0 };
+		ctime_r(&rx.last_time.tv_sec, buffer);
+
+		char *temp = strchr(buffer, '\n');
+		if (temp)
+			*temp = 0x00;
+
+		log(LL_INFO, "RX message @ timestamp: %s, CRC error: %d, RSSI: %d, SNR: %f (%f,%f => distance: %fm)", buffer, rx.CRC, rx.RSSI, rx.SNR, latitude, longitude, distance);
+
+		const uint8_t *const data = reinterpret_cast<const uint8_t *>(rx.buf);
+
+		json_t     *meta         = nullptr;
+		const char *meta_str     = nullptr;
+		int         meta_str_len = 0;
+
+		std::string to;
+		std::string from;
+
+		if (data[0] == 0x3c && data[1] == 0xff && data[2] == 0x01) {  // OE_
+			const char *const gt = strchr(&rx.buf[3], '>');
+			if (gt) {
+				const char *const colon = strchr(gt, ':');
+				if (colon) {
+					to   = std::string(gt + 1, colon - gt - 1);
+					from = std::string(&rx.buf[3], gt - rx.buf - 3);
+				}
+			}
+		}
+		else {  // assuming AX.25
+			to   = get_ax25_addr(&data[0]);
+			from = get_ax25_addr(&data[7]);
+		}
+
+		if (mi && (mqtt_aprs_packet_meta.empty() == false || mqtt_ax25_packet_meta.empty() == false || syslog_host.empty() == false)) {
+			meta = json_object();
+
+			json_object_set(meta, "timestamp", json_integer(rx.last_time.tv_sec));
+
+			json_object_set(meta, "CRC-error", json_integer(rx.CRC));
+
+			json_object_set(meta, "RSSI", json_real(double(rx.RSSI)));
+
+			json_object_set(meta, "SNR", json_real(rx.SNR));
+
+			if (latitude != 0. || longitude != 0.) {
+				json_object_set(meta, "latitude", json_real(latitude));
+
+				json_object_set(meta, "longitude", json_real(longitude));
+
+				if (distance >= 0.)
+					json_object_set(meta, "distance", json_real(distance));
+			}
+
+			if (to.empty() == false)
+				json_object_set(meta, "callsign-to", json_string(to.c_str()));
+
+			if (from.empty() == false)
+				json_object_set(meta, "callsign-from", json_string(from.c_str()));
+
+			json_object_set(meta, "data", json_string(dump_hex(reinterpret_cast<const uint8_t *>(rx.buf), rx.size).c_str()));
+
+			meta_str     = json_dumps(meta, 0);
+			meta_str_len = strlen(meta_str);
+		}
+
+		if (d)
+			d->insert_message(reinterpret_cast<uint8_t *>(rx.buf), rx.size, rx.RSSI, rx.SNR, rx.CRC, latitude, longitude, distance, to, from);
+
+		if (mi && mqtt_aprs_packet_meta.empty() == false) {
+			int err = 0;
+			if ((err = mosquitto_publish(mi, nullptr, mqtt_aprs_packet_meta.c_str(), meta_str_len, meta_str, 0, false)) != MOSQ_ERR_SUCCESS)
+				log(LL_WARNING, "mqtt failed to publish (%s)", mosquitto_strerror(err));
+		}
+
+		if (syslog_host.empty() == false)
+			transmit_udp(syslog_host, syslog_port, reinterpret_cast<const uint8_t *>(meta_str), meta_str_len);
+
+		if (data[0] == 0x3c) {  // OE_
+			if (fd == -1 && aprs_user.empty() == false) {
+				log(LL_INFO, "(re-)connecting to aprs2.net");
+
+				fd = connect_to("rotate.aprs2.net", 14580);
+
+				if (fd != -1) {
+					std::string login = "user " + aprs_user + " pass " + aprs_pass + " vers MyAprsGw softwarevers 0.1\r\n";
+
+					if (WRITE(fd, reinterpret_cast<const uint8_t *>(login.c_str()), login.size()) != ssize_t(login.size())) {
+						close(fd);
+						fd = -1;
+						log(LL_WARNING, "Failed aprsi handshake (send)");
+					}
+
+					std::string reply;
+
+					for(;;) {
+						char c = 0;
+						if (read(fd, &c, 1) <= 0) {
+							close(fd);
+							fd = -1;
+							log(LL_WARNING, "Failed aprsi handshake (receive)");
+							break;
+						}
+
+						if (c == 10)
+							break;
+
+						reply += c;
+					}
+
+					log(LL_DEBUG, "recv: %s", reply.c_str());
+				}
+				else {
+					log(LL_ERR, "failed to connect: %s", strerror(errno));
+				}
+			}
+
+			if (fd != -1) {
+				std::string payload(reinterpret_cast<const char *>(&data[3]), rx.size - 3);
+				payload += "\r\n";
+
+				if (WRITE(fd, reinterpret_cast<const uint8_t *>(payload.c_str()), payload.size()) != ssize_t(payload.size())) {
+					close(fd);
+					fd = -1;
+					log(LL_WARNING, "Failed to transmit APRS data to aprsi");
+				}
+			}
+
+			if (mi && mqtt_aprs_packet_as_is.empty() == false) {
+				int err = 0;
+				if ((err = mosquitto_publish(mi, nullptr, mqtt_aprs_packet_as_is.c_str(), rx.size, data, 0, false)) != MOSQ_ERR_SUCCESS)
+					log(LL_WARNING, "mqtt failed to publish (%s)", mosquitto_strerror(err));
+			}
+		}
+		else {
+			log(LL_INFO, "Received AX.25 over LoRa: %s -> %s", from.c_str(), to.c_str());
+
+			if (fdmaster != -1)
+				send_mkiss(fdmaster, 0, data, rx.size);
+
+			if (mi && mqtt_ax25_packet_as_is.empty() == false) {
+				int err = 0;
+				if ((err = mosquitto_publish(mi, nullptr, mqtt_ax25_packet_as_is.c_str(), rx.size, data, 0, false)) != MOSQ_ERR_SUCCESS)
+					log(LL_WARNING, "mqtt failed to publish (%s)", mosquitto_strerror(err));
+			}
+
+			if (mi && mqtt_ax25_packet_meta.empty() == false) {
+				int err = 0;
+				if ((err = mosquitto_publish(mi, nullptr, mqtt_ax25_packet_meta.c_str(), meta_str_len, meta_str, 0, false)) != MOSQ_ERR_SUCCESS)
+					log(LL_WARNING, "mqtt failed to publish (%s)", mosquitto_strerror(err));
+			}
+		}
+
+		if (meta) {
+			json_decref(meta);
+
+			free((void *)meta_str);
+		}
+	}
+
+	if (fd != -1)
+		close(fd);
+}
+
 int main(int argc, char *argv[])
 {
 	if (argc != 2)
@@ -291,192 +491,8 @@ int main(int argc, char *argv[])
 	}
 
 	std::thread tx_thread([fdmaster, mi] {
-		log(LL_INFO, "Starting transmit (LoRa APRS -> aprsi) thread");
-
-		int fd = -1;
-
-		for(;;) {
-			pthread_setname_np(pthread_self(), "tx_thread");
-
-			std::unique_lock<std::mutex> lck(packets_lock);
-
-			while(packets.empty())
-				packets_cv.wait(lck);
-
-			rxData rx = packets.front();
-			packets.pop();
-
-			lck.unlock();
-
-			double latitude = 0, longitude = 0, distance = -1.0;
-
-			char *colon = strchr(rx.buf, ':');
-			if (colon && rx.size - (rx.buf - colon) >= 7) {
-				parse_nmea_pos(colon + 1, &latitude, &longitude);
-
-				if (latitude != 0. || longitude != 0.)
-					distance = calcGPSDistance(latitude, longitude, local_lat, local_lng);
-			}
-
-			char buffer[32] { 0 };
-			ctime_r(&rx.last_time.tv_sec, buffer);
-
-			char *temp = strchr(buffer, '\n');
-			if (temp)
-				*temp = 0x00;
-
-			log(LL_INFO, "RX message @ timestamp: %s, CRC error: %d, RSSI: %d, SNR: %f (%f,%f => distance: %fm)", buffer, rx.CRC, rx.RSSI, rx.SNR, latitude, longitude, distance);
-
-			const uint8_t *const data = reinterpret_cast<const uint8_t *>(rx.buf);
-
-			json_t     *meta         = nullptr;
-			const char *meta_str     = nullptr;
-			int         meta_str_len = 0;
-
-			std::string to;
-			std::string from;
-
-			if (data[0] == 0x3c && data[1] == 0xff && data[2] == 0x01) {  // OE_
-				const char *const gt = strchr(&rx.buf[3], '>');
-				if (gt) {
-					const char *const colon = strchr(gt, ':');
-					if (colon) {
-						to   = std::string(gt + 1, colon - gt - 1);
-						from = std::string(&rx.buf[3], gt - rx.buf - 3);
-					}
-				}
-			}
-			else {  // assuming AX.25
-				to   = get_ax25_addr(&data[0]);
-				from = get_ax25_addr(&data[7]);
-			}
-
-			if (mi && (mqtt_aprs_packet_meta.empty() == false || mqtt_ax25_packet_meta.empty() == false)) {
-				meta = json_object();
-
-				json_object_set(meta, "timestamp", json_integer(rx.last_time.tv_sec));
-
-				json_object_set(meta, "CRC-error", json_integer(rx.CRC));
-
-				json_object_set(meta, "RSSI", json_real(double(rx.RSSI)));
-
-				json_object_set(meta, "SNR", json_real(rx.SNR));
-
-				if (latitude != 0. || longitude != 0.) {
-					json_object_set(meta, "latitude", json_real(latitude));
-
-					json_object_set(meta, "longitude", json_real(longitude));
-
-					if (distance >= 0.)
-						json_object_set(meta, "distance", json_real(distance));
-				}
-
-				if (to.empty() == false)
-					json_object_set(meta, "callsign-to", json_string(to.c_str()));
-
-				if (from.empty() == false)
-					json_object_set(meta, "callsign-from", json_string(from.c_str()));
-
-				json_object_set(meta, "data", json_string(dump_hex(reinterpret_cast<const uint8_t *>(rx.buf), rx.size).c_str()));
-
-				meta_str     = json_dumps(meta, 0);
-				meta_str_len = strlen(meta_str);
-			}
-
-			if (d)
-				d->insert_message(reinterpret_cast<uint8_t *>(rx.buf), rx.size, rx.RSSI, rx.SNR, rx.CRC, latitude, longitude, distance, to, from);
-
-			if (mi && mqtt_aprs_packet_meta.empty() == false) {
-				int err = 0;
-				if ((err = mosquitto_publish(mi, nullptr, mqtt_aprs_packet_meta.c_str(), meta_str_len, meta_str, 0, false)) != MOSQ_ERR_SUCCESS)
-					log(LL_WARNING, "mqtt failed to publish (%s)", mosquitto_strerror(err));
-			}
-
-			if (data[0] == 0x3c) {  // OE_
-				if (fd == -1 && aprs_user.empty() == false) {
-					log(LL_INFO, "(re-)connecting to aprs2.net");
-
-					fd = connect_to("rotate.aprs2.net", 14580);
-
-					if (fd != -1) {
-						std::string login = "user " + aprs_user + " pass " + aprs_pass + " vers MyAprsGw softwarevers 0.1\r\n";
-
-						if (WRITE(fd, reinterpret_cast<const uint8_t *>(login.c_str()), login.size()) != ssize_t(login.size())) {
-							close(fd);
-							fd = -1;
-							log(LL_WARNING, "Failed aprsi handshake (send)");
-						}
-
-						std::string reply;
-
-						for(;;) {
-							char c = 0;
-							if (read(fd, &c, 1) <= 0) {
-								close(fd);
-								fd = -1;
-								log(LL_WARNING, "Failed aprsi handshake (receive)");
-								break;
-							}
-
-							if (c == 10)
-								break;
-
-							reply += c;
-						}
-
-						log(LL_DEBUG, "recv: %s", reply.c_str());
-					}
-					else {
-						log(LL_ERR, "failed to connect: %s", strerror(errno));
-					}
-				}
-
-				if (fd != -1) {
-					std::string payload(reinterpret_cast<const char *>(&data[3]), rx.size - 3);
-					payload += "\r\n";
-
-					if (WRITE(fd, reinterpret_cast<const uint8_t *>(payload.c_str()), payload.size()) != ssize_t(payload.size())) {
-						close(fd);
-						fd = -1;
-						log(LL_WARNING, "Failed to transmit APRS data to aprsi");
-					}
-				}
-
-				if (mi && mqtt_aprs_packet_as_is.empty() == false) {
-					int err = 0;
-					if ((err = mosquitto_publish(mi, nullptr, mqtt_aprs_packet_as_is.c_str(), rx.size, data, 0, false)) != MOSQ_ERR_SUCCESS)
-						log(LL_WARNING, "mqtt failed to publish (%s)", mosquitto_strerror(err));
-				}
-			}
-			else {
-				log(LL_INFO, "Received AX.25 over LoRa: %s -> %s", from.c_str(), to.c_str());
-
-				if (fdmaster != -1)
-					send_mkiss(fdmaster, 0, data, rx.size);
-
-				if (mi && mqtt_ax25_packet_as_is.empty() == false) {
-					int err = 0;
-					if ((err = mosquitto_publish(mi, nullptr, mqtt_ax25_packet_as_is.c_str(), rx.size, data, 0, false)) != MOSQ_ERR_SUCCESS)
-						log(LL_WARNING, "mqtt failed to publish (%s)", mosquitto_strerror(err));
-				}
-
-				if (mi && mqtt_ax25_packet_meta.empty() == false) {
-					int err = 0;
-					if ((err = mosquitto_publish(mi, nullptr, mqtt_ax25_packet_meta.c_str(), meta_str_len, meta_str, 0, false)) != MOSQ_ERR_SUCCESS)
-						log(LL_WARNING, "mqtt failed to publish (%s)", mosquitto_strerror(err));
-				}
-			}
-
-			if (meta) {
-				json_decref(meta);
-
-				free((void *)meta_str);
-			}
-		}
-
-		if (fd != -1)
-			close(fd);
-	});
+		process_incoming(fdmaster, mi);
+		});
 
 	if (local_ax25) {
 		log(LL_INFO, "Starting transmit (local AX.25 stack to LoRa)");
