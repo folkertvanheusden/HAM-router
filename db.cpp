@@ -93,7 +93,7 @@ db::db(const std::string & url, const std::string & username, const std::string 
 
 		if (!check_table_exists("APRS")) {
 			sql::Statement *stmt = con->createStatement();
-			stmt->execute("CREATE TABLE APRS(ts datetime not null, rssi double, snr double, crc int(1) not null, content blob, latitude double, longitude double, distance double, callsign_to varchar(9), callsign_from varchar(9))");
+			stmt->execute("CREATE TABLE APRS(ts datetime not null, rssi double, snr double, crc int(1) not null, content blob, latitude double, longitude double, distance double, callsign_to varchar(32), callsign_from varchar(32))");
 			delete stmt;
 		}
 	}

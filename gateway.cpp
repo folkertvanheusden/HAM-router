@@ -285,8 +285,6 @@ void process_incoming(const int fdmaster, struct mosquitto *const mi, const int 
 		if (temp)
 			*temp = 0x00;
 
-		log(LL_INFO, "RX message @ timestamp: %s, CRC error: %d, RSSI: %d, SNR: %f (%f,%f => distance: %fm)", buffer, rx.CRC, rx.RSSI, rx.SNR, latitude, longitude, distance);
-
 		const uint8_t *const data = reinterpret_cast<const uint8_t *>(rx.buf);
 
 		json_t     *meta         = nullptr;
@@ -310,6 +308,8 @@ void process_incoming(const int fdmaster, struct mosquitto *const mi, const int 
 			to   = get_ax25_addr(&data[0]);
 			from = get_ax25_addr(&data[7]);
 		}
+
+		log(LL_INFO, "RX message @ timestamp: %s, CRC error: %d, RSSI: %d, SNR: %f (%f,%f => distance: %fm) %s => %s", buffer, rx.CRC, rx.RSSI, rx.SNR, latitude, longitude, distance, from.c_str(), to.c_str());
 
 		if (mi && (mqtt_aprs_packet_meta.empty() == false || mqtt_ax25_packet_meta.empty() == false || syslog_host.empty() == false || ws_port != -1)) {
 			meta = json_object();
