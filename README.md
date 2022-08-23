@@ -1,6 +1,9 @@
-This gateway software is using the LoRa SX1278 library
-written by Yandiev Ruslan <yandievruslan@gmail.com>.
-The original files are in the history of this git repository.
+This gateway software can receive APRS and AX.25 over LoRa.
+It can also send AX.25 over LoRa.
+
+Packets can be logged as json via MQTT, WebSockets and syslog. They can
+also be stored in a (MySQL compatible-)database. Statistics of this
+server-program can be retreived via SNMP.
 
 requires:
 * libax25-dev
@@ -27,5 +30,9 @@ requires:
 
 Configuration: gateway.ini 
 
+
+This gateway software is using the LoRa SX1278 library
+written by Yandiev Ruslan <yandievruslan@gmail.com>.
+The original files are in the history of this git repository.
 
 Folkert van Heusden <mail@vanheusden.com>
