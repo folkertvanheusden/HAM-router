@@ -7,6 +7,7 @@ requires:
 * libinih-dev
 * libjansson-dev
 * libmosquitto-dev
+* libmysqlcppconn-dev
 * libwebsockets-dev
 
 (optional) database schema:
