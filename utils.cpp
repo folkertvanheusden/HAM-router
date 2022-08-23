@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string>
+#include <vector>
 #include <sys/time.h>
 
 uint64_t get_us()
@@ -41,6 +42,36 @@ std::string dump_hex(const unsigned char *p, int len)
 
 		out += myformat("%d[%c]", p[i], p[i] > 32 && p[i] < 127 ? p[i] : '.');
 	}
+
+	return out;
+}
+
+std::vector<std::string> split(std::string in, std::string splitter)
+{
+	std::vector<std::string> out;
+	size_t splitter_size = splitter.size();
+
+	for(;;)
+	{
+		size_t pos = in.find(splitter);
+		if (pos == std::string::npos)
+			break;
+
+		std::string before = in.substr(0, pos);
+		out.push_back(before);
+
+		size_t bytes_left = in.size() - (pos + splitter_size);
+		if (bytes_left == 0)
+		{
+			out.push_back("");
+			return out;
+		}
+
+		in = in.substr(pos + splitter_size);
+	}
+
+	if (in.size() > 0)
+		out.push_back(in);
 
 	return out;
 }

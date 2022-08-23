@@ -24,6 +24,8 @@ extern "C" {
 #include "kiss.h"
 #include "log.h"
 #include "net.h"
+#include "snmp.h"
+#include "stats.h"
 #include "utils.h"
 #include "websockets.h"
 
@@ -37,7 +39,7 @@ std::string db_user;
 std::string db_pass;
 std::string logfile;
 int gpio_lora_reset = 0;
-int gpio_lora_dio0 = 0;
+int gpio_lora_dio0  = 0;
 bool local_ax25 = true;
 std::string mqtt_host;
 int         mqtt_port = -1;
@@ -47,7 +49,12 @@ std::string mqtt_ax25_packet_meta;
 std::string mqtt_ax25_packet_as_is;
 std::string syslog_host;
 int         syslog_port = -1;
-int         ws_port = -1;
+int         ws_port       = -1;
+bool        ws_ssl_enable = false;
+std::string ws_ssl_cert;
+std::string ws_ssl_priv_key;
+std::string ws_ssl_ca;
+int         snmp_port = -1;
 
 #define INI_MATCH(s, n) (strcmp(section, s) == 0 && strcmp(name, n) == 0)
 
@@ -115,6 +122,21 @@ int handler_ini(void* user, const char* section, const char* name, const char* v
 	}
 	else if (INI_MATCH("websockets", "port")) {
 		ws_port = atoi(value);
+	}
+	else if (INI_MATCH("websockets", "enable-ssl")) {
+		ws_ssl_enable = strcasecmp(value, "true") == 0;
+	}
+	else if (INI_MATCH("websockets", "certificate")) {
+		ws_ssl_cert = value;
+	}
+	else if (INI_MATCH("websockets", "private-key")) {
+		ws_ssl_priv_key = value;
+	}
+	else if (INI_MATCH("websockets", "ca")) {
+		ws_ssl_ca = value;
+	}
+	else if (INI_MATCH("snmp", "port")) {
+		snmp_port = atoi(value);
 	}
 	else {
 		return 0;
@@ -243,7 +265,7 @@ std::string receive_string(const int fd)
 	return reply;
 }
 
-void process_incoming(const int fdmaster, struct mosquitto *const mi, const int ws_port)
+void process_incoming(const int fdmaster, struct mosquitto *const mi, const int ws_port, stats *const s)
 {
 	log(LL_INFO, "Starting \"LoRa APRS -> aprsi/mqtt/syslog/db\"-thread");
 
@@ -253,7 +275,21 @@ void process_incoming(const int fdmaster, struct mosquitto *const mi, const int 
 	ws.ts = 0;
 
 	if (ws_port != -1)
-		start_websocket_thread(ws_port, &ws);
+		start_websocket_thread(ws_port, &ws, ws_ssl_enable, ws_ssl_cert, ws_ssl_priv_key, ws_ssl_ca);
+
+        uint64_t *phys_ifInOctets     = s->register_stat("phys_ifInOctets",     myformat("1.3.6.1.2.1.2.2.1.10.%zu", 1),    snmp_integer::si_counter32);
+        uint64_t *phys_ifHCInOctets   = s->register_stat("phys_ifHCInOctets",   myformat("1.3.6.1.2.1.31.1.1.1.6.%zu", 1),  snmp_integer::si_counter64);
+
+	uint64_t *lora_ifOutOctets    = s->register_stat("lora_ifOutOctets",    myformat("1.3.6.1.2.1.2.2.1.16.%zu", 2),    snmp_integer::si_counter32);
+	uint64_t *lora_ifHCOutOctets  = s->register_stat("lora_ifHCOutOctets",  myformat("1.3.6.1.2.1.31.1.1.1.10.%zu", 2), snmp_integer::si_counter64);
+
+        uint64_t *cnt_frame_ax25       = s->register_stat("cnt_frame_ax25", "1.3.6.1.2.1.4.57850.2.1.1");  // 1.3.6.1.2.1.4.57850.2.1. packet type counts
+        uint64_t *cnt_frame_aprs       = s->register_stat("cnt_frame_aprs", "1.3.6.1.2.1.4.57850.2.1.2");
+        uint64_t *cnt_aprs_invalid_loc = s->register_stat("cnt_aprs_invalid_loc", "1.3.6.1.2.1.4.57850.2.2.1");  // 1.3.6.1.2.1.4.57850.2.2 aprs counters
+        uint64_t *cnt_aprs_invalid_cs  = s->register_stat("cnt_aprs_invalid_cs",  "1.3.6.1.2.1.4.57850.2.2.2");
+        //uint64_t *cnt_ax25_invalid_cs  = s->register_stat("cnt_ax25_invalid_cs",  "1.3.6.1.2.1.4.57850.2.3.2");  // 1.3.6.1.2.1.4.57850.3.2 ax25 counters
+
+        uint64_t *cnt_aprsi_failures   = s->register_stat("cnt_aprsi_failures",  "1.3.6.1.2.1.4.57850.2.3.1");  // aprsi counters
 
 	for(;;) {
 		pthread_setname_np(pthread_self(), "tx_thread");
@@ -268,15 +304,11 @@ void process_incoming(const int fdmaster, struct mosquitto *const mi, const int 
 
 		lck.unlock();
 
-		double latitude = 0, longitude = 0, distance = -1.0;
+		stats_add_counter(phys_ifInOctets,   rx.size);
+		stats_add_counter(phys_ifHCInOctets, rx.size);
 
-		char *colon = strchr(rx.buf, ':');
-		if (colon && rx.size - (rx.buf - colon) >= 7) {
-			parse_nmea_pos(colon + 1, &latitude, &longitude);
-
-			if (latitude != 0. || longitude != 0.)
-				distance = calcGPSDistance(latitude, longitude, local_lat, local_lng);
-		}
+		stats_add_counter(lora_ifOutOctets,   rx.size);
+		stats_add_counter(lora_ifHCOutOctets, rx.size);
 
 		const uint8_t *const data = reinterpret_cast<const uint8_t *>(rx.buf);
 
@@ -297,13 +329,38 @@ void process_incoming(const int fdmaster, struct mosquitto *const mi, const int 
 					to   = std::string(gt + 1, colon - gt - 1);
 					from = std::string(&rx.buf[3], gt - rx.buf - 3);
 				}
+				else {
+					stats_inc_counter(cnt_aprs_invalid_cs);
+				}
+			}
+			else {
+				stats_inc_counter(cnt_aprs_invalid_cs);
 			}
 
 			oe_ = true;
+
+			stats_inc_counter(cnt_frame_aprs);
 		}
 		else {  // assuming AX.25
 			to   = get_ax25_addr(&data[0]);
 			from = get_ax25_addr(&data[7]);
+
+			stats_inc_counter(cnt_frame_ax25);
+		}
+
+		double latitude = 0, longitude = 0, distance = -1.0;
+
+		char *colon = strchr(rx.buf, ':');
+		if (colon && rx.size - (rx.buf - colon) >= 7) {
+			parse_nmea_pos(colon + 1, &latitude, &longitude);
+
+			if (latitude != 0. || longitude != 0.)
+				distance = calcGPSDistance(latitude, longitude, local_lat, local_lng);
+			else
+				stats_inc_counter(cnt_aprs_invalid_loc);
+		}
+		else {
+			stats_inc_counter(cnt_aprs_invalid_loc);
 		}
 
 		log(LL_INFO, "timestamp: %u%06u, CRC error: %d, RSSI: %d, SNR: %f (%f,%f => distance: %fm) %s => %s (%s)", rx.last_time.tv_sec, rx.last_time.tv_usec, rx.CRC, rx.RSSI, rx.SNR, latitude, longitude, distance, from.c_str(), to.c_str(), oe_ ? "OE" : "AX.25");
@@ -397,6 +454,9 @@ void process_incoming(const int fdmaster, struct mosquitto *const mi, const int 
 				}
 			}
 
+			if (fd == -1 && aprs_user.empty() == false)
+				stats_inc_counter(cnt_aprsi_failures);
+
 			if (mi && mqtt_aprs_packet_as_is.empty() == false) {
 				int err = 0;
 				if ((err = mosquitto_publish(mi, nullptr, mqtt_aprs_packet_as_is.c_str(), rx.size, data, 0, false)) != MOSQ_ERR_SUCCESS)
@@ -429,6 +489,10 @@ void process_incoming(const int fdmaster, struct mosquitto *const mi, const int 
 
 	if (fd != -1)
 		close(fd);
+}
+
+void start_snmp()
+{
 }
 
 int main(int argc, char *argv[])
@@ -479,6 +543,7 @@ int main(int argc, char *argv[])
 	LoRa_receive(&modem);
 
 	int fdmaster = -1, fdslave = -1;
+	char dev_name[64] = { 0 };
 
 	if (local_ax25) {
 		if (openpty(&fdmaster, &fdslave, NULL, NULL, NULL) == -1)
@@ -495,12 +560,40 @@ int main(int argc, char *argv[])
 		if (ioctl(fdslave, SIOCSIFENCAP, &v) == -1)
 			error_exit(true, "failed to set encapsulation");
 
-		char dev_name[64] = { 0 };
 		if (ioctl(fdslave, SIOCGIFNAME, dev_name) == -1)
 			error_exit(true, "failed retrieving name of ax25 network device name");
 
 		startiface(dev_name);
 	}
+
+	snmp_data_type_running_since running_since;
+
+	snmp_data sd;
+	sd.register_oid("1.3.6.1.2.1.1.1.0", "lora_aprs_gw");
+	sd.register_oid("1.3.6.1.2.1.1.2.0", new snmp_data_type_oid("1.3.6.1.2.1.4.57850.2"));
+	sd.register_oid("1.3.6.1.2.1.1.3.0", &running_since);
+	sd.register_oid("1.3.6.1.2.1.1.4.0", "Folkert van Heusden <mail@vanheusden.com>");
+	sd.register_oid("1.3.6.1.2.1.1.5.0", "lora_aprs_gw");
+	sd.register_oid("1.3.6.1.2.1.1.6.0", "Earth");
+	sd.register_oid("1.3.6.1.2.1.1.7.0", snmp_integer::si_integer, 254 /* everything but the physical layer */);
+	sd.register_oid("1.3.6.1.2.1.1.8.0", snmp_integer::si_integer, 0);  // The value of sysUpTime at the time of the most recent change in state or value of any instance of sysORID.
+
+	sd.register_oid("1.3.6.1.2.1.2.1.0", snmp_integer::si_integer, local_ax25 ? 2 : 1);  // number of network interfaces
+
+	// register interface 1
+	sd.register_oid(myformat("1.3.6.1.2.1.2.2.1.1.%zu", 1), snmp_integer::si_integer, 1);
+	sd.register_oid(myformat("1.3.6.1.2.1.31.1.1.1.1.%zu", 1), dev_name);  // name
+	sd.register_oid(myformat("1.3.6.1.2.1.2.2.1.2.1.%zu",  1), "network interface");  // description
+	sd.register_oid(myformat("1.3.6.1.2.1.17.1.4.1.%zu",   1), snmp_integer::si_integer, 1);  // device is up (1)
+
+	sd.register_oid(myformat("1.3.6.1.2.1.2.2.1.1.%zu", 2), snmp_integer::si_integer, 2);
+	sd.register_oid(myformat("1.3.6.1.2.1.31.1.1.1.1.%zu", 2), "LoRa");  // name
+	sd.register_oid(myformat("1.3.6.1.2.1.2.2.1.2.1.%zu",  2), "LoRa tranceiver");  // description
+	sd.register_oid(myformat("1.3.6.1.2.1.17.1.4.1.%zu",   2), snmp_integer::si_integer, 1);  // device is up (1)
+
+	stats s(8192, &sd);
+
+	snmp snmp_(&sd, &s, snmp_port);
 
 	struct mosquitto *mi = nullptr;
 
@@ -519,12 +612,18 @@ int main(int argc, char *argv[])
 			error_exit(false, "mqtt failed to start thread (%s)", mosquitto_strerror(err));
 	}
 
-	std::thread tx_thread([fdmaster, mi, ws_port] {
-		process_incoming(fdmaster, mi, ws_port);
+	std::thread tx_thread([fdmaster, mi, ws_port, &s] {
+		process_incoming(fdmaster, mi, ws_port, &s);
 		});
 
 	if (local_ax25) {
 		log(LL_INFO, "Starting transmit (local AX.25 stack to LoRa)");
+
+		uint64_t *phys_ifOutOctets    = s.register_stat("phys_ifOutOctets",    myformat("1.3.6.1.2.1.2.2.1.16.%zu", 1),    snmp_integer::si_counter32);
+		uint64_t *phys_ifHCOutOctets  = s.register_stat("phys_ifHCOutOctets",  myformat("1.3.6.1.2.1.31.1.1.1.10.%zu", 1), snmp_integer::si_counter64);
+
+		uint64_t *lora_ifInOctets     = s.register_stat("lora_ifInOctets",     myformat("1.3.6.1.2.1.2.2.1.10.%zu", 2),    snmp_integer::si_counter32);
+		uint64_t *lora_ifHCInOctets   = s.register_stat("lora_ifHCInOctets",   myformat("1.3.6.1.2.1.31.1.1.1.6.%zu", 2),  snmp_integer::si_counter64);
 
 		struct pollfd fds[] = { { fdmaster, POLLIN, 0 } };
 
@@ -547,6 +646,9 @@ int main(int argc, char *argv[])
 				memcpy(txbuf, p, plen);
 				free(p);
 
+				stats_add_counter(phys_ifOutOctets,   plen);
+				stats_add_counter(phys_ifHCOutOctets, plen);
+
 				log(LL_DEBUG, "transmit: %s", dump_hex(reinterpret_cast<const uint8_t *>(txbuf), plen).c_str());
 
 				LoRa_stop_receive(&modem); //manually stoping RxCont mode
@@ -555,6 +657,9 @@ int main(int argc, char *argv[])
 					usleep(101000);
 
 				modem.tx.data.size = plen;
+
+				stats_add_counter(lora_ifInOctets,   plen);
+				stats_add_counter(lora_ifHCInOctets, plen);
 
 				LoRa_send(&modem);
 

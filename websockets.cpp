@@ -11,12 +11,6 @@ typedef struct {
 	uint64_t ts;
 } ws_session_data;
 
-static int callback_http(struct lws *wsi, lws_callback_reasons reason, void *user, void *in, size_t len)
-{
-	log(LL_DEBUG_VERBOSE, "callback_http, reason: %d (length: %d)", reason, len);
-	return 0;
-}
-
 static int callback_ws(struct lws *wsi, lws_callback_reasons reason, void *user, void *in, size_t len)
 {
 	ws_session_data     *ws = reinterpret_cast<ws_session_data *>(user);
@@ -84,7 +78,7 @@ static struct lws_protocols protocols[] = {
 	}
 };
 
-void start_websocket_thread(const int port, ws_global_context_t *const p)
+void start_websocket_thread(const int port, ws_global_context_t *const p, const bool ws_ssl_enable, const std::string & ws_ssl_cert, const std::string & ws_ssl_priv_key, const std::string & ws_ssl_ca)
 {
 	log(LL_INFO, "Starting websocket server");
 
@@ -92,8 +86,10 @@ void start_websocket_thread(const int port, ws_global_context_t *const p)
 
 	struct lws_context_creation_info context_info =
 	{
-		.port = port, .iface = NULL, .protocols = protocols, .extensions = NULL,
-		.ssl_cert_filepath = NULL, .ssl_private_key_filepath = NULL, .ssl_ca_filepath = NULL,
+		.port = port, .iface = nullptr, .protocols = protocols, .extensions = nullptr,
+		.ssl_cert_filepath = ws_ssl_enable ? ws_ssl_cert.c_str() : nullptr,
+		.ssl_private_key_filepath = ws_ssl_enable ? ws_ssl_priv_key.c_str() : nullptr,
+		.ssl_ca_filepath = ws_ssl_enable ? ws_ssl_ca.c_str() : nullptr,
 		.gid = -1, .uid = -1, .options = 0, .user = p, .ka_time = 0, .ka_probes = 0, .ka_interval = 0
 	};
 

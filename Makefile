@@ -30,5 +30,5 @@ kiss.o: kiss.cpp
 websockets.o: websockets.cpp
 	g++ $(CXXFLAGS) -c websockets.cpp -o websockets.o
 
-gateway: gateway.o error.o db.o log.o utils.o net.o kiss.o websockets.o LoRa.o
-	g++ $(CXXFLAGS) -o gateway gateway.o error.o LoRa.o log.o db.o utils.o net.o kiss.o websockets.o -lpigpio -lrt -pthread -lax25 -lutil -lm -lmysqlcppconn -linih -ljansson -lmosquitto -lwebsockets
+gateway: gateway.o error.o db.o log.o utils.o net.o kiss.o websockets.o snmp-data.o snmp-elem.o snmp.o stats.o LoRa.o
+	g++ $(CXXFLAGS) -o gateway gateway.o error.o LoRa.o log.o db.o utils.o net.o kiss.o websockets.o snmp-data.o snmp-elem.o snmp.o stats.o -lpigpio -lrt -pthread -lax25 -lutil -lm -lmysqlcppconn -linih -ljansson -lmosquitto -lwebsockets
