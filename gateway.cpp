@@ -311,7 +311,7 @@ int main(int argc, char *argv[])
 			double latitude = 0, longitude = 0, distance = -1.0;
 
 			char *colon = strchr(rx.buf, ':');
-			if (colon && rx.size - (rx.buf - colon) >= 7) {
+			if (colon && rx.size - (rx.buf - colon) >= 7 && (latitude != 0. || longitude != 0.)) {
 				parse_nmea_pos(colon + 1, &latitude, &longitude);
 
 				distance = calcGPSDistance(latitude, longitude, local_lat, local_lng);
