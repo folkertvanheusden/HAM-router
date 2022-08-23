@@ -13,6 +13,7 @@ typedef struct {
 
 static int callback_http(struct lws *wsi, lws_callback_reasons reason, void *user, void *in, size_t len)
 {
+	log(LL_DEBUG_VERBOSE, "callback_http, reason: %d (length: %d)", reason, len);
 	return 0;
 }
 
@@ -53,24 +54,26 @@ static int callback_ws(struct lws *wsi, lws_callback_reasons reason, void *user,
 				free(buf);
 			}
 
+			usleep(251000);
+
 			lws_callback_on_writable(wsi);
 		}
+		break;
 
 		default:
+			log(LL_DEBUG_VERBOSE, "callback_ws, reason: %d (length: %d)", reason, len);
 			break;
 	}
 
 	return 0;
 }
 
+void lws_logger(int level, const char *line)
+{
+	log(LL_DEBUG, "libwebsockets: [%d] %s", level, line);
+}
 
 static struct lws_protocols protocols[] = {
-	/* first protocol must always be HTTP handler */
-	{
-		"http-only",   // name
-		callback_http, // callback
-		0              // per_session_data_size
-	},
 	{
 		"LoRa",        // protocol name
 		callback_ws,   // callback
@@ -84,6 +87,8 @@ static struct lws_protocols protocols[] = {
 void start_websocket_thread(const int port, ws_global_context_t *const p)
 {
 	log(LL_INFO, "Starting websocket server");
+
+	lws_set_log_level(LLL_ERR | LLL_WARN | LLL_NOTICE, lws_logger);
 
 	struct lws_context_creation_info context_info =
 	{
