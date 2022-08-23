@@ -294,6 +294,8 @@ void process_incoming(const int fdmaster, struct mosquitto *const mi, const int 
 		std::string to;
 		std::string from;
 
+		bool        oe_ = false;
+
 		if (data[0] == 0x3c && data[1] == 0xff && data[2] == 0x01) {  // OE_
 			const char *const gt = strchr(&rx.buf[3], '>');
 			if (gt) {
@@ -303,13 +305,15 @@ void process_incoming(const int fdmaster, struct mosquitto *const mi, const int 
 					from = std::string(&rx.buf[3], gt - rx.buf - 3);
 				}
 			}
+
+			oe_ = true;
 		}
 		else {  // assuming AX.25
 			to   = get_ax25_addr(&data[0]);
 			from = get_ax25_addr(&data[7]);
 		}
 
-		log(LL_INFO, "RX message @ timestamp: %s, CRC error: %d, RSSI: %d, SNR: %f (%f,%f => distance: %fm) %s => %s", buffer, rx.CRC, rx.RSSI, rx.SNR, latitude, longitude, distance, from.c_str(), to.c_str());
+		log(LL_INFO, "RX message @ timestamp: %s, CRC error: %d, RSSI: %d, SNR: %f (%f,%f => distance: %fm) %s => %s (%s)", buffer, rx.CRC, rx.RSSI, rx.SNR, latitude, longitude, distance, from.c_str(), to.c_str(), oe_ ? "OE" : "AX.25");
 
 		if (mi && (mqtt_aprs_packet_meta.empty() == false || mqtt_ax25_packet_meta.empty() == false || syslog_host.empty() == false || ws_port != -1)) {
 			meta = json_object();
@@ -358,7 +362,7 @@ void process_incoming(const int fdmaster, struct mosquitto *const mi, const int 
 		if (ws_port != -1)
 			push_to_websockets(&ws, meta_str);
 
-		if (data[0] == 0x3c) {  // OE_
+		if (oe_) {  // OE_
 			if (fd == -1 && aprs_user.empty() == false) {
 				log(LL_INFO, "(re-)connecting to aprs2.net");
 
@@ -407,8 +411,6 @@ void process_incoming(const int fdmaster, struct mosquitto *const mi, const int 
 			}
 		}
 		else {
-			log(LL_INFO, "Received AX.25 over LoRa: %s -> %s", from.c_str(), to.c_str());
-
 			if (fdmaster != -1)
 				send_mkiss(fdmaster, 0, data, rx.size);
 
