@@ -3,7 +3,8 @@ It can also send AX.25 over LoRa.
 
 Packets can be logged as json via MQTT, WebSockets and syslog. They can
 also be stored in a (MySQL compatible-)database. Statistics of this
-server-program can be retreived via SNMP.
+server-program can be retreived via SNMP. APRS data can also be send to
+aprs.fi.
 
 requires:
 * libax25-dev
