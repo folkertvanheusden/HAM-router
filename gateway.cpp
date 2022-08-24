@@ -463,6 +463,8 @@ void process_incoming(const int fdmaster, struct mosquitto *const mi, const int 
 			if (fd != -1) {
 				std::string payload = content_out + "\r\n";
 
+				log(LL_DEBUG, myformat("To aprs.fi: %s", content_out.c_str()).c_str());
+
 				if (WRITE(fd, reinterpret_cast<const uint8_t *>(payload.c_str()), payload.size()) != ssize_t(payload.size())) {
 					close(fd);
 					fd = -1;
