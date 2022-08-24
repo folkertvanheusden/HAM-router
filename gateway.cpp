@@ -696,17 +696,18 @@ int main(int argc, char *argv[])
 
 			log(LL_INFO, "Starting beacon transmitter (to LoRa & APRS-IS)");
 
-			if (beacon_interval <= 600) {
+			if (beacon_interval < 600) {
 				beacon_interval = 600;
 
-				log(LL_INFO, "Beacon interval should be at least 10 minutes");
+				log(LL_WARNING, "Beacon interval should be at least 10 minutes");
 			}
 
 			for(;;) {
+				log(LL_DEBUG, "Queueing beacon-message for APRS-FI");
 				std::string message = "=" + gps_double_to_aprs(local_lat, local_lng) + "&LoRa APRS/AX.25 gateway, https://github.com/folkertvanheusden/lora-aprs-gw";
 
 				// send to APRS-IS
-				std::string beacon_aprs_is = callsign + "L>APLG01,TCPIP*,qAC:" + message;
+				std::string beacon_aprs_is = callsign + "-L>APLG01,TCPIP*,qAC:" + message;
 
 				rxData rx;
 
@@ -726,6 +727,7 @@ int main(int argc, char *argv[])
 				std::string beacon_rf = ">\xff\x01" + message;
 				size_t beacon_rf_len = beacon_rf.size();
 
+				log(LL_DEBUG, "Sending beacon via RF");
 				lora_transmit(&modem, &modem_lock, reinterpret_cast<const uint8_t *>(beacon_rf.c_str()), beacon_rf_len);
 
 				// TODO:
@@ -735,6 +737,7 @@ int main(int argc, char *argv[])
 				// stats_add_counter(lora_ifInOctets,   beacon_rf_len);
 				// stats_add_counter(lora_ifHCInOctets, beacon_rf_len);
 
+				log(LL_DEBUG, "Sleeping %d seconds for next beacon", beacon_interval);
 				sleep(beacon_interval);
 			}
 		});
