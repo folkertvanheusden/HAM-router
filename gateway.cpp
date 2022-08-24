@@ -1,7 +1,6 @@
 #include <condition_variable>
 #include <errno.h>
 #include <jansson.h>
-#include <math.h>
 #include <mosquitto.h>
 #include <mutex>
 #include <poll.h>
