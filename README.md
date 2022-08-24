@@ -4,15 +4,20 @@ It can also send AX.25 over LoRa.
 Packets can be logged as json via MQTT, WebSockets and syslog. They can
 also be stored in a (MySQL compatible-)database. Statistics of this
 server-program can be retreived via SNMP. APRS data can also be send to
-aprs.fi. It also has a simple web-interface.
+APRS-IS. It also has a simple web-interface.
 
-requires:
+software requirements:
 * libax25-dev
 * libinih-dev
 * libjansson-dev
 * libmosquitto-dev
 * libmysqlcppconn-dev
 * libwebsockets-dev
+
+hardware requirements:
+* SX1278 tranceiver
+* something with SPI and GPIO pins to connect the SX1278 to (e.g. a raspberry pi)
+
 
 (optional) database schema:
 
