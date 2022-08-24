@@ -37,6 +37,8 @@ MHD_Result process_http_request(void *cls,
 	if (strcmp(method, "GET") != 0)
 		return MHD_NO; 
 
+	log(LL_INFO, "webserver: %s %s", method, url);
+
 	std::string page;
 
 	if (strcmp(url, "/") == 0) {
