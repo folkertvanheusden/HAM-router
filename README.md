@@ -7,6 +7,7 @@ server-program can be retreived via SNMP. APRS data can also be send to
 APRS-IS. It also has a simple web-interface.
 
 software requirements:
+* cmake
 * libax25-dev
 * libinih-dev
 * libjansson-dev
