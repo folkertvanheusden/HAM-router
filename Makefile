@@ -34,4 +34,4 @@ webserver.o: webserver.cpp
 	g++ $(CXXFLAGS) -c webserver.cpp -o webserver.o
 
 gateway: gateway.o error.o db.o log.o utils.o net.o kiss.o websockets.o snmp-data.o snmp-elem.o snmp.o stats.o webserver.o LoRa.o
-	g++ $(CXXFLAGS) -o gateway gateway.o error.o LoRa.o log.o db.o utils.o net.o kiss.o websockets.o snmp-data.o snmp-elem.o snmp.o stats.o webserver.o -lpigpio -lrt -pthread -lax25 -lutil -lm -lmysqlcppconn -linih -ljansson -lmosquitto -lwebsockets
+	g++ $(CXXFLAGS) -o gateway gateway.o error.o LoRa.o log.o db.o utils.o net.o kiss.o websockets.o snmp-data.o snmp-elem.o snmp.o stats.o webserver.o -lpigpio -lrt -pthread -lax25 -lutil -lm -lmysqlcppconn -linih -ljansson -lmosquitto -lwebsockets -lmicrohttpd

@@ -16,11 +16,11 @@ const std::string html_page_header = "<!DOCTYPE html>"
 	"<meta charset=\"utf-8\">"
 	"</head>"
 	"<body>"
-	"<h1>LoRa APRS gateway</h1>";
+	"<h1>LoRa APRS gateway</h1>\n";
 
 std::string websocket_receiver;
 
-const std::string html_page_footer = "</body>"
+const std::string html_page_footer = "\n</body>"
 	"</html>";
 
 MHD_Result process_http_request(void *cls,
@@ -43,7 +43,6 @@ MHD_Result process_http_request(void *cls,
 		page += html_page_header;
 
 		page += "<table><tr><th>packets</th></tr>";
-		page += "<tr><td id=\"packets\"></td></tr></table>";
 
 		page += "<a href=\"/follow.html\">follow packets as they arrive</a>\n";
 
@@ -52,6 +51,7 @@ MHD_Result process_http_request(void *cls,
 	else if (strcmp(url, "/follow.html") == 0) {
 		page += html_page_header;
 
+		page += "<tr><td id=\"packets\"></td></tr></table>";
 		page += websocket_receiver;
 
 		page += html_page_footer;
@@ -74,27 +74,28 @@ void start_webserver(const int listen_port, const int ws_port_in, stats *const s
 
 		ws_port = ws_port_in;
 
-		websocket_receiver = myformat("<script>"
-				"function start() {"
-				"if (location.protocol == 'https:')"
-				"    s = new WebSocket('wss://' + location.hostname + ':%d/');"
-				"else"
-				"    s = new WebSocket('ws://' + location.hostname + ':%d/');"
-				"s.onclose = function() { console.log('Websocket closed'); setTimeout(function(){ start(); }, 500); };"
-				"s.onopen = function() { console.log('Websocket connected'); };"
-				"s.onmessage = function (event) {"
-				"    try {"
-				"        var msg = JSON.parse(event.data);"
-				"        console.log(msg);"
-				"        var target = document.getElementById(\"packets\");"
-				"        target.textContent = msg['callsign-from'] + \" =&gt; \" + msg['callsign-to'] + \" (\" + msg['distance'] + \"): \" + msg['data'] + target.textContent;"
-				"    }"
-				"    catch (error) "
-				"        console.error(error);"
-				"    }"
-				"}"
-				"start();"
-				"</script>", ws_port, ws_port);
+		websocket_receiver = myformat("<script>\n"
+				"function start() {\n"
+				"    if (location.protocol == 'https:')\n"
+				"        s = new WebSocket('wss://' + location.hostname + ':%d/');\n"
+				"    else\n"
+				"        s = new WebSocket('ws://' + location.hostname + ':%d/');\n"
+				"    s.onclose = function() { console.log('Websocket closed'); setTimeout(function(){ start(); }, 500); };\n"
+				"    s.onopen = function() { console.log('Websocket connected'); };\n"
+				"    s.onmessage = function (event) {\n"
+				"        try {\n"
+				"            var msg = JSON.parse(event.data);\n"
+				"            console.log(msg);\n"
+				"            var target = document.getElementById(\"packets\");\n"
+				"            target.textContent = msg['callsign-from'] + \" =&gt; \" + msg['callsign-to'] + \" (\" + msg['distance'] + \"): \" + msg['data'] + target.textContent;\n"
+				"        }\n"
+				"        catch (error) {\n"
+				"            console.error(error);\n"
+				"        }\n"
+				"    };\n"
+				"    start();\n"
+				"};\n"
+				"</script>\n", ws_port, ws_port);
 
 		/* MHD_Daemon *d = */MHD_start_daemon(MHD_USE_THREAD_PER_CONNECTION,
 			       listen_port,
