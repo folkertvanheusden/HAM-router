@@ -42,7 +42,20 @@ MHD_Result process_http_request(void *cls,
 	if (strcmp(url, "/") == 0) {
 		page += html_page_header;
 
-		page += "<a href=\"/follow.html\">follow packets as they arrive</a>\n";
+		page += "<p><a href=\"/follow.html\">follow packets as they arrive</a></p>\n";
+
+		stats *s = reinterpret_cast<stats *>(cls);
+
+		auto stats_snapshot = s->snapshot();
+
+		page += "<h2>statistics</h2>\n";
+
+		page += "<table><tr><th>name></th><th>value</th></tr>\n";
+
+		for(auto pair : stats_snapshot)
+			page += "<tr><td>" + pair.first + "</td><td>" + pair.second + "</td></tr>\n";
+
+		page += "</table>";
 
 		page += html_page_footer;
 	}

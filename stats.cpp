@@ -126,3 +126,15 @@ uint64_t * stats::find_stat(const std::string & name)
 
 	return nullptr;
 }
+
+std::map<std::string, std::string> stats::snapshot()
+{
+	std::map<std::string, std::string> out;
+
+	std::unique_lock<std::mutex> lck(lock);
+
+	for(auto lut_it : lut)
+		out.insert({ lut_it.first, myformat("%llu", (long long unsigned)*lut_it.second.p) });
+
+	return out;
+}
