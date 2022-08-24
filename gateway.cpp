@@ -41,7 +41,8 @@ std::string db_pass;
 std::string logfile;
 int gpio_lora_reset = 0;
 int gpio_lora_dio0  = 0;
-bool local_ax25 = true;
+bool        local_ax25 = true;
+std::string if_up;
 std::string mqtt_host;
 int         mqtt_port = -1;
 std::string mqtt_aprs_packet_meta;
@@ -77,6 +78,9 @@ int handler_ini(void* user, const char* section, const char* name, const char* v
 	}
 	else if (INI_MATCH("general", "local-ax25")) {
 		local_ax25 = strcasecmp(value, "true") == 0;
+	}
+	else if (INI_MATCH("general", "if-up")) {
+		if_up = value;
 	}
 	else if (INI_MATCH("general", "beacon-interval")) {
 		beacon_interval = atoi(value);
@@ -565,6 +569,9 @@ int main(int argc, char *argv[])
 			error_exit(true, "failed retrieving name of ax25 network device name");
 
 		startiface(dev_name);
+
+		if (if_up.empty() == false)
+			system((if_up + " " + dev_name).c_str());
 	}
 
 	snmp_data_type_running_since running_since;
@@ -600,7 +607,7 @@ int main(int argc, char *argv[])
 	uint64_t *lora_ifInOctets     = s.register_stat("lora_ifInOctets",     myformat("1.3.6.1.2.1.2.2.1.10.%zu", 2),    snmp_integer::si_counter32);
 	uint64_t *lora_ifHCInOctets   = s.register_stat("lora_ifHCInOctets",   myformat("1.3.6.1.2.1.31.1.1.1.6.%zu", 2),  snmp_integer::si_counter64);
 
-        uint64_t *cnt_aprsi_failures   = s.register_stat("cnt_aprsi_failures",  "1.3.6.1.2.1.4.57850.2.3.1");  // aprsi counters
+        s.register_stat("cnt_aprsi_failures",  "1.3.6.1.2.1.4.57850.2.3.1");  // aprsi counters, used elsewhere
 
 	snmp snmp_(&sd, &s, snmp_port);
 
