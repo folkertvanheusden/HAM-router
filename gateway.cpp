@@ -723,8 +723,10 @@ int main(int argc, char *argv[])
 				// send to APRS-IS
 				std::string beacon_aprs_is = callsign + "-L>APLG01,TCPIP*,qAC:" + message;
 
-				if (!send_through_aprs_is(beacon_aprs_is)) {
-					// TODOstats_inc_counter(cnt_aprsi_failures);
+				if (aprs_user.empty() == false) {
+					if (!send_through_aprs_is(beacon_aprs_is)) {
+						// TODO stats_inc_counter(cnt_aprsi_failures);
+					}
 				}
 
 				// send to RF
