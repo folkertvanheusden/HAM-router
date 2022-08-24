@@ -3,6 +3,10 @@
 #include "LoRa.h"
 
 int LoRa_begin(LoRa_ctl *modem) {
+	int cfg = gpioCfgGetInternals();
+	cfg |= PI_CFG_NOSIGHANDLER;  // (1<<10)
+	gpioCfgSetInternals(cfg);
+
 	if (gpioInitialise() < 0)
 	{
 		printf("Pigpio init error\n");
