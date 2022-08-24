@@ -42,8 +42,6 @@ MHD_Result process_http_request(void *cls,
 	if (strcmp(url, "/") == 0) {
 		page += html_page_header;
 
-		page += "<table><tr><th>packets</th></tr>";
-
 		page += "<a href=\"/follow.html\">follow packets as they arrive</a>\n";
 
 		page += html_page_footer;
@@ -51,7 +49,9 @@ MHD_Result process_http_request(void *cls,
 	else if (strcmp(url, "/follow.html") == 0) {
 		page += html_page_header;
 
+		page += "<table><tr><th>packets</th></tr>";
 		page += "<tr><td id=\"packets\"></td></tr></table>";
+
 		page += websocket_receiver;
 
 		page += html_page_footer;
@@ -87,14 +87,15 @@ void start_webserver(const int listen_port, const int ws_port_in, stats *const s
 				"            var msg = JSON.parse(event.data);\n"
 				"            console.log(msg);\n"
 				"            var target = document.getElementById(\"packets\");\n"
-				"            target.textContent = msg['callsign-from'] + \" =&gt; \" + msg['callsign-to'] + \" (\" + msg['distance'] + \"): \" + msg['data'] + target.textContent;\n"
+				"            var myDate = new Date(msg['timestamp'] * 1000);\n"
+				"            target.innerHTML = myDate.toLocaleString() + \"> \" + msg['callsign-from'] + \" =&gt; \" + msg['callsign-to'] + \" (distance: \" + msg['distance'] + \"m): \" + msg['data'] + \"<br>\" + target.innerHTML;\n"
 				"        }\n"
 				"        catch (error) {\n"
 				"            console.error(error);\n"
 				"        }\n"
 				"    };\n"
 				"};\n"
-				"start();\n"
+				"document.addEventListener('DOMContentLoaded', function() { start(); });\n"
 				"</script>\n", ws_port, ws_port);
 
 		/* MHD_Daemon *d = */MHD_start_daemon(MHD_USE_THREAD_PER_CONNECTION,
