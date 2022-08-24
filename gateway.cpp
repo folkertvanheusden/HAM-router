@@ -225,7 +225,7 @@ void * rx_f(void *in)
 	return NULL;
 }
 
-void process_incoming(const int fdmaster, struct mosquitto *const mi, const int ws_port, stats *const s, aprs_si *as)
+void process_incoming(const int kiss_fd, struct mosquitto *const mi, const int ws_port, stats *const s, aprs_si *as)
 {
 	log(LL_INFO, "Starting \"LoRa APRS -> aprsi/mqtt/syslog/db\"-thread");
 
@@ -397,8 +397,8 @@ void process_incoming(const int fdmaster, struct mosquitto *const mi, const int 
 			}
 		}
 		else {
-			if (fdmaster != -1)
-				send_mkiss(fdmaster, 0, data, rx.size);
+			if (kiss_fd != -1)
+				send_mkiss(kiss_fd, 0, data, rx.size);
 
 			if (mi && mqtt_ax25_packet_as_is.empty() == false) {
 				int err = 0;
@@ -424,6 +424,72 @@ void process_incoming(const int fdmaster, struct mosquitto *const mi, const int 
 		close(fd);
 }
 
+void init_modem(LoRa_ctl *const modem)
+{
+	memset(modem, 0x00, sizeof *modem);
+
+	// these settings are specific for APRS over LoRa
+
+	modem->spiCS = 0;                         // Raspberry SPI CE pin number
+	modem->rx.callback = rx_f;
+	modem->tx.callback = tx_f;
+	modem->eth.preambleLen = 8;
+	modem->eth.bw = BW125;                    // Bandwidth 125KHz
+	modem->eth.sf = SF12;                     // Spreading Factor 12
+	modem->eth.ecr = CR5;                     // Error coding rate CR4/8
+	modem->eth.freq = 433775000;              // 434.8MHz
+	modem->eth.resetGpioN = gpio_lora_reset;  // tranceiver reset pin
+	modem->eth.dio0GpioN = gpio_lora_dio0;
+	modem->eth.outPower = OP20;               // Output power
+	modem->eth.powerOutPin = PA_BOOST;        // Power Amplifire pin
+	modem->eth.AGC = 1;                       // enable Auto Gain Control
+	modem->eth.OCP = 240;                     // 45 to 240 mA. 0 to turn off protection
+	modem->eth.implicitHeader = 0;            // select "explicit header" mode
+	modem->eth.syncWord = 0x12;
+	modem->eth.CRC = 1;
+
+	LoRa_begin(modem);
+
+	signal(11, SIG_DFL);
+
+	LoRa_receive(modem);
+}
+
+void configure_ax25_interface(int *const fd, std::string *const device_name)
+{
+	int fd_master = -1;
+	int fd_slave  = -1;
+
+	log(LL_INFO, "Configuring local AX.25 interface");
+
+	if (openpty(&fd_master, &fd_slave, NULL, NULL, NULL) == -1)
+		error_exit(true, "openpty failed");
+
+	int disc = N_AX25;
+	if (ioctl(fd_slave, TIOCSETD, &disc) == -1)
+		error_exit(true, "error setting line discipline");
+
+	if (setifcall(fd_slave, callsign.c_str()) == -1)
+		error_exit(false, "cannot set call");
+
+	int v = 4;
+	if (ioctl(fd_slave, SIOCSIFENCAP, &v) == -1)
+		error_exit(true, "failed to set encapsulation");
+
+	char dev_name[64] = { 0 };
+	if (ioctl(fd_slave, SIOCGIFNAME, dev_name) == -1)
+		error_exit(true, "failed retrieving name of ax25 network device name");
+
+	startiface(dev_name);
+
+	if (if_up.empty() == false)
+		system((if_up + " " + dev_name).c_str());
+
+	*fd = fd_master;
+
+	device_name->assign(dev_name);
+}
+
 int main(int argc, char *argv[])
 {
 	if (argc != 2)
@@ -438,68 +504,15 @@ int main(int argc, char *argv[])
 	if (db_url.empty() == false)
 		d = new db(db_url, db_user, db_pass);
 
-	char txbuf[MAX_PACKET_SIZE] { 0 };
-
 	std::mutex modem_lock;
-	LoRa_ctl modem;
+	LoRa_ctl   modem;
+	init_modem(&modem);
 
-	memset(&modem, 0x00, sizeof modem);
+	int         kiss_fd          = -1;
+	std::string ax25_device_name;
 
-	//See for typedefs, enumerations and there values in LoRa.h header file
-	modem.spiCS = 0;//Raspberry SPI CE pin number
-	modem.rx.callback = rx_f;
-	modem.tx.data.buf = txbuf;
-	modem.tx.callback = tx_f;
-	modem.eth.preambleLen = 8;
-	modem.eth.bw = BW125;//Bandwidth 125KHz
-	modem.eth.sf = SF12;//Spreading Factor 12
-	modem.eth.ecr = CR5;//Error coding rate CR4/8
-	modem.eth.freq = 433775000;// 434.8MHz
-	modem.eth.resetGpioN = gpio_lora_reset;
-	modem.eth.dio0GpioN = gpio_lora_dio0;
-	modem.eth.outPower = OP20;//Output power
-	modem.eth.powerOutPin = PA_BOOST;//Power Amplifire pin
-	modem.eth.AGC = 1;//Auto Gain Control
-	modem.eth.OCP = 240;// 45 to 240 mA. 0 to turn off protection
-	modem.eth.implicitHeader = 0;//Explicit header mode
-	modem.eth.syncWord = 0x12;
-	modem.eth.CRC = 1;
-	//For detail information about SF, Error Coding Rate, Explicit header, Bandwidth, AGC, Over current protection and other features refer to sx127x datasheet https://www.semtech.com/uploads/documents/DS_SX1276-7-8-9_W_APP_V5.pdf
-
-	LoRa_begin(&modem);
-
-	signal(11, SIG_DFL);
-
-	LoRa_receive(&modem);
-
-	int fdmaster = -1, fdslave = -1;
-	char dev_name[64] = { 0 };
-
-	if (local_ax25) {
-		log(LL_INFO, "Configuring local AX.25 interface");
-
-		if (openpty(&fdmaster, &fdslave, NULL, NULL, NULL) == -1)
-			error_exit(true, "openpty failed");
-
-		int disc = N_AX25;
-		if (ioctl(fdslave, TIOCSETD, &disc) == -1)
-			error_exit(true, "error setting line discipline");
-
-		if (setifcall(fdslave, callsign.c_str()) == -1)
-			error_exit(false, "cannot set call");
-
-		int v = 4;
-		if (ioctl(fdslave, SIOCSIFENCAP, &v) == -1)
-			error_exit(true, "failed to set encapsulation");
-
-		if (ioctl(fdslave, SIOCGIFNAME, dev_name) == -1)
-			error_exit(true, "failed retrieving name of ax25 network device name");
-
-		startiface(dev_name);
-
-		if (if_up.empty() == false)
-			system((if_up + " " + dev_name).c_str());
-	}
+	if (local_ax25)
+		configure_ax25_interface(&kiss_fd, &ax25_device_name);
 
 	aprs_si as(aprs_user, aprs_pass);
 
@@ -519,7 +532,7 @@ int main(int argc, char *argv[])
 
 	// register interface 1
 	sd.register_oid(myformat("1.3.6.1.2.1.2.2.1.1.%zu", 1), snmp_integer::si_integer, 1);
-	sd.register_oid(myformat("1.3.6.1.2.1.31.1.1.1.1.%zu", 1), dev_name);  // name
+	sd.register_oid(myformat("1.3.6.1.2.1.31.1.1.1.1.%zu", 1), ax25_device_name);  // name
 	sd.register_oid(myformat("1.3.6.1.2.1.2.2.1.2.1.%zu",  1), "network interface");  // description
 	sd.register_oid(myformat("1.3.6.1.2.1.17.1.4.1.%zu",   1), snmp_integer::si_integer, 1);  // device is up (1)
 
@@ -560,8 +573,8 @@ int main(int argc, char *argv[])
 			error_exit(false, "mqtt failed to start thread (%s)", mosquitto_strerror(err));
 	}
 
-	std::thread tx_thread([fdmaster, mi, ws_port, &s, &as] {
-			process_incoming(fdmaster, mi, ws_port, &s, &as);
+	std::thread tx_thread([kiss_fd, mi, ws_port, &s, &as] {
+			process_incoming(kiss_fd, mi, ws_port, &s, &as);
 		});
 
 	std::thread beacon_thread([&modem, &modem_lock, beacon_interval, &s, &as] {
@@ -619,7 +632,7 @@ int main(int argc, char *argv[])
 	if (local_ax25) {
 		log(LL_INFO, "Starting transmit (local AX.25 stack to LoRa)");
 
-		struct pollfd fds[] = { { fdmaster, POLLIN, 0 } };
+		struct pollfd fds[] = { { kiss_fd, POLLIN, 0 } };
 
 		for(;;) {
 			if (poll(fds, 1, -1) == -1) {
@@ -632,7 +645,7 @@ int main(int argc, char *argv[])
 			if (fds[0].revents) {
 				uint8_t *p = NULL;
 				int plen = 0;
-				if (!recv_mkiss(fdmaster, &p, &plen, true)) {
+				if (!recv_mkiss(kiss_fd, &p, &plen, true)) {
 					log(LL_WARNING, "TERMINATE");
 					break;
 				}
