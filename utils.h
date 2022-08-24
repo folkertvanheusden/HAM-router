@@ -2,6 +2,7 @@
 #pragma once
 #include <stdint.h>
 #include <string>
+#include <vector>
 
 uint64_t    get_us();
 std::string myformat(const char *const fmt, ...);
