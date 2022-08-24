@@ -46,6 +46,16 @@ std::string dump_hex(const unsigned char *p, int len)
 	return out;
 }
 
+std::string dump_replace(const unsigned char *p, int len)
+{
+	std::string out;
+
+	for(int i=0; i<len; i++)
+		out += myformat("%c", p[i] > 32 && p[i] < 127 ? p[i] : '.');
+
+	return out;
+}
+
 std::vector<std::string> split(std::string in, std::string splitter)
 {
 	std::vector<std::string> out;
