@@ -318,7 +318,7 @@ void process_incoming(const int fdmaster, struct mosquitto *const mi, const int 
         uint64_t *cnt_aprs_invalid_cs  = s->register_stat("cnt_aprs_invalid_cs",  "1.3.6.1.2.1.4.57850.2.2.2");
         //uint64_t *cnt_ax25_invalid_cs  = s->register_stat("cnt_ax25_invalid_cs",  "1.3.6.1.2.1.4.57850.2.3.2");  // 1.3.6.1.2.1.4.57850.3.2 ax25 counters
 
-        uint64_t *cnt_aprsi_failures   = s->register_stat("cnt_aprsi_failures",  "1.3.6.1.2.1.4.57850.2.3.1");  // aprsi counters
+        uint64_t *cnt_aprsi_failures   = s->find_stat("cnt_aprsi_failures");
 
 	for(;;) {
 		pthread_setname_np(pthread_self(), "tx_thread");
@@ -594,6 +594,14 @@ int main(int argc, char *argv[])
 
 	stats s(8192, &sd);
 
+	uint64_t *phys_ifOutOctets    = s.register_stat("phys_ifOutOctets",    myformat("1.3.6.1.2.1.2.2.1.16.%zu", 1),    snmp_integer::si_counter32);
+	uint64_t *phys_ifHCOutOctets  = s.register_stat("phys_ifHCOutOctets",  myformat("1.3.6.1.2.1.31.1.1.1.10.%zu", 1), snmp_integer::si_counter64);
+
+	uint64_t *lora_ifInOctets     = s.register_stat("lora_ifInOctets",     myformat("1.3.6.1.2.1.2.2.1.10.%zu", 2),    snmp_integer::si_counter32);
+	uint64_t *lora_ifHCInOctets   = s.register_stat("lora_ifHCInOctets",   myformat("1.3.6.1.2.1.31.1.1.1.6.%zu", 2),  snmp_integer::si_counter64);
+
+        uint64_t *cnt_aprsi_failures   = s.register_stat("cnt_aprsi_failures",  "1.3.6.1.2.1.4.57850.2.3.1");  // aprsi counters
+
 	snmp snmp_(&sd, &s, snmp_port);
 
 	if (http_port != -1)
@@ -619,12 +627,6 @@ int main(int argc, char *argv[])
 	std::thread tx_thread([fdmaster, mi, ws_port, &s] {
 			process_incoming(fdmaster, mi, ws_port, &s);
 		});
-
-	uint64_t *phys_ifOutOctets    = s.register_stat("phys_ifOutOctets",    myformat("1.3.6.1.2.1.2.2.1.16.%zu", 1),    snmp_integer::si_counter32);
-	uint64_t *phys_ifHCOutOctets  = s.register_stat("phys_ifHCOutOctets",  myformat("1.3.6.1.2.1.31.1.1.1.10.%zu", 1), snmp_integer::si_counter64);
-
-	uint64_t *lora_ifInOctets     = s.register_stat("lora_ifInOctets",     myformat("1.3.6.1.2.1.2.2.1.10.%zu", 2),    snmp_integer::si_counter32);
-	uint64_t *lora_ifHCInOctets   = s.register_stat("lora_ifHCInOctets",   myformat("1.3.6.1.2.1.31.1.1.1.6.%zu", 2),  snmp_integer::si_counter64);
 
 	std::thread beacon_thread([&modem, &modem_lock, beacon_interval, &s] {
 			if (beacon_interval <= 0)

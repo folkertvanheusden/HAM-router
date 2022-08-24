@@ -99,6 +99,12 @@ uint64_t * stats::register_stat(const std::string & name, const std::string & oi
 
 	uint8_t *p_out = (uint8_t *)&p[len];
 
+	stats_t s;
+	s.p   = reinterpret_cast<uint64_t *>(p_out);
+	s.oid = oid;
+
+	lut.insert({ name, s});
+
 	// hopefully this platform allows atomic updates
 	// not using locking, for speed
 	*(uint64_t *)p_out = 0;
