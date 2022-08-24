@@ -308,6 +308,60 @@ std::string receive_string(const int fd)
 	return reply;
 }
 
+bool send_through_aprs_is(const std::string & content_out)
+{
+	static int fd = -1;
+	static std::mutex aprs_is_lock;
+
+	aprs_is_lock.lock();
+
+	if (fd == -1) {
+		log(LL_INFO, "(re-)connecting to aprs2.net");
+
+		fd = connect_to("rotate.aprs2.net", 14580);
+
+		if (fd != -1) {
+			std::string login = "user " + aprs_user + " pass " + aprs_pass + " vers MyAprsGw softwarevers 0.1\r\n";
+
+			if (WRITE(fd, reinterpret_cast<const uint8_t *>(login.c_str()), login.size()) != ssize_t(login.size())) {
+				close(fd);
+				fd = -1;
+				log(LL_WARNING, "Failed aprsi handshake (send)");
+			}
+
+			std::string reply = receive_string(fd);
+
+			if (reply.empty()) {
+				log(LL_WARNING, "Failed aprsi handshake (receive)");
+				close(fd);
+				fd = -1;
+			}
+			else {
+				log(LL_DEBUG, "recv: %s", reply.c_str());
+			}
+		}
+		else {
+			log(LL_ERR, "failed to connect: %s", strerror(errno));
+		}
+	}
+
+	if (fd != -1) {
+		std::string payload = content_out + "\r\n";
+
+		log(LL_DEBUG, myformat("To APRS-IS: %s", content_out.c_str()).c_str());
+
+		if (WRITE(fd, reinterpret_cast<const uint8_t *>(payload.c_str()), payload.size()) != ssize_t(payload.size())) {
+			close(fd);
+			fd = -1;
+			log(LL_WARNING, "Failed to transmit APRS data to aprsi");
+		}
+	}
+
+	aprs_is_lock.unlock();
+
+	return fd >= 0;
+}
+
 void process_incoming(const int fdmaster, struct mosquitto *const mi, const int ws_port, stats *const s)
 {
 	log(LL_INFO, "Starting \"LoRa APRS -> aprsi/mqtt/syslog/db\"-thread");
@@ -468,50 +522,10 @@ void process_incoming(const int fdmaster, struct mosquitto *const mi, const int 
 			push_to_websockets(&ws, meta_str);
 
 		if (oe_) {  // OE_
-			if (fd == -1 && aprs_user.empty() == false) {
-				log(LL_INFO, "(re-)connecting to aprs2.net");
-
-				fd = connect_to("rotate.aprs2.net", 14580);
-
-				if (fd != -1) {
-					std::string login = "user " + aprs_user + " pass " + aprs_pass + " vers MyAprsGw softwarevers 0.1\r\n";
-
-					if (WRITE(fd, reinterpret_cast<const uint8_t *>(login.c_str()), login.size()) != ssize_t(login.size())) {
-						close(fd);
-						fd = -1;
-						log(LL_WARNING, "Failed aprsi handshake (send)");
-					}
-
-					std::string reply = receive_string(fd);
-
-					if (reply.empty()) {
-						log(LL_WARNING, "Failed aprsi handshake (receive)");
-						close(fd);
-						fd = -1;
-					}
-					else {
-						log(LL_DEBUG, "recv: %s", reply.c_str());
-					}
-				}
-				else {
-					log(LL_ERR, "failed to connect: %s", strerror(errno));
-				}
+			if (aprs_user.empty() == false) {
+				if (!send_through_aprs_is(content_out))
+					stats_inc_counter(cnt_aprsi_failures);
 			}
-
-			if (fd != -1) {
-				std::string payload = content_out + "\r\n";
-
-				log(LL_DEBUG, myformat("To APRS-IS: %s", content_out.c_str()).c_str());
-
-				if (WRITE(fd, reinterpret_cast<const uint8_t *>(payload.c_str()), payload.size()) != ssize_t(payload.size())) {
-					close(fd);
-					fd = -1;
-					log(LL_WARNING, "Failed to transmit APRS data to aprsi");
-				}
-			}
-
-			if (fd == -1 && aprs_user.empty() == false)
-				stats_inc_counter(cnt_aprsi_failures);
 
 			if (mi && mqtt_aprs_packet_as_is.empty() == false) {
 				int err = 0;
@@ -709,19 +723,9 @@ int main(int argc, char *argv[])
 				// send to APRS-IS
 				std::string beacon_aprs_is = callsign + "-L>APLG01,TCPIP*,qAC:" + message;
 
-				rxData rx;
-
-				rx.size = beacon_aprs_is.size();
-				memcpy(rx.buf, beacon_aprs_is.c_str(), rx.size);
-
-				gettimeofday(&rx.last_time, nullptr);
-
-				rx.userPtr = nullptr;
-
-				packets_lock.lock();
-				packets.push(rx);
-				packets_cv.notify_one();
-				packets_lock.unlock();
+				if (!send_through_aprs_is(beacon_aprs_is)) {
+					// TODOstats_inc_counter(cnt_aprsi_failures);
+				}
 
 				// send to RF
 				std::string beacon_rf = ">\xff\x01" + message;
