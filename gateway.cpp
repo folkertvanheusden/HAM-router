@@ -408,7 +408,7 @@ void process_incoming(const int fdmaster, struct mosquitto *const mi, const int 
 			if (from.empty() == false)
 				json_object_set(meta, "callsign-from", json_string(from.c_str()));
 
-			json_object_set(meta, "data", json_string(dump_hex(reinterpret_cast<const uint8_t *>(rx.buf), rx.size).c_str()));
+			json_object_set(meta, "data", json_string(dump_replace(reinterpret_cast<const uint8_t *>(rx.buf), rx.size).c_str()));
 
 			meta_str     = json_dumps(meta, 0);
 			meta_str_len = strlen(meta_str);
