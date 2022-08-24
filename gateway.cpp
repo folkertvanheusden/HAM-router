@@ -322,7 +322,9 @@ void process_incoming(const int fdmaster, struct mosquitto *const mi, const int 
 		int         meta_str_len = 0;
 
 		std::string to;
+		std::string to_full;  // only relevant for OE_
 		std::string from;
+		std::string content_out = reinterpret_cast<const char *>(&data[3]);  // for OE_ only
 
 		bool        oe_ = false;
 
@@ -331,8 +333,18 @@ void process_incoming(const int fdmaster, struct mosquitto *const mi, const int 
 			if (gt) {
 				const char *const colon = strchr(gt, ':');
 				if (colon) {
-					to   = std::string(gt + 1, colon - gt - 1);
-					from = std::string(&rx.buf[3], gt - rx.buf - 3);
+					to_full = std::string(gt + 1, colon - gt - 1);
+
+					std::size_t delimiter = to.find(',');
+
+					if (delimiter != std::string::npos)
+						to = to_full.substr(0, delimiter);
+					else
+						to = to_full;
+
+					from    = std::string(&rx.buf[3], gt - rx.buf - 3);
+
+					content_out = from + ">" + to_full + ",qAO," + callsign + colon;
 				}
 				else {
 					stats_inc_counter(cnt_aprs_invalid_cs);
@@ -368,7 +380,7 @@ void process_incoming(const int fdmaster, struct mosquitto *const mi, const int 
 			stats_inc_counter(cnt_aprs_invalid_loc);
 		}
 
-		log(LL_INFO, "timestamp: %u%06u, CRC error: %d, RSSI: %d, SNR: %f (%f,%f => distance: %fm) %s => %s (%s)", rx.last_time.tv_sec, rx.last_time.tv_usec, rx.CRC, rx.RSSI, rx.SNR, latitude, longitude, distance, from.c_str(), to.c_str(), oe_ ? "OE" : "AX.25");
+		log(LL_INFO, "timestamp: %u%06u, CRC error: %d, RSSI: %d, SNR: %f (%f,%f => distance: %fm) %s => %s (%s)", rx.last_time.tv_sec, rx.last_time.tv_usec, rx.CRC, rx.RSSI, rx.SNR, latitude, longitude, distance, from.c_str(), to_full.c_str(), oe_ ? "OE" : "AX.25");
 
 		if (mi && (mqtt_aprs_packet_meta.empty() == false || mqtt_ax25_packet_meta.empty() == false || syslog_host.empty() == false || ws_port != -1)) {
 			meta = json_object();
@@ -449,8 +461,7 @@ void process_incoming(const int fdmaster, struct mosquitto *const mi, const int 
 			}
 
 			if (fd != -1) {
-				std::string payload(reinterpret_cast<const char *>(&data[3]), rx.size - 3);
-				payload += "\r\n";
+				std::string payload = content_out + "\r\n";
 
 				if (WRITE(fd, reinterpret_cast<const uint8_t *>(payload.c_str()), payload.size()) != ssize_t(payload.size())) {
 					close(fd);
