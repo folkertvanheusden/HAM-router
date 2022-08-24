@@ -220,14 +220,6 @@ void * rx_f(void *in)
 	return NULL;
 }
 
-void push_to_websockets(ws_global_context_t *const ws, const std::string & json_data)
-{
-	ws->lock.lock();
-	ws->json_data = json_data;
-	ws->ts        = get_us();
-	ws->lock.unlock();
-}
-
 std::string receive_string(const int fd)
 {
 	std::string reply;

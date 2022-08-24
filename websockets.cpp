@@ -5,6 +5,7 @@
 
 #include "error.h"
 #include "log.h"
+#include "utils.h"
 #include "websockets.h"
 
 typedef struct {
@@ -104,4 +105,12 @@ void start_websocket_thread(const int port, ws_global_context_t *const p, const 
 		});
 
 	websocket_thread.detach();
+}
+
+void push_to_websockets(ws_global_context_t *const ws, const std::string & json_data)
+{
+	ws->lock.lock();
+	ws->json_data = json_data;
+	ws->ts        = get_us();
+	ws->lock.unlock();
 }
