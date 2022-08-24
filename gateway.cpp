@@ -490,6 +490,73 @@ void configure_ax25_interface(int *const fd, std::string *const device_name)
 	device_name->assign(dev_name);
 }
 
+void send_beacons(LoRa_ctl *const modem, std::mutex *const modem_lock, const int beacon_interval, stats *const s, aprs_si *const as)
+{
+	if (beacon_interval <= 0)
+		return;
+
+	log(LL_INFO, "Starting beacon transmitter (to LoRa & APRS-IS)");
+
+	if (beacon_interval < 600)
+		error_exit(false, "Beacon interval should be at least 10 minutes");
+
+	uint64_t *cnt_aprsi_failures = s->find_stat("cnt_aprsi_failures");
+
+	uint64_t *phys_ifOutOctets   = s->find_stat("phys_ifOutOctets");
+	uint64_t *phys_ifHCOutOctets = s->find_stat("phys_ifHCOutOctets");
+
+	uint64_t *lora_ifInOctets    = s->find_stat("lora_ifInOctets");
+	uint64_t *lora_ifHCInOctets  = s->find_stat("lora_ifHCInOctets");
+
+	for(;;) {
+		log(LL_DEBUG, "Queueing beacon-message for APRS-FI");
+		std::string message = "=" + gps_double_to_aprs(local_lat, local_lng) + "&LoRa APRS/AX.25 gateway, https://github.com/folkertvanheusden/lora-aprs-gw";
+
+		// send to APRS-IS
+		std::string beacon_aprs_is = callsign + "-L>APLG01,TCPIP*,qAC:" + message;
+
+		if (aprs_user.empty() == false) {
+			if (!as->send_through_aprs_is(beacon_aprs_is))
+				stats_inc_counter(cnt_aprsi_failures);
+		}
+
+		// send to RF
+		std::string beacon_rf = ">\xff\x01" + message;
+		size_t beacon_rf_len = beacon_rf.size();
+
+		log(LL_DEBUG, "Sending beacon via RF");
+		lora_transmit(modem, modem_lock, reinterpret_cast<const uint8_t *>(beacon_rf.c_str()), beacon_rf_len);
+
+		stats_add_counter(phys_ifOutOctets,   beacon_rf_len);
+		stats_add_counter(phys_ifHCOutOctets, beacon_rf_len);
+
+		stats_add_counter(lora_ifInOctets,   beacon_rf_len);
+		stats_add_counter(lora_ifHCInOctets, beacon_rf_len);
+
+		log(LL_DEBUG, "Sleeping %d seconds for next beacon", beacon_interval);
+		sleep(beacon_interval);
+	}
+}
+
+mosquitto *init_mqtt(const std::string & mqtt_host, const int port)
+{
+	log(LL_INFO, "Initializing MQTT");
+
+	int err = 0;
+
+	mosquitto *mi = mosquitto_new(nullptr, true, nullptr);
+	if (!mi)
+		error_exit(false, "Cannot crate mosquitto instance");
+
+	if ((err = mosquitto_connect(mi, mqtt_host.c_str(), mqtt_port, 30)) != MOSQ_ERR_SUCCESS)
+		error_exit(false, "mqtt failed to connect (%s)", mosquitto_strerror(err));
+
+	if ((err = mosquitto_loop_start(mi)) != MOSQ_ERR_SUCCESS)
+		error_exit(false, "mqtt failed to start thread (%s)", mosquitto_strerror(err));
+
+	return mi;
+}
+
 int main(int argc, char *argv[])
 {
 	if (argc != 2)
@@ -556,77 +623,17 @@ int main(int argc, char *argv[])
 	if (http_port != -1)
 		start_webserver(http_port, ws_port, &s);
 
-	struct mosquitto *mi = nullptr;
+	mosquitto *mi = nullptr;
 
-	int err = 0;
-	if (mqtt_host.empty() == false) {
-		log(LL_INFO, "Initializing MQTT");
+	if (mqtt_host.empty() == false)
+		mi = init_mqtt(mqtt_host, mqtt_port);
 
-		mi = mosquitto_new(nullptr, true, nullptr);
-		if (!mi)
-			error_exit(false, "Cannot crate mosquitto instance");
-
-		if ((err = mosquitto_connect(mi, mqtt_host.c_str(), mqtt_port, 30)) != MOSQ_ERR_SUCCESS)
-			error_exit(false, "mqtt failed to connect (%s)", mosquitto_strerror(err));
-
-		if ((err = mosquitto_loop_start(mi)) != MOSQ_ERR_SUCCESS)
-			error_exit(false, "mqtt failed to start thread (%s)", mosquitto_strerror(err));
-	}
-
-	std::thread tx_thread([kiss_fd, mi, ws_port, &s, &as] {
+	std::thread tx_thread([kiss_fd, mi, &s, &as] {
 			process_incoming(kiss_fd, mi, ws_port, &s, &as);
 		});
 
-	std::thread beacon_thread([&modem, &modem_lock, beacon_interval, &s, &as] {
-			if (beacon_interval <= 0)
-				return;
-
-			log(LL_INFO, "Starting beacon transmitter (to LoRa & APRS-IS)");
-
-			if (beacon_interval < 600) {
-				beacon_interval = 600;
-
-				log(LL_WARNING, "Beacon interval should be at least 10 minutes");
-			}
-
-			uint64_t *cnt_aprsi_failures = s.find_stat("cnt_aprsi_failures");
-
-			uint64_t *phys_ifOutOctets    = s.find_stat("phys_ifOutOctets");
-			uint64_t *phys_ifHCOutOctets  = s.find_stat("phys_ifHCOutOctets");
-
-			uint64_t *lora_ifInOctets     = s.find_stat("lora_ifInOctets");
-			uint64_t *lora_ifHCInOctets   = s.find_stat("lora_ifHCInOctets");
-
-
-			for(;;) {
-				log(LL_DEBUG, "Queueing beacon-message for APRS-FI");
-				std::string message = "=" + gps_double_to_aprs(local_lat, local_lng) + "&LoRa APRS/AX.25 gateway, https://github.com/folkertvanheusden/lora-aprs-gw";
-
-				// send to APRS-IS
-				std::string beacon_aprs_is = callsign + "-L>APLG01,TCPIP*,qAC:" + message;
-
-				if (aprs_user.empty() == false) {
-					if (!as.send_through_aprs_is(beacon_aprs_is)) {
-						stats_inc_counter(cnt_aprsi_failures);
-					}
-				}
-
-				// send to RF
-				std::string beacon_rf = ">\xff\x01" + message;
-				size_t beacon_rf_len = beacon_rf.size();
-
-				log(LL_DEBUG, "Sending beacon via RF");
-				lora_transmit(&modem, &modem_lock, reinterpret_cast<const uint8_t *>(beacon_rf.c_str()), beacon_rf_len);
-
-				stats_add_counter(phys_ifOutOctets,   beacon_rf_len);
-				stats_add_counter(phys_ifHCOutOctets, beacon_rf_len);
-
-				stats_add_counter(lora_ifInOctets,   beacon_rf_len);
-				stats_add_counter(lora_ifHCInOctets, beacon_rf_len);
-
-				log(LL_DEBUG, "Sleeping %d seconds for next beacon", beacon_interval);
-				sleep(beacon_interval);
-			}
+	std::thread beacon_thread([&modem, &modem_lock, &s, &as] {
+			send_beacons(&modem, &modem_lock, beacon_interval, &s, &as);
 		});
 
 	if (local_ax25) {
