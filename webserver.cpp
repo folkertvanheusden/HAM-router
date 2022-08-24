@@ -93,8 +93,8 @@ void start_webserver(const int listen_port, const int ws_port_in, stats *const s
 				"            console.error(error);\n"
 				"        }\n"
 				"    };\n"
-				"    start();\n"
 				"};\n"
+				"start();\n"
 				"</script>\n", ws_port, ws_port);
 
 		/* MHD_Daemon *d = */MHD_start_daemon(MHD_USE_THREAD_PER_CONNECTION,
