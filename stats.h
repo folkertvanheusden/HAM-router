@@ -46,4 +46,6 @@ public:
 	virtual ~stats();
 
 	uint64_t * register_stat(const std::string & name, const std::string & oid = "", const snmp_integer::snmp_integer_type type = snmp_integer::si_integer);
+
+	uint64_t * find_stat(const std::string & name);
 };

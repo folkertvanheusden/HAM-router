@@ -115,3 +115,14 @@ uint64_t * stats::register_stat(const std::string & name, const std::string & oi
 
 	return reinterpret_cast<uint64_t *>(p_out);
 }
+
+uint64_t * stats::find_stat(const std::string & name)
+{
+	std::unique_lock<std::mutex> lck(lock);
+
+	auto lut_it = lut.find(name);
+	if (lut_it != lut.end())
+		return lut_it->second.p;
+
+	return nullptr;
+}

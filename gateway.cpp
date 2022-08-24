@@ -620,7 +620,13 @@ int main(int argc, char *argv[])
 			process_incoming(fdmaster, mi, ws_port, &s);
 		});
 
-	std::thread beacon_thread([&modem, &modem_lock, beacon_interval] {
+	uint64_t *phys_ifOutOctets    = s.register_stat("phys_ifOutOctets",    myformat("1.3.6.1.2.1.2.2.1.16.%zu", 1),    snmp_integer::si_counter32);
+	uint64_t *phys_ifHCOutOctets  = s.register_stat("phys_ifHCOutOctets",  myformat("1.3.6.1.2.1.31.1.1.1.10.%zu", 1), snmp_integer::si_counter64);
+
+	uint64_t *lora_ifInOctets     = s.register_stat("lora_ifInOctets",     myformat("1.3.6.1.2.1.2.2.1.10.%zu", 2),    snmp_integer::si_counter32);
+	uint64_t *lora_ifHCInOctets   = s.register_stat("lora_ifHCInOctets",   myformat("1.3.6.1.2.1.31.1.1.1.6.%zu", 2),  snmp_integer::si_counter64);
+
+	std::thread beacon_thread([&modem, &modem_lock, beacon_interval, &s] {
 			if (beacon_interval <= 0)
 				return;
 
@@ -632,6 +638,15 @@ int main(int argc, char *argv[])
 				log(LL_WARNING, "Beacon interval should be at least 10 minutes");
 			}
 
+			uint64_t *cnt_aprsi_failures = s.find_stat("cnt_aprsi_failures");
+
+			uint64_t *phys_ifOutOctets    = s.find_stat("phys_ifOutOctets");
+			uint64_t *phys_ifHCOutOctets  = s.find_stat("phys_ifHCOutOctets");
+
+			uint64_t *lora_ifInOctets     = s.find_stat("lora_ifInOctets");
+			uint64_t *lora_ifHCInOctets   = s.find_stat("lora_ifHCInOctets");
+
+
 			for(;;) {
 				log(LL_DEBUG, "Queueing beacon-message for APRS-FI");
 				std::string message = "=" + gps_double_to_aprs(local_lat, local_lng) + "&LoRa APRS/AX.25 gateway, https://github.com/folkertvanheusden/lora-aprs-gw";
@@ -641,7 +656,7 @@ int main(int argc, char *argv[])
 
 				if (aprs_user.empty() == false) {
 					if (!send_through_aprs_is(beacon_aprs_is)) {
-						// TODO stats_inc_counter(cnt_aprsi_failures);
+						stats_inc_counter(cnt_aprsi_failures);
 					}
 				}
 
@@ -652,12 +667,11 @@ int main(int argc, char *argv[])
 				log(LL_DEBUG, "Sending beacon via RF");
 				lora_transmit(&modem, &modem_lock, reinterpret_cast<const uint8_t *>(beacon_rf.c_str()), beacon_rf_len);
 
-				// TODO:
-				// stats_add_counter(phys_ifOutOctets,   beacon_rf_len);
-				// stats_add_counter(phys_ifHCOutOctets, beacon_rf_len);
+				stats_add_counter(phys_ifOutOctets,   beacon_rf_len);
+				stats_add_counter(phys_ifHCOutOctets, beacon_rf_len);
 
-				// stats_add_counter(lora_ifInOctets,   beacon_rf_len);
-				// stats_add_counter(lora_ifHCInOctets, beacon_rf_len);
+				stats_add_counter(lora_ifInOctets,   beacon_rf_len);
+				stats_add_counter(lora_ifHCInOctets, beacon_rf_len);
 
 				log(LL_DEBUG, "Sleeping %d seconds for next beacon", beacon_interval);
 				sleep(beacon_interval);
@@ -666,12 +680,6 @@ int main(int argc, char *argv[])
 
 	if (local_ax25) {
 		log(LL_INFO, "Starting transmit (local AX.25 stack to LoRa)");
-
-		uint64_t *phys_ifOutOctets    = s.register_stat("phys_ifOutOctets",    myformat("1.3.6.1.2.1.2.2.1.16.%zu", 1),    snmp_integer::si_counter32);
-		uint64_t *phys_ifHCOutOctets  = s.register_stat("phys_ifHCOutOctets",  myformat("1.3.6.1.2.1.31.1.1.1.10.%zu", 1), snmp_integer::si_counter64);
-
-		uint64_t *lora_ifInOctets     = s.register_stat("lora_ifInOctets",     myformat("1.3.6.1.2.1.2.2.1.10.%zu", 2),    snmp_integer::si_counter32);
-		uint64_t *lora_ifHCInOctets   = s.register_stat("lora_ifHCInOctets",   myformat("1.3.6.1.2.1.31.1.1.1.6.%zu", 2),  snmp_integer::si_counter64);
 
 		struct pollfd fds[] = { { fdmaster, POLLIN, 0 } };
 
