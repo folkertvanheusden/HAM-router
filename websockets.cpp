@@ -1,3 +1,4 @@
+#include <atomic>
 #include <libwebsockets.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,6 +8,10 @@
 #include "log.h"
 #include "utils.h"
 #include "websockets.h"
+
+static std::atomic_bool  ws_terminate { false };
+static std::thread      *ws_thread    { nullptr };
+static lws_context      *context      { nullptr };
 
 typedef struct {
 	uint64_t ts;
@@ -94,17 +99,25 @@ void start_websocket_thread(const int port, ws_global_context_t *const p, const 
 		.gid = -1, .uid = -1, .options = 0, .user = p, .ka_time = 0, .ka_probes = 0, .ka_interval = 0
 	};
 
-	struct lws_context *context = lws_create_context(&context_info);
+	context = lws_create_context(&context_info);
 
 	if (context == nullptr)
 		error_exit(false, "libwebsocket init failed");
 
-	std::thread websocket_thread([context] {
-			for(;;)
-				lws_service(context, 1000);
+	ws_thread = new std::thread([] {
+			for(;!ws_terminate;)
+				lws_service(context, 100);
 		});
+}
 
-	websocket_thread.detach();
+void stop_websockets()
+{
+	ws_terminate = true;
+
+	ws_thread->join();
+	delete ws_thread;
+
+	lws_context_destroy(context);
 }
 
 void push_to_websockets(ws_global_context_t *const ws, const std::string & json_data)

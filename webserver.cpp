@@ -6,7 +6,9 @@
 #include "stats.h"
 #include "utils.h"
 
-static int ws_port = -1;
+static int         ws_port { -1 };
+
+static MHD_Daemon *d { nullptr };
 
 const std::string html_page_header = "<!DOCTYPE html>"
 	"<html lang=\"en\">"
@@ -113,7 +115,7 @@ void start_webserver(const int listen_port, const int ws_port_in, stats *const s
 				"document.addEventListener('DOMContentLoaded', function() { start(); });\n"
 				"</script>\n", ws_port, ws_port);
 
-		/* MHD_Daemon *d = */MHD_start_daemon(MHD_USE_THREAD_PER_CONNECTION,
+		d = MHD_start_daemon(MHD_USE_THREAD_PER_CONNECTION,
 			       listen_port,
 			       nullptr,
 			       nullptr,
@@ -121,4 +123,9 @@ void start_webserver(const int listen_port, const int ws_port_in, stats *const s
 			       s,
 			       MHD_OPTION_END);
 	}
+}
+
+void stop_webserver()
+{
+	MHD_stop_daemon(d);
 }

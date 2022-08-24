@@ -1,3 +1,4 @@
+#include <atomic>
 #include <condition_variable>
 #include <errno.h>
 #include <jansson.h>
@@ -60,6 +61,23 @@ std::string ws_ssl_ca;
 int         snmp_port = -1;
 int         http_port = -1;
 int         beacon_interval = 0;
+
+std::atomic_bool terminate { false };
+
+db *d = nullptr;
+
+std::queue<rxData>      packets;
+std::mutex              packets_lock;
+std::condition_variable packets_cv;
+
+void signal_handler(int sig)
+{
+	log(LL_INFO, "Terminate requested");
+
+	terminate = true;
+
+	packets_cv.notify_all();
+}
 
 #define INI_MATCH(s, n) (strcmp(section, s) == 0 && strcmp(name, n) == 0)
 
@@ -165,12 +183,6 @@ void load_ini_file(const std::string & file)
 		error_exit(true, "Cannot process INI-file \"%s\"", file.c_str());
 }
 
-db *d = nullptr;
-
-std::queue<rxData>      packets;
-std::mutex              packets_lock;
-std::condition_variable packets_cv;
-
 void tx_f(txData *tx)
 {
 	log(LL_DEBUG, "transmitted");
@@ -251,18 +263,21 @@ void process_incoming(const int kiss_fd, struct mosquitto *const mi, const int w
 
         uint64_t *cnt_aprsi_failures   = s->find_stat("cnt_aprsi_failures");
 
-	for(;;) {
+	for(;!terminate;) {
 		pthread_setname_np(pthread_self(), "tx_thread");
 
 		std::unique_lock<std::mutex> lck(packets_lock);
 
-		while(packets.empty())
+		while(packets.empty() && !terminate)
 			packets_cv.wait(lck);
 
 		rxData rx = packets.front();
 		packets.pop();
 
 		lck.unlock();
+
+		if (terminate)
+			break;
 
 		stats_add_counter(phys_ifInOctets,   rx.size);
 		stats_add_counter(phys_ifHCInOctets, rx.size);
@@ -450,8 +465,6 @@ void init_modem(LoRa_ctl *const modem)
 
 	LoRa_begin(modem);
 
-	signal(11, SIG_DFL);
-
 	LoRa_receive(modem);
 }
 
@@ -508,7 +521,7 @@ void send_beacons(LoRa_ctl *const modem, std::mutex *const modem_lock, const int
 	uint64_t *lora_ifInOctets    = s->find_stat("lora_ifInOctets");
 	uint64_t *lora_ifHCInOctets  = s->find_stat("lora_ifHCInOctets");
 
-	for(;;) {
+	for(;!terminate;) {
 		log(LL_DEBUG, "Queueing beacon-message for APRS-FI");
 		std::string message = "=" + gps_double_to_aprs(local_lat, local_lng) + "&LoRa APRS/AX.25 gateway, https://github.com/folkertvanheusden/lora-aprs-gw";
 
@@ -534,7 +547,9 @@ void send_beacons(LoRa_ctl *const modem, std::mutex *const modem_lock, const int
 		stats_add_counter(lora_ifHCInOctets, beacon_rf_len);
 
 		log(LL_DEBUG, "Sleeping %d seconds for next beacon", beacon_interval);
-		sleep(beacon_interval);
+
+		for(int i=0; i<beacon_interval * 10 && !terminate; i++)
+			usleep(100000);
 	}
 }
 
@@ -574,6 +589,8 @@ int main(int argc, char *argv[])
 	std::mutex modem_lock;
 	LoRa_ctl   modem;
 	init_modem(&modem);
+
+	signal(SIGINT, signal_handler);
 
 	int         kiss_fd          = -1;
 	std::string ax25_device_name;
@@ -641,13 +658,18 @@ int main(int argc, char *argv[])
 
 		struct pollfd fds[] = { { kiss_fd, POLLIN, 0 } };
 
-		for(;;) {
-			if (poll(fds, 1, -1) == -1) {
+		for(;!terminate;) {
+			int rc = poll(fds, 1, 100);
+
+			if (rc == -1) {
 				if (errno != EINTR) {
 					log(LL_WARNING, "TERMINATE: (%s)", strerror(errno));
 					break;
 				}
 			}
+
+			if (rc == 0)
+				continue;
 
 			if (fds[0].revents) {
 				uint8_t *p = NULL;
@@ -675,6 +697,16 @@ int main(int argc, char *argv[])
 	}
 
 	LoRa_end(&modem);
+
+	stop_webserver();
+
+	stop_websockets();
+
+	beacon_thread.join();
+
+	tx_thread.join();
+
+	delete d;
 
 	log(LL_INFO, "END");
 }
