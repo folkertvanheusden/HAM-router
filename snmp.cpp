@@ -31,7 +31,7 @@ uint64_t snmp::get_INTEGER(const uint8_t *p, const size_t length)
 	uint64_t v = 0;
 
 	if (length > 8)
-		log(LL_DEBUG, "SNMP: INTEGER truncated (%zu bytes)", length);
+		log(LL_DEBUG_VERBOSE, "SNMP: INTEGER truncated (%zu bytes)", length);
 
 	for(size_t i=0; i<length; i++) {
 		v <<= 8;
@@ -78,7 +78,7 @@ bool snmp::get_OID(const uint8_t *p, const size_t length, std::string *const oid
 	}
 
 	if (v) {
-		log(LL_DEBUG, "SNMP: object identifier did not properly terminate");
+		log(LL_DEBUG_VERBOSE, "SNMP: object identifier did not properly terminate");
 		return false;
 	}
 
@@ -140,7 +140,7 @@ bool snmp::process_PDU(const uint8_t *p, const size_t len, oid_req_t *const oids
 		uint8_t seq_length = *pnt++;
 
 		if (&pnt[seq_length] > &p[len_vb_list]) {
-			log(LL_DEBUG, "SNMP: length field out of bounds");
+			log(LL_DEBUG_VERBOSE, "SNMP: length field out of bounds");
 			return false;
 		}
 
@@ -149,7 +149,7 @@ bool snmp::process_PDU(const uint8_t *p, const size_t len, oid_req_t *const oids
 			pnt += seq_length;
 		}
 		else {
-			log(LL_DEBUG, "SNMP: unexpected/invalid type %02x", seq_type);
+			log(LL_DEBUG_VERBOSE, "SNMP: unexpected/invalid type %02x", seq_type);
 			return false;
 		}
 	}
@@ -160,7 +160,7 @@ bool snmp::process_PDU(const uint8_t *p, const size_t len, oid_req_t *const oids
 bool snmp::process_BER(const uint8_t *p, const size_t len, oid_req_t *const oids_req, const bool is_getnext, const int is_top)
 {
 	if (len < 2) {
-		log(LL_DEBUG, "SNMP: BER too small");
+		log(LL_DEBUG_VERBOSE, "SNMP: BER too small");
 		return false;
 	}
 
@@ -173,7 +173,7 @@ bool snmp::process_BER(const uint8_t *p, const size_t len, oid_req_t *const oids
 		uint8_t length = *pnt++;
 
 		if (&pnt[length] > &p[len]) {
-			log(LL_DEBUG, "SNMP: length field out of bounds");
+			log(LL_DEBUG_VERBOSE, "SNMP: length field out of bounds");
 			return false;
 		}
 
@@ -244,7 +244,7 @@ bool snmp::process_BER(const uint8_t *p, const size_t len, oid_req_t *const oids
 			pnt += length;
 		}
 		else {
-			log(LL_DEBUG, "SNMP: invalid type %02x", type);
+			log(LL_DEBUG_VERBOSE, "SNMP: invalid type %02x", type);
 			return false;
 		}
 	}
@@ -283,7 +283,7 @@ void snmp::gen_reply(oid_req_t & oids_req, uint8_t **const packet_out, size_t *c
 
 		varbind->add(new snmp_oid(e));
 
-		log(LL_DEBUG, "SNMP requested: %s", e.c_str());
+		log(LL_DEBUG_VERBOSE, "SNMP requested: %s", e.c_str());
 
 		std::optional<snmp_elem *> rc = sd->find_by_oid(e);
 
@@ -302,7 +302,7 @@ void snmp::gen_reply(oid_req_t & oids_req, uint8_t **const packet_out, size_t *c
 				varbind->add(new snmp_null());
 		}
 		else {
-			log(LL_DEBUG, "SNMP: requested %s not found, returning null", e.c_str());
+			log(LL_DEBUG_VERBOSE, "SNMP: requested %s not found, returning null", e.c_str());
 
 			// FIXME snmp_null?
 			varbind->add(new snmp_null());
@@ -318,12 +318,12 @@ void snmp::gen_reply(oid_req_t & oids_req, uint8_t **const packet_out, size_t *c
 
 void snmp::input(const int fd, const uint8_t *const data, const size_t data_len, const sockaddr *const a, const size_t a_len)
 {
-//	log(LL_DEBUG, "SNMP: request from [%s]:%d", src_ip.to_str().c_str(), src_port);
+//	log(LL_DEBUG_VERBOSE, "SNMP: request from [%s]:%d", src_ip.to_str().c_str(), src_port);
 
 	oid_req_t or_;
 
 	if (!process_BER(data, data_len, &or_, false, 2)) {
-                log(LL_DEBUG, "SNMP: failed processing request");
+                log(LL_DEBUG_VERBOSE, "SNMP: failed processing request");
                 return;
 	}
 
@@ -333,7 +333,7 @@ void snmp::input(const int fd, const uint8_t *const data, const size_t data_len,
 	gen_reply(or_, &packet_out, &output_size);
 
 	if (output_size) {
-		// log(LL_DEBUG, "SNMP: sending reply of %zu bytes to [%s]:%d", output_size, src_ip.to_str().c_str(), src_port);
+		// log(LL_DEBUG_VERBOSE, "SNMP: sending reply of %zu bytes to [%s]:%d", output_size, src_ip.to_str().c_str(), src_port);
 
 		sendto(fd, packet_out, output_size, 0, a, a_len);
 
