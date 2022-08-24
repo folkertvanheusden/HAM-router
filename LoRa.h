@@ -144,7 +144,7 @@ typedef struct{
 } Modem_cfg;
 
 typedef struct{
-    char *buf;
+    char buf[256];
     unsigned char size;//Size of buffer. Used in Explicit header mode. 255 MAX size
     struct timeval last_time;
     double Tsym;
