@@ -27,6 +27,7 @@ extern "C" {
 #include "snmp.h"
 #include "stats.h"
 #include "utils.h"
+#include "webserver.h"
 #include "websockets.h"
 
 std::string callsign;
@@ -55,6 +56,7 @@ std::string ws_ssl_cert;
 std::string ws_ssl_priv_key;
 std::string ws_ssl_ca;
 int         snmp_port = -1;
+int         http_port = -1;
 
 #define INI_MATCH(s, n) (strcmp(section, s) == 0 && strcmp(name, n) == 0)
 
@@ -137,6 +139,9 @@ int handler_ini(void* user, const char* section, const char* name, const char* v
 	}
 	else if (INI_MATCH("snmp", "port")) {
 		snmp_port = atoi(value);
+	}
+	else if (INI_MATCH("http", "port")) {
+		http_port = atoi(value);
 	}
 	else {
 		return 0;
@@ -594,6 +599,9 @@ int main(int argc, char *argv[])
 	stats s(8192, &sd);
 
 	snmp snmp_(&sd, &s, snmp_port);
+
+	if (http_port != -1)
+		start_webserver(http_port, ws_port, &s);
 
 	struct mosquitto *mi = nullptr;
 
