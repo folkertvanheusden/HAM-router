@@ -17,6 +17,7 @@ extern "C" {
 #include "LoRa.h"
 }
 
+#include "aprs-si.h"
 #include "db.h"
 #include "error.h"
 #include "gps.h"
@@ -224,81 +225,7 @@ void * rx_f(void *in)
 	return NULL;
 }
 
-std::string receive_string(const int fd)
-{
-	std::string reply;
-
-	for(;;) {
-		char c = 0;
-		if (read(fd, &c, 1) <= 0) {
-			log(LL_WARNING, "Receive failed: %s", strerror(errno));
-			return "";
-		}
-
-		if (c == 10)
-			break;
-
-		reply += c;
-	}
-
-	return reply;
-}
-
-bool send_through_aprs_is(const std::string & content_out)
-{
-	static int fd = -1;
-	static std::mutex aprs_is_lock;
-
-	aprs_is_lock.lock();
-
-	if (fd == -1) {
-		log(LL_INFO, "(re-)connecting to aprs2.net");
-
-		fd = connect_to("rotate.aprs2.net", 14580);
-
-		if (fd != -1) {
-			std::string login = "user " + aprs_user + " pass " + aprs_pass + " vers MyAprsGw softwarevers 0.1\r\n";
-
-			if (WRITE(fd, reinterpret_cast<const uint8_t *>(login.c_str()), login.size()) != ssize_t(login.size())) {
-				close(fd);
-				fd = -1;
-				log(LL_WARNING, "Failed aprsi handshake (send)");
-			}
-
-			std::string reply = receive_string(fd);
-
-			if (reply.empty()) {
-				log(LL_WARNING, "Failed aprsi handshake (receive)");
-				close(fd);
-				fd = -1;
-			}
-			else {
-				log(LL_DEBUG, "recv: %s", reply.c_str());
-			}
-		}
-		else {
-			log(LL_ERR, "failed to connect: %s", strerror(errno));
-		}
-	}
-
-	if (fd != -1) {
-		std::string payload = content_out + "\r\n";
-
-		log(LL_DEBUG, myformat("To APRS-IS: %s", content_out.c_str()).c_str());
-
-		if (WRITE(fd, reinterpret_cast<const uint8_t *>(payload.c_str()), payload.size()) != ssize_t(payload.size())) {
-			close(fd);
-			fd = -1;
-			log(LL_WARNING, "Failed to transmit APRS data to aprsi");
-		}
-	}
-
-	aprs_is_lock.unlock();
-
-	return fd >= 0;
-}
-
-void process_incoming(const int fdmaster, struct mosquitto *const mi, const int ws_port, stats *const s)
+void process_incoming(const int fdmaster, struct mosquitto *const mi, const int ws_port, stats *const s, aprs_si *as)
 {
 	log(LL_INFO, "Starting \"LoRa APRS -> aprsi/mqtt/syslog/db\"-thread");
 
@@ -459,7 +386,7 @@ void process_incoming(const int fdmaster, struct mosquitto *const mi, const int 
 
 		if (oe_) {  // OE_
 			if (aprs_user.empty() == false) {
-				if (!send_through_aprs_is(content_out))
+				if (!as->send_through_aprs_is(content_out))
 					stats_inc_counter(cnt_aprsi_failures);
 			}
 
@@ -574,6 +501,8 @@ int main(int argc, char *argv[])
 			system((if_up + " " + dev_name).c_str());
 	}
 
+	aprs_si as(aprs_user, aprs_pass);
+
 	snmp_data_type_running_since running_since;
 
 	snmp_data sd;
@@ -631,11 +560,11 @@ int main(int argc, char *argv[])
 			error_exit(false, "mqtt failed to start thread (%s)", mosquitto_strerror(err));
 	}
 
-	std::thread tx_thread([fdmaster, mi, ws_port, &s] {
-			process_incoming(fdmaster, mi, ws_port, &s);
+	std::thread tx_thread([fdmaster, mi, ws_port, &s, &as] {
+			process_incoming(fdmaster, mi, ws_port, &s, &as);
 		});
 
-	std::thread beacon_thread([&modem, &modem_lock, beacon_interval, &s] {
+	std::thread beacon_thread([&modem, &modem_lock, beacon_interval, &s, &as] {
 			if (beacon_interval <= 0)
 				return;
 
@@ -664,7 +593,7 @@ int main(int argc, char *argv[])
 				std::string beacon_aprs_is = callsign + "-L>APLG01,TCPIP*,qAC:" + message;
 
 				if (aprs_user.empty() == false) {
-					if (!send_through_aprs_is(beacon_aprs_is)) {
+					if (!as.send_through_aprs_is(beacon_aprs_is)) {
 						stats_inc_counter(cnt_aprsi_failures);
 					}
 				}

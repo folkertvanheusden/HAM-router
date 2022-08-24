@@ -13,6 +13,7 @@ set(CMAKE_BUILD_TYPE Debug)
 add_compile_options(-Wall -pedantic)
 
 add_executable(lora-aprs-gw
+	aprs-si.cpp
 	db.cpp
 	error.cpp
 	gateway.cpp
