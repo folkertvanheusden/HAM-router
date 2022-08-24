@@ -37,7 +37,7 @@ MHD_Result process_http_request(void *cls,
 	if (strcmp(method, "GET") != 0)
 		return MHD_NO; 
 
-	log(LL_INFO, "webserver: %s %s", method, url);
+	log(LL_DEBUG_VERBOSE, "webserver: %s %s", method, url);
 
 	std::string page;
 
@@ -52,7 +52,7 @@ MHD_Result process_http_request(void *cls,
 
 		page += "<h2>statistics</h2>\n";
 
-		page += "<table><tr><th>name></th><th>value</th></tr>\n";
+		page += "<table><tr><th>name</th><th>value</th></tr>\n";
 
 		for(auto pair : stats_snapshot)
 			page += "<tr><td>" + pair.first + "</td><td>" + pair.second + "</td></tr>\n";
