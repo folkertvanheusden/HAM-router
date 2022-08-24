@@ -21,6 +21,16 @@ hardware requirements:
 * something with SPI and GPIO pins to connect the SX1278 to (e.g. a raspberry pi)
 
 
+compiling program:
+* mkdir build
+* cd build
+* cmake ..
+* make
+* cd ..
+
+The result is: build/lora-aprs-gw
+
+
 (optional) database schema:
 
 ```
