@@ -57,6 +57,7 @@ std::string ws_ssl_priv_key;
 std::string ws_ssl_ca;
 int         snmp_port = -1;
 int         http_port = -1;
+int         beacon_interval = 0;
 
 #define INI_MATCH(s, n) (strcmp(section, s) == 0 && strcmp(name, n) == 0)
 
@@ -76,6 +77,9 @@ int handler_ini(void* user, const char* section, const char* name, const char* v
 	}
 	else if (INI_MATCH("general", "local-ax25")) {
 		local_ax25 = strcasecmp(value, "true") == 0;
+	}
+	else if (INI_MATCH("general", "beacon-interval")) {
+		beacon_interval = atoi(value);
 	}
 	else if (INI_MATCH("aprsi", "user")) {
 		aprs_user = value;
@@ -166,6 +170,40 @@ void tx_f(txData *tx)
 {
 	log(LL_DEBUG, "transmitted");
 }
+
+void lora_transmit(LoRa_ctl *const modem, std::mutex *const modem_lock, const uint8_t *const what, const int len)
+{
+	if (len > 255) {
+		log(LL_WARNING, "lora_transmit: packet too big (%d bytes)", len);
+
+		return;
+	}
+
+	modem_lock->lock();
+
+	memcpy(modem->tx.data.buf, what, len);
+
+	log(LL_DEBUG, "transmit: %s", dump_hex(reinterpret_cast<const uint8_t *>(modem->tx.data.buf), len).c_str());
+
+	LoRa_stop_receive(modem); //manually stoping RxCont mode
+
+	while(LoRa_get_op_mode(modem) != STDBY_MODE)
+		usleep(101000);
+
+	modem->tx.data.size = len;
+
+	LoRa_send(modem);
+
+	while(LoRa_get_op_mode(modem) != STDBY_MODE)
+		usleep(101000);
+
+	log(LL_DEBUG, "Time on air data - Tsym: %f; Tpkt: %f; payloadSymbNb: %u", modem->tx.data.Tsym, modem->tx.data.Tpkt, modem->tx.data.payloadSymbNb);
+
+	LoRa_receive(modem);
+
+	modem_lock->unlock();
+}
+
 
 // https://stackoverflow.com/questions/27126714/c-latitude-and-longitude-distance-calculator
 #define RADIO_TERRESTRE 6372797.56085
@@ -463,7 +501,7 @@ void process_incoming(const int fdmaster, struct mosquitto *const mi, const int 
 			if (fd != -1) {
 				std::string payload = content_out + "\r\n";
 
-				log(LL_DEBUG, myformat("To aprs.fi: %s", content_out.c_str()).c_str());
+				log(LL_DEBUG, myformat("To APRS-IS: %s", content_out.c_str()).c_str());
 
 				if (WRITE(fd, reinterpret_cast<const uint8_t *>(payload.c_str()), payload.size()) != ssize_t(payload.size())) {
 					close(fd);
@@ -509,8 +547,20 @@ void process_incoming(const int fdmaster, struct mosquitto *const mi, const int 
 		close(fd);
 }
 
-void start_snmp()
+std::string gps_double_to_aprs(const double lat, const double lng)
 {
+        double lata = abs(lat);
+        double latd = floor(lata);
+        double latm = (lata - latd) * 60;
+        double lath = (latm - floor(latm)) * 100;
+        double lnga = abs(lng);
+        double lngd = floor(lnga);
+        double lngm = (lnga - lngd) * 60;
+        double lngh = (lngm - floor(lngm)) * 100;
+
+        return myformat("%02d%02d.%02d%c/%03d%02d.%02d%c",
+                        int(latd), int(floor(latm)), int(floor(lath)), lat > 0 ? 'N' : 'S',
+                        int(lngd), int(floor(lngm)), int(floor(lngh)), lng > 0 ? 'E' : 'W');
 }
 
 int main(int argc, char *argv[])
@@ -529,6 +579,7 @@ int main(int argc, char *argv[])
 
 	char txbuf[MAX_PACKET_SIZE] { 0 };
 
+	std::mutex modem_lock;
 	LoRa_ctl modem;
 
 	memset(&modem, 0x00, sizeof modem);
@@ -636,7 +687,56 @@ int main(int argc, char *argv[])
 	}
 
 	std::thread tx_thread([fdmaster, mi, ws_port, &s] {
-		process_incoming(fdmaster, mi, ws_port, &s);
+			process_incoming(fdmaster, mi, ws_port, &s);
+		});
+
+	std::thread beacon_thread([&modem, &modem_lock, beacon_interval] {
+			if (beacon_interval <= 0)
+				return;
+
+			log(LL_INFO, "Starting beacon transmitter (to LoRa & APRS-IS)");
+
+			if (beacon_interval <= 600) {
+				beacon_interval = 600;
+
+				log(LL_INFO, "Beacon interval should be at least 10 minutes");
+			}
+
+			for(;;) {
+				std::string message = "=" + gps_double_to_aprs(local_lat, local_lng) + "&LoRa APRS/AX.25 gateway, https://github.com/folkertvanheusden/lora-aprs-gw";
+
+				// send to APRS-IS
+				std::string beacon_aprs_is = callsign + "L>APLG01,TCPIP*,qAC:" + message;
+
+				rxData rx;
+
+				rx.size = beacon_aprs_is.size();
+				memcpy(rx.buf, beacon_aprs_is.c_str(), rx.size);
+
+				gettimeofday(&rx.last_time, nullptr);
+
+				rx.userPtr = nullptr;
+
+				packets_lock.lock();
+				packets.push(rx);
+				packets_cv.notify_one();
+				packets_lock.unlock();
+
+				// send to RF
+				std::string beacon_rf = ">\xff\x01" + message;
+				size_t beacon_rf_len = beacon_rf.size();
+
+				lora_transmit(&modem, &modem_lock, reinterpret_cast<const uint8_t *>(beacon_rf.c_str()), beacon_rf_len);
+
+				// TODO:
+				// stats_add_counter(phys_ifOutOctets,   beacon_rf_len);
+				// stats_add_counter(phys_ifHCOutOctets, beacon_rf_len);
+
+				// stats_add_counter(lora_ifInOctets,   beacon_rf_len);
+				// stats_add_counter(lora_ifHCInOctets, beacon_rf_len);
+
+				sleep(beacon_interval);
+			}
 		});
 
 	if (local_ax25) {
@@ -666,32 +766,15 @@ int main(int argc, char *argv[])
 					break;
 				}
 
-				memcpy(txbuf, p, plen);
-				free(p);
+				lora_transmit(&modem, &modem_lock, p, plen);
 
 				stats_add_counter(phys_ifOutOctets,   plen);
 				stats_add_counter(phys_ifHCOutOctets, plen);
 
-				log(LL_DEBUG, "transmit: %s", dump_hex(reinterpret_cast<const uint8_t *>(txbuf), plen).c_str());
-
-				LoRa_stop_receive(&modem); //manually stoping RxCont mode
-
-				while(LoRa_get_op_mode(&modem) != STDBY_MODE)
-					usleep(101000);
-
-				modem.tx.data.size = plen;
-
 				stats_add_counter(lora_ifInOctets,   plen);
 				stats_add_counter(lora_ifHCInOctets, plen);
 
-				LoRa_send(&modem);
-
-				while(LoRa_get_op_mode(&modem) != STDBY_MODE)
-					usleep(101000);
-
-				log(LL_DEBUG, "Time on air data - Tsym: %f; Tpkt: %f; payloadSymbNb: %u", modem.tx.data.Tsym, modem.tx.data.Tpkt, modem.tx.data.payloadSymbNb);
-
-				LoRa_receive(&modem);
+				free(p);
 			}
 		}
 	}
