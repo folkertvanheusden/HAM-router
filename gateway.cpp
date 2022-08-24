@@ -564,6 +564,8 @@ int main(int argc, char *argv[])
 	char dev_name[64] = { 0 };
 
 	if (local_ax25) {
+		log(LL_INFO, "Configuring local AX.25 interface");
+
 		if (openpty(&fdmaster, &fdslave, NULL, NULL, NULL) == -1)
 			error_exit(true, "openpty failed");
 
