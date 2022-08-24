@@ -10,8 +10,10 @@ software requirements:
 * libax25-dev
 * libinih-dev
 * libjansson-dev
+* libmicrohttpd-dev
 * libmosquitto-dev
 * libmysqlcppconn-dev
+* libpigpio-dev
 * libwebsockets-dev
 
 hardware requirements:
