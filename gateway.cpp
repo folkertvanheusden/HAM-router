@@ -218,7 +218,7 @@ void lora_transmit(LoRa_ctl *const modem, std::mutex *const modem_lock, const ui
 
 	modem_lock->unlock();
 
-	d->insert_airtime(modem->tx.data.Tpkt);
+	d->insert_airtime(modem->tx.data.Tpkt, true);
 }
 
 void * rx_f(void *in)

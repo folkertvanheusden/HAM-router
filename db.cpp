@@ -99,7 +99,7 @@ db::db(const std::string & url, const std::string & username, const std::string 
 
 		if (!check_table_exists("airtime")) {
 			sql::Statement *stmt = con->createStatement();
-			stmt->execute("CREATE TABLE airtime(ts datetime not null, duration bigint, primary key(ts))");
+			stmt->execute("CREATE TABLE airtime(ts datetime not null, duration double not null, transmit int(1) not null, primary key(ts))");
 			delete stmt;
 		}
 	}
@@ -113,7 +113,7 @@ db::~db()
 	delete con;
 }
 
-void db::insert_airtime(const int duration_ms)
+void db::insert_airtime(const double duration_ms, const bool transmit)
 {
 	if (!driver)
 		return;
@@ -125,9 +125,10 @@ void db::insert_airtime(const int duration_ms)
 	sql::PreparedStatement *stmt { nullptr };
 
 	try {
-		stmt = con->prepareStatement("INSERT INTO airtime(ts, duration) VALUES(NOW(), ?)");
+		stmt = con->prepareStatement("INSERT INTO airtime(ts, duration, transmit) VALUES(NOW(), ?, ?)");
 
-		stmt->setInt(1, duration_ms);
+		stmt->setDouble(1, duration_ms);
+		stmt->setInt(2, int(transmit));
 		stmt->execute();
 	}
 	catch(sql::SQLException & e) {
