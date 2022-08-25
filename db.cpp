@@ -99,7 +99,7 @@ db::db(const std::string & url, const std::string & username, const std::string 
 
 		if (!check_table_exists("airtime")) {
 			sql::Statement *stmt = con->createStatement();
-			stmt->execute("CREATE TABLE airtime(ts datetime not null, duration double not null, transmit int(1) not null, primary key(ts))");
+			stmt->execute("CREATE TABLE airtime(ts datetime not null, duration double not null, transmit int(1) not null, callsign varchar(32), primary key(ts))");
 			delete stmt;
 		}
 	}
@@ -113,7 +113,7 @@ db::~db()
 	delete con;
 }
 
-void db::insert_airtime(const double duration_ms, const bool transmit)
+void db::insert_airtime(const double duration_ms, const bool transmit, const std::optional<std::string> & callsign)
 {
 	if (!driver)
 		return;
@@ -125,10 +125,20 @@ void db::insert_airtime(const double duration_ms, const bool transmit)
 	sql::PreparedStatement *stmt { nullptr };
 
 	try {
-		stmt = con->prepareStatement("INSERT INTO airtime(ts, duration, transmit) VALUES(NOW(), ?, ?)");
+		if (callsign.has_value()) {
+			stmt = con->prepareStatement("INSERT INTO airtime(ts, duration, transmit, callsign) VALUES(NOW(), ?, ?, ?)");
 
-		stmt->setDouble(1, duration_ms);
-		stmt->setInt(2, int(transmit));
+			stmt->setDouble(1, duration_ms);
+			stmt->setInt(2, int(transmit));
+			stmt->setString(3, callsign.value());
+		}
+		else {
+			stmt = con->prepareStatement("INSERT INTO airtime(ts, duration, transmit) VALUES(NOW(), ?, ?)");
+
+			stmt->setDouble(1, duration_ms);
+			stmt->setInt(2, int(transmit));
+		}
+
 		stmt->execute();
 	}
 	catch(sql::SQLException & e) {
