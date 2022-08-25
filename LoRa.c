@@ -132,7 +132,7 @@ void LoRa_send(LoRa_ctl *modem){
 	if(lora_get_op_mode(modem->spid) != STDBY_MODE){
 		lora_set_satandby_mode(modem->spid);
 	}
-	LoRa_calculate_packet_t(modem);
+	LoRa_calculate_packet_t(modem, &modem->tx.data.at);
 	if(modem->eth.lowDataRateOptimize){
 		lora_set_lowdatarateoptimize_on(modem->spid);
 	}
@@ -153,8 +153,6 @@ void LoRa_send(LoRa_ctl *modem){
 }
 
 void LoRa_receive(LoRa_ctl *modem){
-
-	LoRa_calculate_packet_t(modem);
 	if(modem->eth.lowDataRateOptimize){
 		lora_set_lowdatarateoptimize_on(modem->spid);
 	}
@@ -214,6 +212,8 @@ void rxDoneISRf(int gpio_n, int level, uint32_t tick, void *modemptr){
 		lora_reset_irq_flags(modem->spid);
 
 		if (modem->rx.data.size > 0) {
+			LoRa_calculate_packet_t(modem, &modem->rx.data.at);
+
 			rxData *temp = (rxData *)malloc(sizeof(modem->rx.data));
 
 			if (!temp)
@@ -268,7 +268,7 @@ unsigned char lora_get_op_mode(int spid){
 }
 
 // using same parameters for received packets
-void LoRa_calculate_packet_t(LoRa_ctl *modem, struct airTime *at){
+void LoRa_calculate_packet_t(LoRa_ctl *modem, airTime *at){
 	unsigned BW_VAL[10] = {7800, 10400, 15600, 20800, 31250, 41700, 62500, 125000, 250000, 500000};
 
 	double Tsym, Tpreamle, Tpayload, Tpacket;
