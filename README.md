@@ -18,7 +18,7 @@ software requirements:
 * libwebsockets-dev
 
 hardware requirements:
-* SX1278 tranceiver
+* SX1278 tranceiver (e.g. https://www.otronic.nl/a-65481848/lora/sx1278-ra-02-lora-module-433mhz/ )
 * something with SPI and GPIO pins to connect the SX1278 to (e.g. a raspberry pi)
 
 
