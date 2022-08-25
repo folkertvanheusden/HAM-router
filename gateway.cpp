@@ -64,8 +64,6 @@ int         beacon_interval = 0;
 
 std::atomic_bool terminate { false };
 
-db *d = nullptr;
-
 std::queue<rxData>      packets;
 std::mutex              packets_lock;
 std::condition_variable packets_cv;
@@ -188,7 +186,7 @@ void tx_f(txData *tx)
 	log(LL_DEBUG, "transmitted");
 }
 
-void lora_transmit(LoRa_ctl *const modem, std::mutex *const modem_lock, const uint8_t *const what, const int len)
+void lora_transmit(LoRa_ctl *const modem, std::mutex *const modem_lock, const uint8_t *const what, const int len, db *const d)
 {
 	if (len > 255) {
 		log(LL_WARNING, "lora_transmit: packet too big (%d bytes)", len);
@@ -219,6 +217,8 @@ void lora_transmit(LoRa_ctl *const modem, std::mutex *const modem_lock, const ui
 	LoRa_receive(modem);
 
 	modem_lock->unlock();
+
+	d->insert_airtime(modem->tx.data.Tpkt);
 }
 
 void * rx_f(void *in)
@@ -237,7 +237,7 @@ void * rx_f(void *in)
 	return NULL;
 }
 
-void process_incoming(const int kiss_fd, struct mosquitto *const mi, const int ws_port, stats *const s, aprs_si *as)
+void process_incoming(const int kiss_fd, struct mosquitto *const mi, const int ws_port, stats *const s, aprs_si *as, db *const d)
 {
 	log(LL_INFO, "Starting \"LoRa APRS -> aprsi/mqtt/syslog/db\"-thread");
 
@@ -503,7 +503,7 @@ void configure_ax25_interface(int *const fd, std::string *const device_name)
 	device_name->assign(dev_name);
 }
 
-void send_beacons(LoRa_ctl *const modem, std::mutex *const modem_lock, const int beacon_interval, stats *const s, aprs_si *const as)
+void send_beacons(LoRa_ctl *const modem, std::mutex *const modem_lock, const int beacon_interval, stats *const s, aprs_si *const as, db *const d)
 {
 	if (beacon_interval <= 0)
 		return;
@@ -538,7 +538,7 @@ void send_beacons(LoRa_ctl *const modem, std::mutex *const modem_lock, const int
 		size_t beacon_rf_len = beacon_rf.size();
 
 		log(LL_DEBUG, "Sending beacon via RF");
-		lora_transmit(modem, modem_lock, reinterpret_cast<const uint8_t *>(beacon_rf.c_str()), beacon_rf_len);
+		lora_transmit(modem, modem_lock, reinterpret_cast<const uint8_t *>(beacon_rf.c_str()), beacon_rf_len, d);
 
 		stats_add_counter(phys_ifOutOctets,   beacon_rf_len);
 		stats_add_counter(phys_ifHCOutOctets, beacon_rf_len);
@@ -582,6 +582,8 @@ int main(int argc, char *argv[])
 	setlogfile(logfile.c_str(), LL_DEBUG);
 
 	log(LL_INFO, "Configuration-file loaded");
+
+	db *d = nullptr;
 
 	if (db_url.empty() == false)
 		d = new db(db_url, db_user, db_pass);
@@ -645,12 +647,12 @@ int main(int argc, char *argv[])
 	if (mqtt_host.empty() == false)
 		mi = init_mqtt(mqtt_host, mqtt_port);
 
-	std::thread tx_thread([kiss_fd, mi, &s, &as] {
-			process_incoming(kiss_fd, mi, ws_port, &s, &as);
+	std::thread tx_thread([kiss_fd, mi, &s, &as, d] {
+			process_incoming(kiss_fd, mi, ws_port, &s, &as, d);
 		});
 
-	std::thread beacon_thread([&modem, &modem_lock, &s, &as] {
-			send_beacons(&modem, &modem_lock, beacon_interval, &s, &as);
+	std::thread beacon_thread([&modem, &modem_lock, &s, &as, d] {
+			send_beacons(&modem, &modem_lock, beacon_interval, &s, &as, d);
 		});
 
 	if (local_ax25) {
@@ -679,7 +681,7 @@ int main(int argc, char *argv[])
 					break;
 				}
 
-				lora_transmit(&modem, &modem_lock, p, plen);
+				lora_transmit(&modem, &modem_lock, p, plen, d);
 
 				stats_add_counter(phys_ifOutOctets,   plen);
 				stats_add_counter(phys_ifHCOutOctets, plen);

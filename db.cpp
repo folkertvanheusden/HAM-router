@@ -96,6 +96,12 @@ db::db(const std::string & url, const std::string & username, const std::string 
 			stmt->execute("CREATE TABLE APRS(ts datetime not null, rssi double, snr double, crc int(1) not null, content blob, latitude double, longitude double, distance double, callsign_to varchar(32), callsign_from varchar(32))");
 			delete stmt;
 		}
+
+		if (!check_table_exists("airtime")) {
+			sql::Statement *stmt = con->createStatement();
+			stmt->execute("CREATE TABLE airtime(ts datetime not null, duration bigint, primary key(ts))");
+			delete stmt;
+		}
 	}
 	catch(sql::SQLException & e) {
 		log_sql_exception("(create tables)", e);
@@ -107,6 +113,29 @@ db::~db()
 	delete con;
 }
 
+void db::insert_airtime(const int duration_ms)
+{
+	if (!driver)
+		return;
+
+	const std::lock_guard<std::mutex> lck(lock);
+
+	reconnect();
+
+	sql::PreparedStatement *stmt { nullptr };
+
+	try {
+		stmt = con->prepareStatement("INSERT INTO airtime(ts, duration) VALUES(NOW(), ?)");
+
+		stmt->setInt(1, duration_ms);
+		stmt->execute();
+	}
+	catch(sql::SQLException & e) {
+		log_sql_exception("insert_airtime", e);
+	}
+
+	delete stmt;
+}
 
 void db::insert_message(uint8_t *msg, int msg_size, double rssi, double snr, int crc, double latitude, double longitude, double distance, std::string callsign_to, std::string callsign_from)
 {
