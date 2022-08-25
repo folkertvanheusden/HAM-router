@@ -212,13 +212,13 @@ void lora_transmit(LoRa_ctl *const modem, std::mutex *const modem_lock, const ui
 	while(LoRa_get_op_mode(modem) != STDBY_MODE)
 		usleep(101000);
 
-	log(LL_DEBUG, "Time on air data - Tsym: %f; Tpkt: %f; payloadSymbNb: %u", modem->tx.data.Tsym, modem->tx.data.Tpkt, modem->tx.data.payloadSymbNb);
+	log(LL_DEBUG, "Time on air data - Tsym: %f; Tpkt: %f; payloadSymbNb: %u", modem->tx.data.at.Tsym, modem->tx.data.at.Tpkt, modem->tx.data.at.payloadSymbNb);
 
 	LoRa_receive(modem);
 
 	modem_lock->unlock();
 
-	d->insert_airtime(modem->tx.data.Tpkt, true);
+	d->insert_airtime(modem->tx.data.at.Tpkt, true);
 }
 
 void * rx_f(void *in)
@@ -237,7 +237,7 @@ void * rx_f(void *in)
 	return NULL;
 }
 
-void process_incoming(const int kiss_fd, struct mosquitto *const mi, const int ws_port, stats *const s, aprs_si *as, db *const d)
+void process_incoming(const int kiss_fd, struct mosquitto *const mi, const int ws_port, stats *const s, aprs_si *as, db *const d, LoRa_ctl *const modem)
 {
 	log(LL_INFO, "Starting \"LoRa APRS -> aprsi/mqtt/syslog/db\"-thread");
 
@@ -275,6 +275,8 @@ void process_incoming(const int kiss_fd, struct mosquitto *const mi, const int w
 		packets.pop();
 
 		lck.unlock();
+
+		d->insert_airtime(modem->tx.data.at.Tpkt, false);
 
 		if (terminate)
 			break;
@@ -647,8 +649,8 @@ int main(int argc, char *argv[])
 	if (mqtt_host.empty() == false)
 		mi = init_mqtt(mqtt_host, mqtt_port);
 
-	std::thread tx_thread([kiss_fd, mi, &s, &as, d] {
-			process_incoming(kiss_fd, mi, ws_port, &s, &as, d);
+	std::thread tx_thread([kiss_fd, mi, &s, &as, d, &modem] {
+			process_incoming(kiss_fd, mi, ws_port, &s, &as, d, &modem);
 		});
 
 	std::thread beacon_thread([&modem, &modem_lock, &s, &as, d] {

@@ -267,7 +267,8 @@ unsigned char lora_get_op_mode(int spid){
 	return (lora_reg_read_byte(spid, REG_OP_MODE) & 0x07);
 }
 
-void LoRa_calculate_packet_t(LoRa_ctl *modem){
+// using same parameters for received packets
+void LoRa_calculate_packet_t(LoRa_ctl *modem, struct airTime *at){
 	unsigned BW_VAL[10] = {7800, 10400, 15600, 20800, 31250, 41700, 62500, 125000, 250000, 500000};
 
 	double Tsym, Tpreamle, Tpayload, Tpacket;
@@ -297,9 +298,9 @@ void LoRa_calculate_packet_t(LoRa_ctl *modem){
 	Tpayload = payloadSymbNb*Tsym;
 	Tpacket = Tpayload+Tpreamle;
 
-	modem->tx.data.Tsym = Tsym;
-	modem->tx.data.Tpkt = Tpacket;
-	modem->tx.data.payloadSymbNb = payloadSymbNb;
+	at->Tsym = Tsym;
+	at->Tpkt = Tpacket;
+	at->payloadSymbNb = payloadSymbNb;
 }
 
 void lora_set_addr_ptr(int spid, unsigned char addr){
