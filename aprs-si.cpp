@@ -81,7 +81,7 @@ bool aprs_si::send_through_aprs_is(const std::string & content_out)
 		if (WRITE(fd, reinterpret_cast<const uint8_t *>(payload.c_str()), payload.size()) != ssize_t(payload.size())) {
 			close(fd);
 			fd = -1;
-			log(LL_WARNING, "Failed to transmit APRS data to aprsi");
+			log(LL_WARNING, "Failed to transmit APRS data to aprsi (%s)", strerror(errno));
 		}
 	}
 
