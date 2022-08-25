@@ -45,6 +45,14 @@ The result is: build/lora-aprs-gw
     longitude double DEFAULT NULL,
     distance double DEFAULT NULL
   );
+
+  CREATE TABLE `airtime` (
+    `ts` datetime NOT NULL,
+    `duration` double NOT NULL,
+    `transmit` int(1) NOT NULL,
+    `callsign` varchar(32) DEFAULT NULL,
+    PRIMARY KEY (`ts`)
+  );
 ```
 
 Configuration: gateway.ini 
