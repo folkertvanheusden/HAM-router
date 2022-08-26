@@ -56,10 +56,10 @@ void parse_nmea_pos(const char *what, double *const lat, double *const lng)
 	else if (what[0] == '!') {  // straight away position
 		what++;
 
-		*lat = convertToDecimalDegrees(what, what[6]);
+		*lat = convertToDecimalDegrees(what, what[8]);
 
 		what += 9;
-		*lng = convertToDecimalDegrees(what, what[6]);
+		*lng = convertToDecimalDegrees(what, what[8]);
 	}
 }
 
