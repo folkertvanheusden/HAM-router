@@ -362,13 +362,18 @@ void snmp::operator()()
 		error_exit(true, "bind() failed");
 
 	for(;;) {
-		char               buffer[1600] { 0 };
-		struct sockaddr_in clientaddr   { 0 };
-		socklen_t          len = sizeof(clientaddr);
+		try {
+			char               buffer[1600] { 0 };
+			struct sockaddr_in clientaddr   { 0 };
+			socklen_t          len = sizeof(clientaddr);
 
-    		int n = recvfrom(fd, buffer, sizeof buffer, 0, (sockaddr *)&clientaddr, &len);
+			int n = recvfrom(fd, buffer, sizeof buffer, 0, (sockaddr *)&clientaddr, &len);
 
-		if (n)
-			input(fd, reinterpret_cast<uint8_t *>(buffer), n, (const sockaddr *)&clientaddr, len);
+			if (n)
+				input(fd, reinterpret_cast<uint8_t *>(buffer), n, (const sockaddr *)&clientaddr, len);
+                }
+                catch(const std::exception& e) {
+                        log(LL_ERR, "snmp::operator(): exception %s", e.what());
+                }
 	}
 }

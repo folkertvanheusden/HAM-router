@@ -264,179 +264,184 @@ void process_incoming(const int kiss_fd, struct mosquitto *const mi, const int w
         uint64_t *cnt_aprsi_failures   = s->find_stat("cnt_aprsi_failures");
 
 	for(;!terminate;) {
-		pthread_setname_np(pthread_self(), "tx_thread");
+		try {
+			pthread_setname_np(pthread_self(), "tx_thread");
 
-		std::unique_lock<std::mutex> lck(packets_lock);
+			std::unique_lock<std::mutex> lck(packets_lock);
 
-		while(packets.empty() && !terminate)
-			packets_cv.wait(lck);
+			while(packets.empty() && !terminate)
+				packets_cv.wait(lck);
 
-		rxData rx = packets.front();
-		packets.pop();
+			rxData rx = packets.front();
+			packets.pop();
 
-		lck.unlock();
+			lck.unlock();
 
-		if (terminate)
-			break;
+			if (terminate)
+				break;
 
-		stats_add_counter(phys_ifInOctets,   rx.size);
-		stats_add_counter(phys_ifHCInOctets, rx.size);
+			stats_add_counter(phys_ifInOctets,   rx.size);
+			stats_add_counter(phys_ifHCInOctets, rx.size);
 
-		stats_add_counter(lora_ifOutOctets,   rx.size);
-		stats_add_counter(lora_ifHCOutOctets, rx.size);
+			stats_add_counter(lora_ifOutOctets,   rx.size);
+			stats_add_counter(lora_ifHCOutOctets, rx.size);
 
-		const uint8_t *const data = reinterpret_cast<const uint8_t *>(rx.buf);
+			const uint8_t *const data = reinterpret_cast<const uint8_t *>(rx.buf);
 
-		json_t     *meta         = nullptr;
-		const char *meta_str     = nullptr;
-		int         meta_str_len = 0;
+			json_t     *meta         = nullptr;
+			const char *meta_str     = nullptr;
+			int         meta_str_len = 0;
 
-		std::string to;
-		std::string to_full;  // only relevant for OE_
-		std::string from;
-		std::string content_out = reinterpret_cast<const char *>(&data[3]);  // for OE_ only
+			std::string to;
+			std::string to_full;  // only relevant for OE_
+			std::string from;
+			std::string content_out = reinterpret_cast<const char *>(&data[3]);  // for OE_ only
 
-		bool        oe_ = false;
+			bool        oe_ = false;
 
-		if (data[0] == 0x3c && data[1] == 0xff && data[2] == 0x01) {  // OE_
-			const char *const gt = strchr(&rx.buf[3], '>');
-			if (gt) {
-				const char *const colon = strchr(gt, ':');
-				if (colon) {
-					to_full = std::string(gt + 1, colon - gt - 1);
+			if (data[0] == 0x3c && data[1] == 0xff && data[2] == 0x01) {  // OE_
+				const char *const gt = strchr(&rx.buf[3], '>');
+				if (gt) {
+					const char *const colon = strchr(gt, ':');
+					if (colon) {
+						to_full = std::string(gt + 1, colon - gt - 1);
 
-					std::size_t delimiter = to.find(',');
+						std::size_t delimiter = to.find(',');
 
-					if (delimiter != std::string::npos)
-						to = to_full.substr(0, delimiter);
-					else
-						to = to_full;
+						if (delimiter != std::string::npos)
+							to = to_full.substr(0, delimiter);
+						else
+							to = to_full;
 
-					from    = std::string(&rx.buf[3], gt - rx.buf - 3);
+						from    = std::string(&rx.buf[3], gt - rx.buf - 3);
 
-					content_out = from + ">" + to_full + ",qAO," + callsign + colon;
+						content_out = from + ">" + to_full + ",qAO," + callsign + colon;
+					}
+					else {
+						stats_inc_counter(cnt_aprs_invalid_cs);
+					}
 				}
 				else {
 					stats_inc_counter(cnt_aprs_invalid_cs);
 				}
+
+				oe_ = true;
+
+				stats_inc_counter(cnt_frame_aprs);
+			}
+			else {  // assuming AX.25
+				to   = get_ax25_addr(&data[0]);
+				from = get_ax25_addr(&data[7]);
+
+				stats_inc_counter(cnt_frame_ax25);
+			}
+
+			if (from.empty())
+				d->insert_airtime(modem->tx.data.at.Tpkt, false, { });
+			else
+				d->insert_airtime(modem->tx.data.at.Tpkt, false, from);
+
+			double latitude = 0, longitude = 0, distance = -1.0;
+
+			char *colon = strchr(rx.buf, ':');
+			if (colon && rx.size - (rx.buf - colon) >= 7) {
+				parse_nmea_pos(colon + 1, &latitude, &longitude);
+
+				if (latitude != 0. || longitude != 0.)
+					distance = calcGPSDistance(latitude, longitude, local_lat, local_lng);
+				else
+					stats_inc_counter(cnt_aprs_invalid_loc);
 			}
 			else {
-				stats_inc_counter(cnt_aprs_invalid_cs);
-			}
-
-			oe_ = true;
-
-			stats_inc_counter(cnt_frame_aprs);
-		}
-		else {  // assuming AX.25
-			to   = get_ax25_addr(&data[0]);
-			from = get_ax25_addr(&data[7]);
-
-			stats_inc_counter(cnt_frame_ax25);
-		}
-
-		if (from.empty())
-			d->insert_airtime(modem->tx.data.at.Tpkt, false, { });
-		else
-			d->insert_airtime(modem->tx.data.at.Tpkt, false, from);
-
-		double latitude = 0, longitude = 0, distance = -1.0;
-
-		char *colon = strchr(rx.buf, ':');
-		if (colon && rx.size - (rx.buf - colon) >= 7) {
-			parse_nmea_pos(colon + 1, &latitude, &longitude);
-
-			if (latitude != 0. || longitude != 0.)
-				distance = calcGPSDistance(latitude, longitude, local_lat, local_lng);
-			else
 				stats_inc_counter(cnt_aprs_invalid_loc);
-		}
-		else {
-			stats_inc_counter(cnt_aprs_invalid_loc);
-		}
-
-		log(LL_INFO, "timestamp: %u%06u, CRC error: %d, RSSI: %d, SNR: %f (%f,%f => distance: %.2fm) %s => %s (%s)", rx.last_time.tv_sec, rx.last_time.tv_usec, rx.CRC, rx.RSSI, rx.SNR, latitude, longitude, distance, from.c_str(), to_full.c_str(), oe_ ? "OE" : "AX.25");
-
-		if (mi && (mqtt_aprs_packet_meta.empty() == false || mqtt_ax25_packet_meta.empty() == false || syslog_host.empty() == false || ws_port != -1)) {
-			meta = json_object();
-
-			json_object_set(meta, "timestamp", json_integer(rx.last_time.tv_sec));
-
-			json_object_set(meta, "CRC-error", json_integer(rx.CRC));
-
-			json_object_set(meta, "RSSI", json_real(double(rx.RSSI)));
-
-			json_object_set(meta, "SNR", json_real(rx.SNR));
-
-			if (latitude != 0. || longitude != 0.) {
-				json_object_set(meta, "latitude", json_real(latitude));
-
-				json_object_set(meta, "longitude", json_real(longitude));
-
-				if (distance >= 0.)
-					json_object_set(meta, "distance", json_real(distance));
 			}
 
-			if (to.empty() == false)
-				json_object_set(meta, "callsign-to", json_string(to.c_str()));
+			log(LL_INFO, "timestamp: %u%06u, CRC error: %d, RSSI: %d, SNR: %f (%f,%f => distance: %.2fm) %s => %s (%s)", rx.last_time.tv_sec, rx.last_time.tv_usec, rx.CRC, rx.RSSI, rx.SNR, latitude, longitude, distance, from.c_str(), to_full.c_str(), oe_ ? "OE" : "AX.25");
 
-			if (from.empty() == false)
-				json_object_set(meta, "callsign-from", json_string(from.c_str()));
+			if (mi && (mqtt_aprs_packet_meta.empty() == false || mqtt_ax25_packet_meta.empty() == false || syslog_host.empty() == false || ws_port != -1)) {
+				meta = json_object();
 
-			json_object_set(meta, "data", json_string(dump_replace(reinterpret_cast<const uint8_t *>(rx.buf), rx.size).c_str()));
+				json_object_set(meta, "timestamp", json_integer(rx.last_time.tv_sec));
 
-			meta_str     = json_dumps(meta, 0);
-			meta_str_len = strlen(meta_str);
-		}
+				json_object_set(meta, "CRC-error", json_integer(rx.CRC));
 
-		if (d)
-			d->insert_message(reinterpret_cast<uint8_t *>(rx.buf), rx.size, rx.RSSI, rx.SNR, rx.CRC, latitude, longitude, distance, to, from);
+				json_object_set(meta, "RSSI", json_real(double(rx.RSSI)));
 
-		if (mi && mqtt_aprs_packet_meta.empty() == false) {
-			int err = 0;
-			if ((err = mosquitto_publish(mi, nullptr, mqtt_aprs_packet_meta.c_str(), meta_str_len, meta_str, 0, false)) != MOSQ_ERR_SUCCESS)
-				log(LL_WARNING, "mqtt failed to publish (%s)", mosquitto_strerror(err));
-		}
+				json_object_set(meta, "SNR", json_real(rx.SNR));
 
-		if (syslog_host.empty() == false)
-			transmit_udp(syslog_host, syslog_port, reinterpret_cast<const uint8_t *>(meta_str), meta_str_len);
+				if (latitude != 0. || longitude != 0.) {
+					json_object_set(meta, "latitude", json_real(latitude));
 
-		if (ws_port != -1)
-			push_to_websockets(&ws, meta_str);
+					json_object_set(meta, "longitude", json_real(longitude));
 
-		if (oe_) {  // OE_
-			if (aprs_user.empty() == false) {
-				if (!as->send_through_aprs_is(content_out))
-					stats_inc_counter(cnt_aprsi_failures);
+					if (distance >= 0.)
+						json_object_set(meta, "distance", json_real(distance));
+				}
+
+				if (to.empty() == false)
+					json_object_set(meta, "callsign-to", json_string(to.c_str()));
+
+				if (from.empty() == false)
+					json_object_set(meta, "callsign-from", json_string(from.c_str()));
+
+				json_object_set(meta, "data", json_string(dump_replace(reinterpret_cast<const uint8_t *>(rx.buf), rx.size).c_str()));
+
+				meta_str     = json_dumps(meta, 0);
+				meta_str_len = strlen(meta_str);
 			}
 
-			if (mi && mqtt_aprs_packet_as_is.empty() == false) {
+			if (d)
+				d->insert_message(reinterpret_cast<uint8_t *>(rx.buf), rx.size, rx.RSSI, rx.SNR, rx.CRC, latitude, longitude, distance, to, from);
+
+			if (mi && mqtt_aprs_packet_meta.empty() == false) {
 				int err = 0;
-				if ((err = mosquitto_publish(mi, nullptr, mqtt_aprs_packet_as_is.c_str(), rx.size, data, 0, false)) != MOSQ_ERR_SUCCESS)
-					log(LL_WARNING, "mqtt failed to publish (%s)", mosquitto_strerror(err));
-			}
-		}
-		else {
-			if (kiss_fd != -1)
-				send_mkiss(kiss_fd, 0, data, rx.size);
-
-			if (mi && mqtt_ax25_packet_as_is.empty() == false) {
-				int err = 0;
-				if ((err = mosquitto_publish(mi, nullptr, mqtt_ax25_packet_as_is.c_str(), rx.size, data, 0, false)) != MOSQ_ERR_SUCCESS)
+				if ((err = mosquitto_publish(mi, nullptr, mqtt_aprs_packet_meta.c_str(), meta_str_len, meta_str, 0, false)) != MOSQ_ERR_SUCCESS)
 					log(LL_WARNING, "mqtt failed to publish (%s)", mosquitto_strerror(err));
 			}
 
-			if (mi && mqtt_ax25_packet_meta.empty() == false) {
-				int err = 0;
-				if ((err = mosquitto_publish(mi, nullptr, mqtt_ax25_packet_meta.c_str(), meta_str_len, meta_str, 0, false)) != MOSQ_ERR_SUCCESS)
-					log(LL_WARNING, "mqtt failed to publish (%s)", mosquitto_strerror(err));
+			if (syslog_host.empty() == false)
+				transmit_udp(syslog_host, syslog_port, reinterpret_cast<const uint8_t *>(meta_str), meta_str_len);
+
+			if (ws_port != -1)
+				push_to_websockets(&ws, meta_str);
+
+			if (oe_) {  // OE_
+				if (aprs_user.empty() == false) {
+					if (!as->send_through_aprs_is(content_out))
+						stats_inc_counter(cnt_aprsi_failures);
+				}
+
+				if (mi && mqtt_aprs_packet_as_is.empty() == false) {
+					int err = 0;
+					if ((err = mosquitto_publish(mi, nullptr, mqtt_aprs_packet_as_is.c_str(), rx.size, data, 0, false)) != MOSQ_ERR_SUCCESS)
+						log(LL_WARNING, "mqtt failed to publish (%s)", mosquitto_strerror(err));
+				}
+			}
+			else {
+				if (kiss_fd != -1)
+					send_mkiss(kiss_fd, 0, data, rx.size);
+
+				if (mi && mqtt_ax25_packet_as_is.empty() == false) {
+					int err = 0;
+					if ((err = mosquitto_publish(mi, nullptr, mqtt_ax25_packet_as_is.c_str(), rx.size, data, 0, false)) != MOSQ_ERR_SUCCESS)
+						log(LL_WARNING, "mqtt failed to publish (%s)", mosquitto_strerror(err));
+				}
+
+				if (mi && mqtt_ax25_packet_meta.empty() == false) {
+					int err = 0;
+					if ((err = mosquitto_publish(mi, nullptr, mqtt_ax25_packet_meta.c_str(), meta_str_len, meta_str, 0, false)) != MOSQ_ERR_SUCCESS)
+						log(LL_WARNING, "mqtt failed to publish (%s)", mosquitto_strerror(err));
+				}
+			}
+
+			if (meta) {
+				json_decref(meta);
+
+				free((void *)meta_str);
 			}
 		}
-
-		if (meta) {
-			json_decref(meta);
-
-			free((void *)meta_str);
+		catch(const std::exception& e) {
+			log(LL_ERR, "process_incoming: exception %s", e.what());
 		}
 	}
 
@@ -527,31 +532,36 @@ void send_beacons(LoRa_ctl *const modem, std::mutex *const modem_lock, const int
 	uint64_t *lora_ifHCInOctets  = s->find_stat("lora_ifHCInOctets");
 
 	for(;!terminate;) {
-		log(LL_DEBUG, "Queueing beacon-message for APRS-FI");
-		std::string message = "=" + gps_double_to_aprs(local_lat, local_lng) + "&LoRa APRS/AX.25 gateway, https://github.com/folkertvanheusden/lora-aprs-gw";
+		try {
+			log(LL_DEBUG, "Queueing beacon-message for APRS-FI");
+			std::string message = "=" + gps_double_to_aprs(local_lat, local_lng) + "&LoRa APRS/AX.25 gateway, https://github.com/folkertvanheusden/lora-aprs-gw";
 
-		// send to APRS-IS
-		std::string beacon_aprs_is = callsign + "-L>APLG01,TCPIP*,qAC:" + message;
+			// send to APRS-IS
+			std::string beacon_aprs_is = callsign + "-L>APLG01,TCPIP*,qAC:" + message;
 
-		if (aprs_user.empty() == false) {
-			if (!as->send_through_aprs_is(beacon_aprs_is))
-				stats_inc_counter(cnt_aprsi_failures);
+			if (aprs_user.empty() == false) {
+				if (!as->send_through_aprs_is(beacon_aprs_is))
+					stats_inc_counter(cnt_aprsi_failures);
+			}
+
+			// send to RF
+			std::string beacon_rf = ">\xff\x01" + message;
+			size_t beacon_rf_len = beacon_rf.size();
+
+			log(LL_DEBUG, "Sending beacon via RF");
+			lora_transmit(modem, modem_lock, reinterpret_cast<const uint8_t *>(beacon_rf.c_str()), beacon_rf_len, d);
+
+			stats_add_counter(phys_ifOutOctets,   beacon_rf_len);
+			stats_add_counter(phys_ifHCOutOctets, beacon_rf_len);
+
+			stats_add_counter(lora_ifInOctets,   beacon_rf_len);
+			stats_add_counter(lora_ifHCInOctets, beacon_rf_len);
+
+			log(LL_DEBUG, "Sleeping %d seconds for next beacon", beacon_interval);
 		}
-
-		// send to RF
-		std::string beacon_rf = ">\xff\x01" + message;
-		size_t beacon_rf_len = beacon_rf.size();
-
-		log(LL_DEBUG, "Sending beacon via RF");
-		lora_transmit(modem, modem_lock, reinterpret_cast<const uint8_t *>(beacon_rf.c_str()), beacon_rf_len, d);
-
-		stats_add_counter(phys_ifOutOctets,   beacon_rf_len);
-		stats_add_counter(phys_ifHCOutOctets, beacon_rf_len);
-
-		stats_add_counter(lora_ifInOctets,   beacon_rf_len);
-		stats_add_counter(lora_ifHCInOctets, beacon_rf_len);
-
-		log(LL_DEBUG, "Sleeping %d seconds for next beacon", beacon_interval);
+		catch(const std::exception& e) {
+			log(LL_ERR, "beacon: exception %s", e.what());
+		}
 
 		for(int i=0; i<beacon_interval * 10 && !terminate; i++)
 			usleep(100000);
