@@ -33,4 +33,6 @@ public:
 
 	void insert_airtime(const double duration_ms, const bool transmit, const std::optional<std::string> & callsign);
 	void insert_message(uint8_t *msg, int msg_size, double rssi, double snr, int crc, double latitude, double longitude, double distance, std::string callsign_to, std::string callsign_from);
+
+	std::pair<std::vector<std::string>, std::vector<std::vector<std::string> > > get_airtime_per_callsign();
 };

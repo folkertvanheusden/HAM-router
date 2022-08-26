@@ -183,3 +183,46 @@ void db::insert_message(uint8_t *msg, int msg_size, double rssi, double snr, int
 
 	delete stmt;
 }
+
+std::pair<std::vector<std::string>, std::vector<std::vector<std::string> > > db::get_airtime_per_callsign()
+{
+	std::vector<std::string> what;
+	what.push_back("callsign");
+	what.push_back("tx/rx");
+	what.push_back("avg duration");
+	what.push_back("# records");
+
+	std::vector<std::vector<std::string> > records;
+
+	const std::lock_guard<std::mutex> lck(lock);
+
+	reconnect();
+
+	sql::PreparedStatement *stmt { nullptr };
+	sql::ResultSet *res { nullptr };
+
+	try {
+		std::string query_get = "select callsign, transmit, avg(duration) as avg_duration, sum(n) as nrec from (select callsign, sum(duration) as duration, count(*) as n, transmit from airtime group by callsign, transmit, hour(ts)) as in_ group by callsign, transmit";
+
+		stmt = con->prepareStatement(query_get);
+		res = stmt->executeQuery();
+
+		while(res->next()) {
+			std::vector<std::string> record;
+			record.push_back(res->getString("callsign"));
+			record.push_back(res->getInt("transmit") ? "transmit" : "receive");
+			record.push_back(myformat("%.2f", res->getDouble("avg_duration")));
+			record.push_back(myformat("%u", res->getInt("nrec")));
+
+			records.push_back(record);
+		}
+	}
+	catch(sql::SQLException & e) {
+		log_sql_exception("(purge)", e);
+	}
+
+	delete res;
+	delete stmt;
+
+	return { what, records };
+}

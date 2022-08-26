@@ -2,13 +2,19 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "db.h"
 #include "log.h"
 #include "stats.h"
 #include "utils.h"
 
 static int         ws_port { -1 };
 
-static MHD_Daemon *d { nullptr };
+static MHD_Daemon *d_proc { nullptr };
+
+struct {
+	stats *s;
+	db    *d;
+} parameters;
 
 const std::string html_page_header = "<!DOCTYPE html>"
 	"<html lang=\"en\">"
@@ -48,9 +54,7 @@ MHD_Result process_http_request(void *cls,
 
 		page += "<p><a href=\"/follow.html\">follow packets as they arrive</a></p>\n";
 
-		stats *s = reinterpret_cast<stats *>(cls);
-
-		auto stats_snapshot = s->snapshot();
+		auto stats_snapshot = parameters.s->snapshot();
 
 		page += "<h2>statistics</h2>\n";
 
@@ -58,6 +62,26 @@ MHD_Result process_http_request(void *cls,
 
 		for(auto pair : stats_snapshot)
 			page += "<tr><td>" + pair.first + "</td><td>" + pair.second + "</td></tr>\n";
+
+		page += "</table>";
+
+		page += "<h3>air time</h3>\n";
+
+		auto at_records = parameters.d->get_airtime_per_callsign();
+
+		page += "<table><tr>";
+		for(auto t : at_records.first)
+			page += "<th>" + t + "</th>";
+		page += "</tr>\n";
+
+		for(auto record : at_records.second) {
+			page += "<tr>";
+
+			for(auto col : record)
+				page += "<td>" + col + "</td>";
+
+			page += "</tr>\n";
+		}
 
 		page += "</table>";
 
@@ -84,12 +108,15 @@ MHD_Result process_http_request(void *cls,
 	return ret;
 }
 
-void start_webserver(const int listen_port, const int ws_port_in, stats *const s)
+void start_webserver(const int listen_port, const int ws_port_in, stats *const s, db *const d)
 {
 	if (listen_port != -1) {
 		log(LL_INFO, "Starting webserver");
 
-		ws_port = ws_port_in;
+		ws_port      = ws_port_in;
+
+		parameters.s = s;
+		parameters.d = d;
 
 		websocket_receiver = myformat("<script>\n"
 				"function start() {\n"
@@ -115,17 +142,17 @@ void start_webserver(const int listen_port, const int ws_port_in, stats *const s
 				"document.addEventListener('DOMContentLoaded', function() { start(); });\n"
 				"</script>\n", ws_port, ws_port);
 
-		d = MHD_start_daemon(MHD_USE_THREAD_PER_CONNECTION,
+		d_proc = MHD_start_daemon(MHD_USE_THREAD_PER_CONNECTION,
 			       listen_port,
 			       nullptr,
 			       nullptr,
 			       process_http_request,
-			       s,
+			       nullptr,
 			       MHD_OPTION_END);
 	}
 }
 
 void stop_webserver()
 {
-	MHD_stop_daemon(d);
+	MHD_stop_daemon(d_proc);
 }
