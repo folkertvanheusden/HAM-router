@@ -189,7 +189,8 @@ std::pair<std::vector<std::string>, std::vector<std::vector<std::string> > > db:
 	std::vector<std::string> what;
 	what.push_back("callsign");
 	what.push_back("tx/rx");
-	what.push_back("avg duration");
+	what.push_back("avg duration (ms)");
+	what.push_back("avg duration (%)");
 	what.push_back("# records");
 
 	std::vector<std::vector<std::string> > records;
@@ -211,7 +212,9 @@ std::pair<std::vector<std::string>, std::vector<std::vector<std::string> > > db:
 			std::vector<std::string> record;
 			record.push_back(res->getString("callsign"));
 			record.push_back(res->getInt("transmit") ? "transmit" : "receive");
-			record.push_back(myformat("%.2f", res->getDouble("avg_duration")));
+			double avg_duration = res->getDouble("avg_duration");
+			record.push_back(myformat("%.2f", avg_duration));
+			record.push_back(myformat("%.2f", (avg_duration * 100) / 86400000));
 			record.push_back(myformat("%u", res->getInt("nrec")));
 
 			records.push_back(record);
