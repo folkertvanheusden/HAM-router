@@ -655,7 +655,7 @@ int main(int argc, char *argv[])
 	snmp snmp_(&sd, &s, snmp_port);
 
 	if (http_port != -1)
-		start_webserver(http_port, ws_port, &s);
+		start_webserver(http_port, ws_port, &s, d);
 
 	mosquitto *mi = nullptr;
 
