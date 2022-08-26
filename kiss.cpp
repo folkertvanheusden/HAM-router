@@ -95,7 +95,7 @@ bool recv_mkiss(int fd, unsigned char **p, int *len, bool verbose)
 					log(LL_DEBUG, "set hardware: %s", dump_hex(&(*p)[1], *len - 1));
 				}
 				else if (cmd == 15) {
-					error_exit(false, "kernal asked for shutdown");
+					error_exit(false, "kernel asked for shutdown");
 				}
 			}
 
