@@ -206,6 +206,9 @@ void rxDoneISRf(int gpio_n, int level, uint32_t tick, void *modemptr){
 			lora_reg_read_bytes(modem->spid, REG_FIFO, modem->rx.data.buf, rx_nb_bytes);
 			modem->rx.data.size = rx_nb_bytes;
 		}
+
+		modem->rx.data.buf[modem->rx.data.size] = 0x00; // convenience terminating 0x00
+
 		modem->rx.data.CRC = (lora_reg_read_byte(modem->spid, REG_IRQ_FLAGS) & 0x20);
 		lora_get_rssi_pkt(modem);
 		lora_get_snr(modem);

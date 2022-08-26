@@ -150,7 +150,7 @@ typedef struct {
 } airTime;
 
 typedef struct{
-    char buf[256];
+    char buf[257];
     unsigned char size;//Size of buffer. Used in Explicit header mode. 255 MAX size
     struct timeval last_time;
     void *userPtr;//user pointer passing to user callback
@@ -168,7 +168,7 @@ typedef struct{
 typedef void (*txDoneISR)(int gpio_n, int level, uint32_t tick, void *userdata);
 
 typedef struct{
-    char buf[256];
+    char buf[257];
     unsigned char size;
     struct timeval last_time;
     float SNR;

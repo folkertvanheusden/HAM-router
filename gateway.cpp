@@ -241,6 +241,9 @@ void process_incoming(const int kiss_fd, struct mosquitto *const mi, const int w
 {
 	log(LL_INFO, "Starting \"LoRa APRS -> aprsi/mqtt/syslog/db\"-thread");
 
+	if (kiss_fd != -1)
+		log(LL_INFO, "...with local AX.25");
+
 	int fd = -1;
 
 	ws_global_context_t ws;
@@ -295,7 +298,7 @@ void process_incoming(const int kiss_fd, struct mosquitto *const mi, const int w
 			std::string to;
 			std::string to_full;  // only relevant for OE_
 			std::string from;
-			std::string content_out = reinterpret_cast<const char *>(&data[3]);  // for OE_ only
+			std::string content_out = std::string(reinterpret_cast<const char *>(&data[3]), rx.size - 3);  // for OE_ only
 
 			bool        oe_ = false;
 
