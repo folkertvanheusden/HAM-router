@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <atomic>
 #include <condition_variable>
 #include <errno.h>
@@ -198,14 +199,14 @@ void lora_transmit(LoRa_ctl *const modem, std::mutex *const modem_lock, const ui
 
 	memcpy(modem->tx.data.buf, what, len);
 
-	log(LL_DEBUG, "transmit: %s", dump_hex(reinterpret_cast<const uint8_t *>(modem->tx.data.buf), len).c_str());
+	modem->tx.data.size = len;
+
+	log(LL_DEBUG, "transmit: %s", dump_replace(reinterpret_cast<const uint8_t *>(modem->tx.data.buf), len).c_str());
 
 	LoRa_stop_receive(modem); //manually stoping RxCont mode
 
 	while(LoRa_get_op_mode(modem) != STDBY_MODE)
 		usleep(101000);
-
-	modem->tx.data.size = len;
 
 	LoRa_send(modem);
 
@@ -550,6 +551,8 @@ void send_beacons(LoRa_ctl *const modem, std::mutex *const modem_lock, const int
 			// send to RF
 			std::string beacon_rf = ">\xff\x01" + message;
 			size_t beacon_rf_len = beacon_rf.size();
+
+			assert(beacon_rf_len == 3 + message.size());
 
 			log(LL_DEBUG, "Sending beacon via RF");
 			lora_transmit(modem, modem_lock, reinterpret_cast<const uint8_t *>(beacon_rf.c_str()), beacon_rf_len, d);
