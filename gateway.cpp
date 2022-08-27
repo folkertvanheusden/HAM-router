@@ -367,7 +367,7 @@ void process_incoming(const int kiss_fd, struct mosquitto *const mi, const int w
 
 			log(LL_DEBUG, "rx data: %s", dump_replace(reinterpret_cast<const uint8_t *>(modem->rx.data.buf), modem->rx.data.size).c_str());
 
-			if (mi && (mqtt_aprs_packet_meta.empty() == false || mqtt_ax25_packet_meta.empty() == false || syslog_host.empty() == false || ws_port != -1)) {
+			if (mi || mqtt_aprs_packet_meta.empty() == false || mqtt_ax25_packet_meta.empty() == false || syslog_host.empty() == false || ws_port != -1) {
 				meta = json_object();
 
 				json_object_set(meta, "timestamp", json_integer(rx.last_time.tv_sec));
