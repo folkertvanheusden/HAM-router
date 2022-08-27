@@ -341,9 +341,9 @@ void process_incoming(const int kiss_fd, struct mosquitto *const mi, const int w
 			}
 
 			if (from.empty())
-				d->insert_airtime(modem->tx.data.at.Tpkt, false, { });
+				d->insert_airtime(modem->rx.data.at.Tpkt, false, { });
 			else
-				d->insert_airtime(modem->tx.data.at.Tpkt, false, from);
+				d->insert_airtime(modem->rx.data.at.Tpkt, false, from);
 
 			double latitude = 0, longitude = 0, distance = -1.0;
 
@@ -360,7 +360,9 @@ void process_incoming(const int kiss_fd, struct mosquitto *const mi, const int w
 				stats_inc_counter(cnt_aprs_invalid_loc);
 			}
 
-			log(LL_INFO, "timestamp: %u%06u, CRC error: %d, RSSI: %d, SNR: %f (%f,%f => distance: %.2fm) %s => %s (%s)", rx.last_time.tv_sec, rx.last_time.tv_usec, rx.CRC, rx.RSSI, rx.SNR, latitude, longitude, distance, from.c_str(), to_full.c_str(), oe_ ? "OE" : "AX.25");
+			log(LL_INFO, "rx @ timestamp: %u%06u, CRC error: %d, RSSI: %d, SNR: %f (%f,%f => distance: %.2fm) %s => %s (%s)", rx.last_time.tv_sec, rx.last_time.tv_usec, rx.CRC, rx.RSSI, rx.SNR, latitude, longitude, distance, from.c_str(), to_full.c_str(), oe_ ? "OE" : "AX.25");
+
+			log(LL_DEBUG, "rx data: %s", dump_replace(reinterpret_cast<const uint8_t *>(modem->rx.data.buf), modem->rx.data.size).c_str());
 
 			if (mi && (mqtt_aprs_packet_meta.empty() == false || mqtt_ax25_packet_meta.empty() == false || syslog_host.empty() == false || ws_port != -1)) {
 				meta = json_object();
