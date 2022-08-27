@@ -62,6 +62,7 @@ std::string ws_ssl_ca;
 int         snmp_port = -1;
 int         http_port = -1;
 int         beacon_interval = 0;
+std::string beacon_text = "LoRa APRS/AX.25 gateway, https://github.com/folkertvanheusden/lora-aprs-gw";
 
 std::atomic_bool terminate { false };
 
@@ -102,6 +103,9 @@ int handler_ini(void* user, const char* section, const char* name, const char* v
 	}
 	else if (INI_MATCH("general", "beacon-interval")) {
 		beacon_interval = atoi(value);
+	}
+	else if (INI_MATCH("general", "beacon-text")) {
+		beacon_text = value;
 	}
 	else if (INI_MATCH("aprsi", "user")) {
 		aprs_user = value;
@@ -543,7 +547,7 @@ void send_beacons(LoRa_ctl *const modem, std::mutex *const modem_lock, const int
 	for(;!terminate;) {
 		try {
 			log(LL_DEBUG, "Queueing beacon-message for APRS-FI");
-			std::string message = "=" + gps_double_to_aprs(local_lat, local_lng) + "&LoRa APRS/AX.25 gateway, https://github.com/folkertvanheusden/lora-aprs-gw";
+			std::string message = "=" + gps_double_to_aprs(local_lat, local_lng) + "&" + beacon_text;
 
 			// send to APRS-IS
 			std::string beacon_aprs_is = callsign + "-L>APLG01,TCPIP*,qAC:" + message;
