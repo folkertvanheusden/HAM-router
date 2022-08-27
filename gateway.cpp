@@ -52,6 +52,7 @@ std::string mqtt_aprs_packet_meta;
 std::string mqtt_aprs_packet_as_is;
 std::string mqtt_ax25_packet_meta;
 std::string mqtt_ax25_packet_as_is;
+std::string mqtt_ax25_packet_send;
 std::string syslog_host;
 int         syslog_port = -1;
 int         ws_port       = -1;
@@ -145,6 +146,9 @@ int handler_ini(void* user, const char* section, const char* name, const char* v
 	}
 	else if (INI_MATCH("mqtt", "ax25-packet-as-is-topic")) {
 		mqtt_ax25_packet_as_is = value;
+	}
+	else if (INI_MATCH("mqtt", "ax25-packet-send")) {
+		mqtt_ax25_packet_send = value;
 	}
 	else if (INI_MATCH("syslog", "host")) {
 		syslog_host = value;
@@ -583,18 +587,43 @@ void send_beacons(LoRa_ctl *const modem, std::mutex *const modem_lock, const int
 	}
 }
 
-mosquitto *init_mqtt(const std::string & mqtt_host, const int port)
+typedef struct {
+	LoRa_ctl   *modem;
+	std::mutex *lock;
+	db         *d;
+} mqtt_pars_t;
+
+void on_mqtt_message(mosquitto *mi, void *user, const mosquitto_message *msg)
+{
+	mqtt_pars_t *mq = reinterpret_cast<mqtt_pars_t *>(user);
+
+	log(LL_DEBUG, "Transmit msg from MQTT: %s", std::string(reinterpret_cast<const char *>(msg->payload), msg->payloadlen).c_str());
+
+	lora_transmit(mq->modem, mq->lock, reinterpret_cast<const uint8_t *>(msg->payload), msg->payloadlen, mq->d);
+}
+
+mosquitto *init_mqtt(const std::string & mqtt_host, const int port, LoRa_ctl *const modem, std::mutex *const modem_lock, db *const d)
 {
 	log(LL_INFO, "Initializing MQTT");
 
 	int err = 0;
 
-	mosquitto *mi = mosquitto_new(nullptr, true, nullptr);
+	mqtt_pars_t *mp = new mqtt_pars_t;
+	mp->modem = modem;
+	mp->lock  = modem_lock;
+	mp->d     = d;
+
+	mosquitto *mi = mosquitto_new(nullptr, true, mp);
 	if (!mi)
 		error_exit(false, "Cannot crate mosquitto instance");
 
 	if ((err = mosquitto_connect(mi, mqtt_host.c_str(), mqtt_port, 30)) != MOSQ_ERR_SUCCESS)
 		error_exit(false, "mqtt failed to connect (%s)", mosquitto_strerror(err));
+
+	mosquitto_message_callback_set(mi, on_mqtt_message);
+
+	if ((err = mosquitto_subscribe(mi, nullptr, mqtt_ax25_packet_send.c_str(), 0)) != MOSQ_ERR_SUCCESS)
+		error_exit(false, "mqtt failed to subscribe (%s)", mosquitto_strerror(err));
 
 	if ((err = mosquitto_loop_start(mi)) != MOSQ_ERR_SUCCESS)
 		error_exit(false, "mqtt failed to start thread (%s)", mosquitto_strerror(err));
@@ -675,7 +704,7 @@ int main(int argc, char *argv[])
 	mosquitto *mi = nullptr;
 
 	if (mqtt_host.empty() == false)
-		mi = init_mqtt(mqtt_host, mqtt_port);
+		mi = init_mqtt(mqtt_host, mqtt_port, &modem, &modem_lock, d);
 
 	std::thread tx_thread([kiss_fd, mi, &s, &as, d, &modem] {
 			process_incoming(kiss_fd, mi, ws_port, &s, &as, d, &modem);
