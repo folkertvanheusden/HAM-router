@@ -219,7 +219,8 @@ void lora_transmit(LoRa_ctl *const modem, std::mutex *const modem_lock, const ui
 
 	modem_lock->unlock();
 
-	d->insert_airtime(modem->tx.data.at.Tpkt, true, callsign);
+	if (d)
+		d->insert_airtime(modem->tx.data.at.Tpkt, true, callsign);
 }
 
 void * rx_f(void *in)
@@ -340,10 +341,12 @@ void process_incoming(const int kiss_fd, struct mosquitto *const mi, const int w
 				stats_inc_counter(cnt_frame_ax25);
 			}
 
-			if (from.empty())
-				d->insert_airtime(modem->rx.data.at.Tpkt, false, { });
-			else
-				d->insert_airtime(modem->rx.data.at.Tpkt, false, from);
+			if (d) {
+				if (from.empty())
+					d->insert_airtime(modem->rx.data.at.Tpkt, false, { });
+				else
+					d->insert_airtime(modem->rx.data.at.Tpkt, false, from);
+			}
 
 			double latitude = 0, longitude = 0, distance = -1.0;
 
