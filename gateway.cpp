@@ -96,7 +96,7 @@ int handler_ini(void* user, const char* section, const char* name, const char* v
 	else if (INI_MATCH("general", "logfile")) {
 		logfile = value;
 	}
-	else if (INI_MATCH("general", "local-ax25")) {
+	else if (INI_MATCH("general", "local-ax25") || INI_MATCH("general", "to-local-ax25")) {
 		local_ax25 = strcasecmp(value, "true") == 0;
 	}
 	else if (INI_MATCH("general", "if-up")) {
