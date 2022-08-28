@@ -21,9 +21,11 @@ void * rx_f(void *in)
 	}
 
 	message_t m;
-	m.tv      = rx->last_time;
-	m.message = reinterpret_cast<uint8_t *>(rx->buf);
-	m.s       = rx->size;
+	m.tv       = rx->last_time;
+	m.message  = reinterpret_cast<uint8_t *>(rx->buf);
+	m.s        = rx->size;
+	m.from_rf  = true;
+	m.air_time = rx->at.Tpkt;
 
 	reinterpret_cast<tranceiver_lora_sx1278 *>(rx->userPtr)->queue_incoming_message(m);
 

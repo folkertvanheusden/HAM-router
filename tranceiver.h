@@ -17,6 +17,9 @@ typedef enum { TE_ok, TE_hardware, TE_ratelimiting } transmit_error_t;
 typedef struct {
 	struct timeval tv;
 
+	bool           from_rf;   // did it come from electromagnetic waves?
+	int            air_time;  // in milliseconds
+
 	uint8_t       *message;
 	size_t         s;
 } message_t;
