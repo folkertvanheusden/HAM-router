@@ -172,6 +172,8 @@ bool tranceiver_kiss::send_mkiss(int channel, const unsigned char *p, const int 
 
 transmit_error_t tranceiver_kiss::put_message_low(const uint8_t *const p, const size_t len)
 {
+	std::unique_lock<std::mutex> lck(lock);
+
 	if (send_mkiss(0, p, len))
 		return TE_ok;
 
