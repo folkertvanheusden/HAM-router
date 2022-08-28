@@ -33,30 +33,16 @@ transmit_error_t tranceiver_axudp::put_message_low(const uint8_t *const msg, con
 	return TE_ok;
 }
 
-tranceiver_axudp::tranceiver_axudp(const std::string & id, seen *const s, work_queue_t *const w, const int listen_port, const std::vector<std::string> & destinations, const bool continue_on_error) :
+tranceiver_axudp::tranceiver_axudp(const std::string & id, seen *const s, work_queue_t *const w, const int listen_port, const std::vector<std::string> & destinations, const bool continue_on_error, const bool distribute) :
 	tranceiver(id, s, w),
 	listen_port(listen_port),
 	destinations(destinations),
-	continue_on_error(continue_on_error)
+	continue_on_error(continue_on_error),
+	distribute(distribute)
 {
 	log(LL_INFO, "Instantiated AXUDP (%s)", id.c_str());
 
 	fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
-
-	th = new std::thread(std::ref(*this));
-}
-
-tranceiver_axudp::~tranceiver_axudp()
-{
-	close(fd);
-}
-
-void tranceiver_axudp::operator()()
-{
-	if (listen_port == -1)
-		return;
-
-	log(LL_INFO, "APRS-SI: started thread");
 
         struct sockaddr_in servaddr { 0 };
 
@@ -67,6 +53,42 @@ void tranceiver_axudp::operator()()
         if (bind(fd, (const struct sockaddr *)&servaddr, sizeof(servaddr)) == -1)
                 error_exit(true, "bind to port %d failed", listen_port);
 
+	th = new std::thread(std::ref(*this));
+}
+
+tranceiver_axudp::~tranceiver_axudp()
+{
+	close(fd);
+}
+
+transmit_error_t tranceiver_axudp::send_to_other_axudp_targets(const message_t & m, const std::string & came_from)
+{
+	for(auto d : destinations) {
+		if (d == came_from) {
+			log(LL_DEBUG_VERBOSE, "tranceiver_axudp::send_to_other_axudp_targets: not (re-)sending to %s", d.c_str());
+
+			continue;
+		}
+
+		log(LL_DEBUG_VERBOSE, "tranceiver_axudp::send_to_other_axudp_targets: transmit to %s", d.c_str());
+
+		if (transmit_udp(d, m.message, m.s) == false && continue_on_error == false) {
+			log(LL_WARNING, "Problem sending");
+
+			return TE_hardware;
+		}
+	}
+
+	return TE_ok;
+}
+
+void tranceiver_axudp::operator()()
+{
+	if (listen_port == -1)
+		return;
+
+	log(LL_INFO, "APRS-SI: started thread");
+
         for(;;) {
                 try {
                         char               *buffer     = reinterpret_cast<char *>(calloc(1, 1600));
@@ -76,7 +98,9 @@ void tranceiver_axudp::operator()()
                         int n = recvfrom(fd, buffer, sizeof buffer, 0, (sockaddr *)&clientaddr, &len);
 
                         if (n) {
-				log(LL_DEBUG_VERBOSE, "tranceiver_axudp::operator: received message from %s", inet_ntoa(clientaddr.sin_addr));
+				std::string came_from = inet_ntoa(clientaddr.sin_addr) + myformat(":%d", clientaddr.sin_port);
+
+				log(LL_DEBUG_VERBOSE, "tranceiver_axudp::operator: received message from %s", came_from.c_str());
 
 				message_t m { 0 };
 				gettimeofday(&m.tv, nullptr);
@@ -84,6 +108,9 @@ void tranceiver_axudp::operator()()
 				m.s       = len;
 
 				queue_incoming_message(m);
+
+				if (distribute)
+					send_to_other_axudp_targets(m, came_from);
 			}
 			else {
 				free(buffer);
@@ -98,10 +125,11 @@ void tranceiver_axudp::operator()()
 tranceiver *tranceiver_axudp::instantiate(const libconfig::Setting & node_in, work_queue_t *const w)
 {
 	std::string               id;
-	seen                     *s = nullptr;
-	int                       listen_port = -1;
+	seen                     *s                 = nullptr;
+	int                       listen_port       = -1;
 	std::vector<std::string>  destinations;
-	bool                      continue_on_error;
+	bool                      continue_on_error = false;
+	bool                      distribute        = false;
 
         for(int i=0; i<node_in.getLength(); i++) {
                 const libconfig::Setting & node = node_in[i];
@@ -121,10 +149,12 @@ tranceiver *tranceiver_axudp::instantiate(const libconfig::Setting & node_in, wo
 			continue_on_error = node_in.lookup(type);
 		else if (type == "listen-port")
 			listen_port = node_in.lookup(type);
+		else if (type == "distribute")
+			distribute = node_in.lookup(type);
 		else if (type != "type") {
 			error_exit(false, "setting \"%s\" is now known", type.c_str());
 		}
         }
 
-	return new tranceiver_axudp(id, s, w, listen_port, destinations, continue_on_error);
+	return new tranceiver_axudp(id, s, w, listen_port, destinations, continue_on_error, distribute);
 }
