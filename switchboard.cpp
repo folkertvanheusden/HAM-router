@@ -1,3 +1,4 @@
+#include "log.h"
 #include "switchboard.h"
 
 
@@ -43,7 +44,9 @@ transmit_error_t switchboard::put_message(tranceiver *const from, const uint8_t 
 	auto it = map.find(from);
 
 	if (it == map.end())
-		return TE_ok;
+		return TE_hardware;
+
+	log(LL_DEBUG, "Forwarding to %zu tranceivers", it->second.size());
 
 	// TODO in a thread; copy data then!
 	for(auto t : it->second) {
@@ -52,6 +55,8 @@ transmit_error_t switchboard::put_message(tranceiver *const from, const uint8_t 
 		if (rc != TE_ok && continue_on_error == false)
 			return rc;
 	}
+
+	log(LL_DEBUG_VERBOSE, "Forward ok");
 
 	return TE_ok;
 }

@@ -8,8 +8,7 @@ double get_us_float()
 
 rate_limiter::rate_limiter(const int max_per_dt, const double dt) :
 	max_per_dt(max_per_dt),
-	dt(dt),
-	last_ts(get_us_float())
+	dt(dt)
 {
 }
 

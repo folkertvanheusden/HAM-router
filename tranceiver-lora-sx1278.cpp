@@ -38,11 +38,14 @@ void * rx_f(void *in)
 
 transmit_error_t tranceiver_lora_sx1278::put_message_low(const uint8_t *const p, const size_t len)
 {
+	printf("hier\n");
 	if (len > 255) {
 		log(LL_WARNING, "tranceiver_lora_sx1278::put_message_low: packet too big (%d bytes)", len);
 
 		return TE_hardware;
 	}
+
+	printf("daar\n");
 
 	std::unique_lock<std::mutex> lck(lock);
 
@@ -104,6 +107,8 @@ tranceiver_lora_sx1278::tranceiver_lora_sx1278(const std::string & id, seen *con
 	LoRa_begin(&modem);
 
 	LoRa_receive(&modem);
+
+	log(LL_INFO, "LoRa SX1278 (%s) initialized", id.c_str());
 }
 
 tranceiver_lora_sx1278::~tranceiver_lora_sx1278()

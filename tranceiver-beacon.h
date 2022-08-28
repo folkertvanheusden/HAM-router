@@ -15,7 +15,7 @@ private:
 	const std::string   callsign        { "mycallsign"     };
 
 protected:
-	transmit_error_t put_message_low(const uint8_t *const p, const size_t s);
+	transmit_error_t put_message_low(const uint8_t *const p, const size_t s) override;
 
 public:
 	tranceiver_beacon(const std::string & id, seen *const s, work_queue_t *const w, const std::string & beacon_text, const int beacon_interval, const beacon_mode_t bm, const std::string & callsign);
@@ -23,5 +23,5 @@ public:
 
 	static tranceiver *instantiate(const libconfig::Setting & node, work_queue_t *const w);
 
-	void operator()();
+	void operator()() override;
 };

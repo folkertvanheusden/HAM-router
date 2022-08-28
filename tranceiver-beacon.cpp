@@ -45,6 +45,8 @@ void tranceiver_beacon::operator()()
 {
 	log(LL_INFO, "Beacon: started thread");
 
+	sleep(1);
+
         for(;;) {
 		log(LL_INFO, "Send beacon");
 

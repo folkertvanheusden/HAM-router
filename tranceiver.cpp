@@ -1,4 +1,5 @@
 #include "error.h"
+#include "log.h"
 #include "tranceiver.h"
 #include "tranceiver-aprs-si.h"
 #include "tranceiver-axudp.h"
@@ -70,6 +71,8 @@ transmit_error_t tranceiver::put_message(const uint8_t *const p, const size_t si
 {
 	if (s->check(p, size))
 		return put_message_low(p, size);
+
+	log(LL_DEBUG, "tranceiver::put_message: dropped because of rate limiting");
 
 	return TE_ratelimiting;
 }

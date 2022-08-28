@@ -2,6 +2,7 @@
 
 #include "configuration.h"
 #include "error.h"
+#include "log.h"
 #include "tranceiver-aprs-si.h"
 
 
@@ -84,5 +85,7 @@ void configuration::load_switchboard(const libconfig::Setting & node_in) {
 		tranceiver *to_t   = find_tranceiver(to);
 
 		sb->add_mapping(from_t, to_t);
+
+		log(LL_DEBUG_VERBOSE, "%s (%p) sends to %s (%p)", from.c_str(), from_t, to.c_str(), to_t);
         }
 }
