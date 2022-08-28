@@ -36,11 +36,17 @@ transmit_error_t tranceiver_aprs_si::put_message_low(const uint8_t *const p, con
 	if (size < 4)
 		return TE_hardware;
 
-	if (p[0] != 0x3c || p[1] != 0xff || p[2] != 0x01)  // not a APRS packet?
-		return TE_ok;
+	if (p[0] != '>' || p[1] != 0xff || p[2] != 0x01) {  // not an APRS packet?
+		log(LL_DEBUG, "tranceiver_aprs_si::put_message_low: not an APRS packet %s", dump_hex(p, size).c_str());
 
-	if (s->check(p, size) == false)
+		return TE_ok;
+	}
+
+	if (s->check(p, size) == false) {
+		log(LL_DEBUG_VERBOSE, "tranceiver_aprs_si::put_message_low: denied by rate limiter");
+
 		return TE_ratelimiting;
+	}
 
 	std::unique_lock<std::mutex> lck(lock);
 

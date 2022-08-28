@@ -20,7 +20,7 @@ void * rx_f(void *in)
 		return nullptr;
 	}
 
-	log(LL_DEBUG, "rx: %s", dump_replace(reinterpret_cast<uint8_t *>(rx->buf), rx->size).c_str());
+	log(LL_DEBUG, "LoRa-sx1278 rx: %s", dump_replace(reinterpret_cast<uint8_t *>(rx->buf), rx->size).c_str());
 
 	message_t m;
 	m.tv       = rx->last_time;
