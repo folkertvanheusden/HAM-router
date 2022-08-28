@@ -6,6 +6,7 @@
 #include <string>
 #include <string.h>
 #include <unistd.h>
+#include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -20,6 +21,8 @@
 transmit_error_t tranceiver_axudp::put_message_low(const uint8_t *const msg, const size_t len)
 {
 	for(auto d : destinations) {
+		log(LL_DEBUG_VERBOSE, "tranceiver_axudp::put_message_low: transmit to %s", d.c_str());
+
 		if (transmit_udp(d, msg, len) == false && continue_on_error == false) {
 			log(LL_WARNING, "Problem sending");
 
@@ -73,6 +76,8 @@ void tranceiver_axudp::operator()()
                         int n = recvfrom(fd, buffer, sizeof buffer, 0, (sockaddr *)&clientaddr, &len);
 
                         if (n) {
+				log(LL_DEBUG_VERBOSE, "tranceiver_axudp::operator: received message from %s", inet_ntoa(clientaddr.sin_addr));
+
 				message_t m { 0 };
 				gettimeofday(&m.tv, nullptr);
 				m.message = reinterpret_cast<uint8_t *>(buffer);

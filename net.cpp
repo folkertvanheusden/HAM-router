@@ -82,14 +82,14 @@ int connect_to(const char *host, const int portnr)
 
 bool transmit_udp(const std::string & dest, const uint8_t *const data, const size_t data_len)
 {
-        struct addrinfo hints = { 0 };
-        hints.ai_family = AF_UNSPEC;    // Allow IPv4 or IPv6
-        hints.ai_socktype = SOCK_DGRAM;
-        hints.ai_flags = AI_PASSIVE;    // For wildcard IP address
-        hints.ai_protocol = 0;          // Any protocol
+        struct addrinfo hints { 0 };
+        hints.ai_family    = AF_UNSPEC;    // Allow IPv4 or IPv6
+        hints.ai_socktype  = SOCK_DGRAM;
+        hints.ai_flags     = AI_PASSIVE;    // For wildcard IP address
+        hints.ai_protocol  = 0;          // Any protocol
         hints.ai_canonname = nullptr;
-        hints.ai_addr = nullptr;
-        hints.ai_next = nullptr;
+        hints.ai_addr      = nullptr;
+        hints.ai_next      = nullptr;
 
 	std::size_t colon = dest.find(":");
 	if (colon == std::string::npos) {

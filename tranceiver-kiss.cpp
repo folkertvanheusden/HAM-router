@@ -106,7 +106,7 @@ bool tranceiver_kiss::recv_mkiss(unsigned char **p, int *len, bool verbose)
 					log(LL_DEBUG, "set hardware: %s", dump_hex(&(*p)[1], *len - 1));
 				}
 				else if (cmd == 15) {
-					error_exit(false, "kernel asked for shutdown");
+					log(LL_INFO, "kernel asked for shutdown");
 				}
 			}
 
