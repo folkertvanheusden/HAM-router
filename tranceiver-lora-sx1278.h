@@ -17,8 +17,10 @@ protected:
 	transmit_error_t put_message_low(const uint8_t *const p, const size_t s);
 
 public:
-	tranceiver_lora_sx1278(const std::string & id, const seen_t & s_pars, const int dio0_pin, const int reset_pin);
+	tranceiver_lora_sx1278(const std::string & id, seen *const s, const int dio0_pin, const int reset_pin);
 	virtual ~tranceiver_lora_sx1278();
+
+	static tranceiver *instantiate(const libconfig::Setting & node);
 
 	void operator()();
 };

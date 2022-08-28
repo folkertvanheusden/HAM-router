@@ -4,6 +4,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "error.h"
 #include "log.h"
 #include "net.h"
 #include "tranceiver-lora-sx1278.h"
@@ -24,7 +25,7 @@ void * rx_f(void *in)
 	m.message = reinterpret_cast<uint8_t *>(rx->buf);
 	m.s       = rx->size;
 
-	reinterpret_cast<tranceiver_lora_sx1278 *>(rx->userPtr)->queue_message(m);
+	reinterpret_cast<tranceiver_lora_sx1278 *>(rx->userPtr)->queue_incoming_message(m);
 
 	free(rx);
 
@@ -67,8 +68,8 @@ transmit_error_t tranceiver_lora_sx1278::put_message_low(const uint8_t *const p,
 	return TE_ok;
 }
 
-tranceiver_lora_sx1278::tranceiver_lora_sx1278(const std::string & id, const seen_t & s_pars, const int dio0_pin, const int reset_pin) :
-	tranceiver(id, s_pars)
+tranceiver_lora_sx1278::tranceiver_lora_sx1278(const std::string & id, seen *const s, const int dio0_pin, const int reset_pin) :
+	tranceiver(id, s)
 {
 	memset(&modem, 0x00, sizeof modem);
 
@@ -106,4 +107,32 @@ tranceiver_lora_sx1278::~tranceiver_lora_sx1278()
 
 void tranceiver_lora_sx1278::operator()()
 {
+}
+
+tranceiver *tranceiver_lora_sx1278::instantiate(const libconfig::Setting & node_in)
+{
+	std::string  id;
+	seen        *s = nullptr;
+	int          dio0_pin  = -1;
+	int          reset_pin = -1;
+
+        for(int i=0; i<node_in.getLength(); i++) {
+                const libconfig::Setting & node = node_in[i];
+
+		std::string type = node.getName();
+
+		if (type == "id")
+			id = node_in.lookup(type).c_str();
+		else if (type == "incoming-rate-limiting")
+			s = seen::instantiate(node);
+		else if (type == "dio0-pin")
+			dio0_pin = node_in.lookup(type);
+		else if (type == "reset-pin")
+			reset_pin = node_in.lookup(type);
+		else
+			error_exit(false, "setting \"%s\" is now known", type.c_str());
+        }
+
+
+	return new tranceiver_lora_sx1278(id, s, dio0_pin, reset_pin);
 }

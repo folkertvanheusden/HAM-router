@@ -6,7 +6,9 @@
 #include <vector>
 #include <sys/time.h>
 
+extern "C" {
 #include "crc_32.h"
+}
 
 uint64_t get_us()
 {

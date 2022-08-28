@@ -1,5 +1,6 @@
 #include <atomic>
 #include <condition_variable>
+#include <libconfig.h++>
 #include <map>
 #include <mutex>
 #include <stdint.h>
@@ -35,6 +36,8 @@ public:
 	~seen();
 
 	bool check(const uint8_t *const p, const size_t s);
+
+	static seen *instantiate(const libconfig::Setting & node);
 
 	void operator()();
 };

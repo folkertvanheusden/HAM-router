@@ -1,5 +1,6 @@
 #include <time.h>
 
+#include "error.h"
 #include "seen.h"
 #include "utils.h"
 
@@ -75,4 +76,26 @@ void seen::operator()()
 			history.erase(cur_hash);
 		}
 	}
+}
+
+seen *seen::instantiate(const libconfig::Setting & node_in)
+{
+	seen_t pars_seen { 0 };
+
+        for(int i=0; i<node_in.getLength(); i++) {
+                const libconfig::Setting & node = node_in[i];
+
+		std::string type = node.getName();
+
+		if (type == "max-per-interval")
+			pars_seen.max_per_dt        = node_in.lookup(type);
+		else if (type == "interval-duration")
+			pars_seen.dt                = int(node_in.lookup(type));
+		else if (type == "max-n-elements")
+			pars_seen.max_seen_elements = node_in.lookup(type);
+		else
+			error_exit(false, "setting \"%s\" is now known", type.c_str());
+        }
+
+	return new seen(pars_seen);
 }

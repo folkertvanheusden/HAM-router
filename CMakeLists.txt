@@ -13,14 +13,15 @@ set(CMAKE_BUILD_TYPE Debug)
 add_compile_options(-Wall -pedantic)
 
 add_executable(lora-aprs-gw
+	configuration.cpp
 	crc_32.c
 	rate-limiter.cpp
+	seen.cpp
 	switchboard.cpp
 	tranceiver.cpp
 	tranceiver-aprs-si.cpp
 	tranceiver-kiss.cpp
-	tranceiver-lora-sx1278.cpp
-	seen.cpp
+	#tranceiver-lora-sx1278.cpp
 	db.cpp
 	error.cpp
 	gateway.cpp
@@ -35,7 +36,7 @@ add_executable(lora-aprs-gw
 	webserver.cpp
 	websockets.cpp
 	#ax25.cpp
-	LoRa.c
+	#LoRa.c
 	)
 
 set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
@@ -46,6 +47,11 @@ target_link_libraries(lora-aprs-gw Threads::Threads)
 target_link_libraries(lora-aprs-gw -lrt)
 
 include(FindPkgConfig)
+
+pkg_check_modules(CFG REQUIRED libconfig++)
+target_link_libraries(lora-aprs-gw ${CFG_LIBRARIES})
+target_include_directories(lora-aprs-gw PUBLIC ${CFG_INCLUDE_DIRS})
+target_compile_options(lora-aprs-gw PUBLIC ${CFG_CFLAGS_OTHER})
 
 pkg_check_modules(INIH REQUIRED inih)
 target_link_libraries(lora-aprs-gw ${INIH_LIBRARIES})
@@ -72,4 +78,5 @@ target_link_libraries(lora-aprs-gw ${WEBSOCKETS_LIBRARIES})
 target_include_directories(lora-aprs-gw PUBLIC ${WEBSOCKETS_INCLUDE_DIRS})
 target_compile_options(lora-aprs-gw PUBLIC ${WEBSOCKETS_CFLAGS_OTHER})
 
-target_link_libraries(lora-aprs-gw -lax25 -lmysqlcppconn -lpigpio -lutil)
+#target_link_libraries(lora-aprs-gw -lax25 -lmysqlcppconn -lpigpio -lutil)
+target_link_libraries(lora-aprs-gw -lax25 -lmysqlcppconn -lutil)

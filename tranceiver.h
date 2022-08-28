@@ -1,5 +1,7 @@
+#pragma once
 #include <atomic>
 #include <condition_variable>
+#include <libconfig.h++>
 #include <mutex>
 #include <queue>
 #include <stdint.h>
@@ -37,16 +39,20 @@ protected:
 	virtual transmit_error_t put_message_low(const uint8_t *const p, const size_t s) = 0;
 
 public:
-	tranceiver(const std::string & id, const seen_t & s_pars);
+	tranceiver(const std::string & id, seen *const s);
 	virtual ~tranceiver();
 
-	void queue_message(const message_t & m);
+	std::string get_id() const { return id; }
+
+	void queue_incoming_message(const message_t & m);
 
 	bool peek();
 
 	message_t get_message();
 
 	transmit_error_t put_message(const uint8_t *const p, const size_t s);
+
+	static tranceiver *instantiate(const libconfig::Setting & node);
 
 	virtual void operator()() = 0;
 };

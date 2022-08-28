@@ -4,6 +4,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "error.h"
 #include "log.h"
 #include "net.h"
 #include "tranceiver-aprs-si.h"
@@ -84,8 +85,8 @@ transmit_error_t tranceiver_aprs_si::put_message_low(const uint8_t *const p, con
 	return fd != -1 ? TE_ok : TE_hardware;
 }
 
-tranceiver_aprs_si::tranceiver_aprs_si(const std::string & id, const seen_t & s_pars, const std::string & aprs_user, const std::string & aprs_pass) :
-	tranceiver(id, s_pars),
+tranceiver_aprs_si::tranceiver_aprs_si(const std::string & id, seen *const s, const std::string & aprs_user, const std::string & aprs_pass) :
+	tranceiver(id, s),
 	aprs_user(aprs_user),
 	aprs_pass(aprs_pass)
 {
@@ -100,4 +101,32 @@ tranceiver_aprs_si::~tranceiver_aprs_si()
 void tranceiver_aprs_si::operator()()
 {
 	// no-op
+}
+
+tranceiver *tranceiver_aprs_si::instantiate(const libconfig::Setting & node_in)
+{
+	std::string  id;
+	seen        *s = nullptr;
+	std::string  aprs_user;
+	std::string  aprs_pass;
+
+        for(int i=0; i<node_in.getLength(); i++) {
+                const libconfig::Setting & node = node_in[i];
+
+		std::string type = node.getName();
+
+		if (type == "id")
+			id = node_in.lookup(type).c_str();
+		else if (type == "aprs-user")
+			aprs_user = node_in.lookup(type).c_str();
+		else if (type == "aprs-pass")
+			aprs_pass = node_in.lookup(type).c_str();
+		else
+			error_exit(false, "setting \"%s\" is now known", type.c_str());
+        }
+
+	if (aprs_user.empty())
+		error_exit(false, "No aprs-user selected");
+
+	return new tranceiver_aprs_si(id, s, aprs_user, aprs_pass);
 }

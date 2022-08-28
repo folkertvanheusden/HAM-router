@@ -21,7 +21,7 @@
 
 #define MAX_PACKET_LEN 256  // TODO: make dynamic size
 
-bool recv_mkiss(int fd, unsigned char **p, int *len, bool verbose)
+bool tranceiver_kiss::recv_mkiss(unsigned char **p, int *len, bool verbose)
 {
 	bool first = true, ok = false, escape = false;
 
@@ -117,7 +117,7 @@ bool recv_mkiss(int fd, unsigned char **p, int *len, bool verbose)
 	return ok;
 }
 
-bool send_mkiss(int fd, int channel, const unsigned char *p, const int len)
+bool tranceiver_kiss::send_mkiss(int channel, const unsigned char *p, const int len)
 {
 	int max_len = len * 2 + 1;
 	unsigned char *out = (unsigned char *)malloc(max_len);
@@ -172,14 +172,14 @@ bool send_mkiss(int fd, int channel, const unsigned char *p, const int len)
 
 transmit_error_t tranceiver_kiss::put_message_low(const uint8_t *const p, const size_t len)
 {
-	if (send_mkiss(fd, 0, p, len))
+	if (send_mkiss(0, p, len))
 		return TE_ok;
 
 	return TE_hardware;
 }
 
-tranceiver_kiss::tranceiver_kiss(const std::string & id, const seen_t & s_pars, const std::string & callsign, const std::string & if_up) :
-	tranceiver(id, s_pars)
+tranceiver_kiss::tranceiver_kiss(const std::string & id, seen *const s, const std::string & callsign, const std::string & if_up) :
+	tranceiver(id, s)
 {
 	int fd_master = -1;
 	int fd_slave  = -1;
@@ -231,7 +231,44 @@ void tranceiver_kiss::operator()()
 
 		uint8_t *p   = nullptr;
 		int      len = 0;
-		if (!recv_mkiss(fd, &p, &len, true))
+		if (!recv_mkiss(&p, &len, true))
 			break;
+
+		message_t m { 0 };
+		gettimeofday(&m.tv, nullptr);
+		m.message = p;
+		m.s       = len;
+
+		queue_incoming_message(m);
 	}
+}
+
+tranceiver *tranceiver_kiss::instantiate(const libconfig::Setting & node_in)
+{
+	std::string  id;
+	seen        *s = nullptr;
+	std::string  callsign;
+	std::string  if_up;
+
+        for(int i=0; i<node_in.getLength(); i++) {
+                const libconfig::Setting & node = node_in[i];
+
+		std::string type = node.getName();
+
+		if (type == "id")
+			id = node_in.lookup(type).c_str();
+		else if (type == "incoming-rate-limiting")
+			s = seen::instantiate(node);
+		else if (type == "callsign")
+			callsign = node_in.lookup(type).c_str();
+		else if (type == "if-up")
+			if_up = node_in.lookup(type).c_str();
+		else
+			error_exit(false, "setting \"%s\" is now known", type.c_str());
+        }
+
+	if (callsign.empty())
+		error_exit(false, "No callsign selected");
+
+	return new tranceiver_kiss(id, s, callsign, if_up);
 }
