@@ -9,6 +9,7 @@
 #include <thread>
 
 #include "seen.h"
+#include "work.h"
 
 
 typedef enum { TE_ok, TE_hardware, TE_ratelimiting } transmit_error_t;
@@ -23,12 +24,12 @@ typedef struct {
 class tranceiver
 {
 private:
-	const std::string id;
+	const std::string  id;
 
 	std::thread *const th { nullptr };
 
 protected:
-	std::atomic_bool terminate { false };
+	work_queue_t      *const w  { nullptr };
 
 	seen        *const s  { nullptr };
 
@@ -36,10 +37,12 @@ protected:
 	std::mutex              incoming_lock;
 	std::queue<message_t>   incoming;
 
+	std::atomic_bool terminate { false };
+
 	virtual transmit_error_t put_message_low(const uint8_t *const p, const size_t s) = 0;
 
 public:
-	tranceiver(const std::string & id, seen *const s);
+	tranceiver(const std::string & id, seen *const s, work_queue_t *const w);
 	virtual ~tranceiver();
 
 	std::string get_id() const { return id; }
@@ -52,7 +55,7 @@ public:
 
 	transmit_error_t put_message(const uint8_t *const p, const size_t s);
 
-	static tranceiver *instantiate(const libconfig::Setting & node);
+	static tranceiver *instantiate(const libconfig::Setting & node, work_queue_t *const w);
 
 	virtual void operator()() = 0;
 };

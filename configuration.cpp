@@ -5,7 +5,7 @@
 #include "tranceiver-aprs-si.h"
 
 
-configuration::configuration(const std::string & file)
+configuration::configuration(const std::string & file, work_queue_t *const w)
 {
 	try {
 		libconfig::Config cfg;
@@ -23,7 +23,7 @@ configuration::configuration(const std::string & file)
 				// TODO
 			}
 			else if (node_name == "tranceivers") {
-				load_tranceivers(node);
+				load_tranceivers(node, w);
 			}
 			else if (node_name == "connections") {
 				load_switchboard(node);
@@ -51,11 +51,11 @@ configuration::~configuration()
 		delete t;
 }
 
-void configuration::load_tranceivers(const libconfig::Setting & node_in) {
+void configuration::load_tranceivers(const libconfig::Setting & node_in, work_queue_t *const w) {
 	for(int i=0; i<node_in.getLength(); i++) {
 		const libconfig::Setting & node = node_in[i];
 
-		tranceiver *t = tranceiver::instantiate(node);
+		tranceiver *t = tranceiver::instantiate(node, w);
 
 		tranceivers.push_back(t);
 	}

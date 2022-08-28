@@ -68,8 +68,8 @@ transmit_error_t tranceiver_lora_sx1278::put_message_low(const uint8_t *const p,
 	return TE_ok;
 }
 
-tranceiver_lora_sx1278::tranceiver_lora_sx1278(const std::string & id, seen *const s, const int dio0_pin, const int reset_pin) :
-	tranceiver(id, s)
+tranceiver_lora_sx1278::tranceiver_lora_sx1278(const std::string & id, seen *const s, work_queue_t *const w, const int dio0_pin, const int reset_pin) :
+	tranceiver(id, s, w)
 {
 	memset(&modem, 0x00, sizeof modem);
 
@@ -109,7 +109,7 @@ void tranceiver_lora_sx1278::operator()()
 {
 }
 
-tranceiver *tranceiver_lora_sx1278::instantiate(const libconfig::Setting & node_in)
+tranceiver *tranceiver_lora_sx1278::instantiate(const libconfig::Setting & node_in, work_queue_t *const w)
 {
 	std::string  id;
 	seen        *s = nullptr;
@@ -133,6 +133,5 @@ tranceiver *tranceiver_lora_sx1278::instantiate(const libconfig::Setting & node_
 			error_exit(false, "setting \"%s\" is now known", type.c_str());
         }
 
-
-	return new tranceiver_lora_sx1278(id, s, dio0_pin, reset_pin);
+	return new tranceiver_lora_sx1278(id, s, w, dio0_pin, reset_pin);
 }

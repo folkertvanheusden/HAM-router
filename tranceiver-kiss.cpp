@@ -178,8 +178,8 @@ transmit_error_t tranceiver_kiss::put_message_low(const uint8_t *const p, const 
 	return TE_hardware;
 }
 
-tranceiver_kiss::tranceiver_kiss(const std::string & id, seen *const s, const std::string & callsign, const std::string & if_up) :
-	tranceiver(id, s)
+tranceiver_kiss::tranceiver_kiss(const std::string & id, seen *const s, work_queue_t *const w, const std::string & callsign, const std::string & if_up) :
+	tranceiver(id, s, w)
 {
 	int fd_master = -1;
 	int fd_slave  = -1;
@@ -243,7 +243,7 @@ void tranceiver_kiss::operator()()
 	}
 }
 
-tranceiver *tranceiver_kiss::instantiate(const libconfig::Setting & node_in)
+tranceiver *tranceiver_kiss::instantiate(const libconfig::Setting & node_in, work_queue_t *const w)
 {
 	std::string  id;
 	seen        *s = nullptr;
@@ -270,5 +270,5 @@ tranceiver *tranceiver_kiss::instantiate(const libconfig::Setting & node_in)
 	if (callsign.empty())
 		error_exit(false, "No callsign selected");
 
-	return new tranceiver_kiss(id, s, callsign, if_up);
+	return new tranceiver_kiss(id, s, w, callsign, if_up);
 }

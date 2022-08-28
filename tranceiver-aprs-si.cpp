@@ -85,8 +85,8 @@ transmit_error_t tranceiver_aprs_si::put_message_low(const uint8_t *const p, con
 	return fd != -1 ? TE_ok : TE_hardware;
 }
 
-tranceiver_aprs_si::tranceiver_aprs_si(const std::string & id, seen *const s, const std::string & aprs_user, const std::string & aprs_pass) :
-	tranceiver(id, s),
+tranceiver_aprs_si::tranceiver_aprs_si(const std::string & id, seen *const s, work_queue_t *const w, const std::string & aprs_user, const std::string & aprs_pass) :
+	tranceiver(id, s, w),
 	aprs_user(aprs_user),
 	aprs_pass(aprs_pass)
 {
@@ -103,7 +103,7 @@ void tranceiver_aprs_si::operator()()
 	// no-op
 }
 
-tranceiver *tranceiver_aprs_si::instantiate(const libconfig::Setting & node_in)
+tranceiver *tranceiver_aprs_si::instantiate(const libconfig::Setting & node_in, work_queue_t *const w)
 {
 	std::string  id;
 	seen        *s = nullptr;
@@ -128,5 +128,5 @@ tranceiver *tranceiver_aprs_si::instantiate(const libconfig::Setting & node_in)
 	if (aprs_user.empty())
 		error_exit(false, "No aprs-user selected");
 
-	return new tranceiver_aprs_si(id, s, aprs_user, aprs_pass);
+	return new tranceiver_aprs_si(id, s, w, aprs_user, aprs_pass);
 }
