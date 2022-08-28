@@ -1,6 +1,7 @@
 #include "error.h"
 #include "tranceiver.h"
 #include "tranceiver-aprs-si.h"
+#include "tranceiver-axudp.h"
 #include "tranceiver-kiss.h"
 #include "tranceiver-lora-sx1278.h"
 
@@ -74,7 +75,7 @@ transmit_error_t tranceiver::put_message(const uint8_t *const p, const size_t si
 
 tranceiver *tranceiver::instantiate(const libconfig::Setting & node, work_queue_t *const w)
 {
-	std::string type = node.getName();
+	std::string type = node.lookup("type").c_str();
 
 	tranceiver *t = nullptr;
 
@@ -87,6 +88,9 @@ tranceiver *tranceiver::instantiate(const libconfig::Setting & node, work_queue_
 //	else if (type == "lora-sx1278") {  TODO
 //		t = tranceiver_lora_sx1278::instantiate(node, w);
 //	}
+	else if (type == "axudp") {
+		t = tranceiver_axudp::instantiate(node, w);
+	}
 	else {
 		error_exit(false, "\"%s\" is an unknown tranceiver type", type.c_str());
 	}

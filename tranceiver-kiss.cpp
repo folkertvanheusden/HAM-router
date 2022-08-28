@@ -265,7 +265,7 @@ tranceiver *tranceiver_kiss::instantiate(const libconfig::Setting & node_in, wor
 			callsign = node_in.lookup(type).c_str();
 		else if (type == "if-up")
 			if_up = node_in.lookup(type).c_str();
-		else
+		else if (type != "type")
 			error_exit(false, "setting \"%s\" is now known", type.c_str());
         }
 

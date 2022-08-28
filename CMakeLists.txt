@@ -20,6 +20,7 @@ add_executable(lora-aprs-gw
 	switchboard.cpp
 	tranceiver.cpp
 	tranceiver-aprs-si.cpp
+	tranceiver-axudp.cpp
 	tranceiver-kiss.cpp
 	#tranceiver-lora-sx1278.cpp
 	db.cpp

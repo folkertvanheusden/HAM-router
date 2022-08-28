@@ -128,7 +128,7 @@ tranceiver *tranceiver_aprs_si::instantiate(const libconfig::Setting & node_in, 
 			aprs_user = node_in.lookup(type).c_str();
 		else if (type == "aprs-pass")
 			aprs_pass = node_in.lookup(type).c_str();
-		else
+		else if (type != "type")
 			error_exit(false, "setting \"%s\" is now known", type.c_str());
         }
 

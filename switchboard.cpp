@@ -45,7 +45,7 @@ transmit_error_t switchboard::put_message(tranceiver *const from, const uint8_t 
 	if (it == map.end())
 		return TE_ok;
 
-	// TODO in a thread
+	// TODO in a thread; copy data then!
 	for(auto t : it->second) {
 		transmit_error_t rc = t->put_message(p, size);
 

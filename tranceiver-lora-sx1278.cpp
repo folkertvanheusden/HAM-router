@@ -131,7 +131,7 @@ tranceiver *tranceiver_lora_sx1278::instantiate(const libconfig::Setting & node_
 			dio0_pin = node_in.lookup(type);
 		else if (type == "reset-pin")
 			reset_pin = node_in.lookup(type);
-		else
+		else if (type != "type")
 			error_exit(false, "setting \"%s\" is now known", type.c_str());
         }
 

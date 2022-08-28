@@ -22,6 +22,8 @@ void process(configuration *const cfg, work_queue_t *const w)
 		message_t m = t_has_work->get_message();
 
 		cfg->get_switchboard()->put_message(t_has_work, m.message, m.s, true);
+
+		free(m.message);
 	}
 }
 
