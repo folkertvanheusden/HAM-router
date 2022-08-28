@@ -9,6 +9,7 @@ APRS-IS. It also has a simple web-interface.
 software requirements:
 * cmake
 * libax25-dev
+* libconfig++-dev
 * libinih-dev
 * libjansson-dev
 * libmicrohttpd-dev
