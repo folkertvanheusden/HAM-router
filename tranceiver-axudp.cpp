@@ -9,6 +9,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <sys/types.h>
 
 #include "crc_ppp.h"

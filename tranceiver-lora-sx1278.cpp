@@ -20,6 +20,8 @@ void * rx_f(void *in)
 		return nullptr;
 	}
 
+	log(LL_DEBUG, "rx: %s", dump_replace(reinterpret_cast<uint8_t *>(rx->buf), rx->size).c_str());
+
 	message_t m;
 	m.tv       = rx->last_time;
 	m.message  = reinterpret_cast<uint8_t *>(rx->buf);
@@ -44,11 +46,11 @@ transmit_error_t tranceiver_lora_sx1278::put_message_low(const uint8_t *const p,
 
 	std::unique_lock<std::mutex> lck(lock);
 
+	log(LL_DEBUG, "tranceiver_lora_sx1278::put_message_low: %s", dump_replace(reinterpret_cast<const uint8_t *>(modem.tx.data.buf), len).c_str());
+
 	memcpy(modem.tx.data.buf, p, len);
 
 	modem.tx.data.size = len;
-
-	log(LL_DEBUG, "tranceiver_lora_sx1278::put_message_low: %s", dump_replace(reinterpret_cast<const uint8_t *>(modem.tx.data.buf), len).c_str());
 
 	LoRa_stop_receive(&modem);  // manually stoping RxCont mode
 

@@ -2,6 +2,7 @@
 #include "tranceiver.h"
 #include "tranceiver-aprs-si.h"
 #include "tranceiver-axudp.h"
+#include "tranceiver-beacon.h"
 #include "tranceiver-kiss.h"
 #include "tranceiver-lora-sx1278.h"
 
@@ -85,11 +86,14 @@ tranceiver *tranceiver::instantiate(const libconfig::Setting & node, work_queue_
 	else if (type == "kiss") {
 		t = tranceiver_kiss::instantiate(node, w);
 	}
-//	else if (type == "lora-sx1278") {  TODO
-//		t = tranceiver_lora_sx1278::instantiate(node, w);
-//	}
+	else if (type == "lora-sx1278") {  // TODO
+		t = tranceiver_lora_sx1278::instantiate(node, w);
+	}
 	else if (type == "axudp") {
 		t = tranceiver_axudp::instantiate(node, w);
+	}
+	else if (type == "beacon") {
+		t = tranceiver_beacon::instantiate(node, w);
 	}
 	else {
 		error_exit(false, "\"%s\" is an unknown tranceiver type", type.c_str());

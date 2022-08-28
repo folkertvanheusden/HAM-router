@@ -246,7 +246,7 @@ void * startTxCallback(void *arg){
 	LoRa_ctl *modem = (LoRa_ctl *)arg;
 
 	if (modem->tx.callback)
-		modem->tx.callback(&modem->tx.data);
+		modem->tx.callback(&modem->tx.data, modem);
 
 	return NULL;
 }
