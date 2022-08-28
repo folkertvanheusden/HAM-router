@@ -36,7 +36,11 @@ tranceiver_axudp::tranceiver_axudp(const std::string & id, seen *const s, work_q
 	destinations(destinations),
 	continue_on_error(continue_on_error)
 {
+	log(LL_INFO, "Instantiated AXUDP (%s)", id.c_str());
+
 	fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
+
+	th = new std::thread(std::ref(*this));
 }
 
 tranceiver_axudp::~tranceiver_axudp()
@@ -48,6 +52,8 @@ void tranceiver_axudp::operator()()
 {
 	if (listen_port == -1)
 		return;
+
+	log(LL_INFO, "APRS-SI: started thread");
 
         struct sockaddr_in servaddr { 0 };
 

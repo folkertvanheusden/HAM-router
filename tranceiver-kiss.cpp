@@ -183,6 +183,8 @@ transmit_error_t tranceiver_kiss::put_message_low(const uint8_t *const p, const 
 tranceiver_kiss::tranceiver_kiss(const std::string & id, seen *const s, work_queue_t *const w, const std::string & callsign, const std::string & if_up) :
 	tranceiver(id, s, w)
 {
+	log(LL_INFO, "Instantiated KISS (%s)", id.c_str());
+
 	int fd_master = -1;
 	int fd_slave  = -1;
 
@@ -212,6 +214,8 @@ tranceiver_kiss::tranceiver_kiss(const std::string & id, seen *const s, work_que
 		system((if_up + " " + dev_name).c_str());
 
 	fd = fd_master;
+
+	th = new std::thread(std::ref(*this));
 }
 
 tranceiver_kiss::~tranceiver_kiss()
@@ -220,6 +224,8 @@ tranceiver_kiss::~tranceiver_kiss()
 
 void tranceiver_kiss::operator()()
 {
+	log(LL_INFO, "KISS: started thread");
+
 	pollfd fds[] = { { fd, POLLIN, 0 } };
 
 	while(!terminate) {

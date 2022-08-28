@@ -97,6 +97,7 @@ tranceiver_aprs_si::tranceiver_aprs_si(const std::string & id, seen *const s, wo
 	aprs_user(aprs_user),
 	aprs_pass(aprs_pass)
 {
+	log(LL_INFO, "Instantiated APRS-SI (%s)", id.c_str());
 }
 
 tranceiver_aprs_si::~tranceiver_aprs_si()

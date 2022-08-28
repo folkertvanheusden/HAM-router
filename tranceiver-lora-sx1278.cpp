@@ -73,6 +73,8 @@ transmit_error_t tranceiver_lora_sx1278::put_message_low(const uint8_t *const p,
 tranceiver_lora_sx1278::tranceiver_lora_sx1278(const std::string & id, seen *const s, work_queue_t *const w, const int dio0_pin, const int reset_pin) :
 	tranceiver(id, s, w)
 {
+	log(LL_INFO, "Instantiated LoRa SX1278 (%s)", id.c_str());
+
 	memset(&modem, 0x00, sizeof modem);
 
 	// these settings are specific for APRS over LoRa

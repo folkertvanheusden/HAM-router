@@ -29,18 +29,18 @@ class tranceiver
 private:
 	const std::string  id;
 
-	std::thread *const th { nullptr };
-
 protected:
-	work_queue_t      *const w  { nullptr };
+	work_queue_t *const w  { nullptr };
 
-	seen        *const s  { nullptr };
+	seen         *const s  { nullptr };
 
 	std::condition_variable incoming_cv;
 	std::mutex              incoming_lock;
 	std::queue<message_t>   incoming;
 
-	std::atomic_bool terminate { false };
+	std::thread      *th        { nullptr };
+
+	std::atomic_bool  terminate { false   };
 
 	virtual transmit_error_t put_message_low(const uint8_t *const p, const size_t s) = 0;
 
