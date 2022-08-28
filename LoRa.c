@@ -245,7 +245,8 @@ void txDoneISRf(int gpio_n, int level, uint32_t tick, void *modemptr){
 void * startTxCallback(void *arg){
 	LoRa_ctl *modem = (LoRa_ctl *)arg;
 
-	modem->tx.callback(&modem->tx.data);
+	if (modem->tx.callback)
+		modem->tx.callback(&modem->tx.data);
 
 	return NULL;
 }

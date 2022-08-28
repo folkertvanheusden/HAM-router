@@ -157,12 +157,13 @@ typedef struct{
     airTime at;
 } txData;
 
-typedef void (*UserTxDoneCallback)(txData *tx);
+typedef void (*UserTxDoneCallback)(txData *tx, void *user);
 
 typedef struct{
     txData data;
     UserTxDoneCallback callback;
     pthread_t cbThread;
+    void *user;
 } LoRa_Tx;
 
 typedef void (*txDoneISR)(int gpio_n, int level, uint32_t tick, void *userdata);
