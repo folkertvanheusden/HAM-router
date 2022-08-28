@@ -33,6 +33,12 @@ static std::optional<std::string> receive_string(const int fd)
 
 transmit_error_t tranceiver_aprs_si::put_message_low(const uint8_t *const p, const size_t size)
 {
+	if (size < 4)
+		return TE_hardware;
+
+	if (p[0] != 0x3c || p[1] != 0xff || p[2] != 0x01)  // not a APRS packet?
+		return TE_ok;
+
 	if (s->check(p, size) == false)
 		return TE_ratelimiting;
 
@@ -69,7 +75,8 @@ transmit_error_t tranceiver_aprs_si::put_message_low(const uint8_t *const p, con
 	}
 
 	if (fd != -1) {
-		std::string content_out = std::string(reinterpret_cast<const char *>(p), size);
+		// skip first bytes (lora aprs header)
+		std::string content_out = std::string(reinterpret_cast<const char *>(p + 3), size - 3);
 
 		std::string payload     = content_out + "\r\n";
 
