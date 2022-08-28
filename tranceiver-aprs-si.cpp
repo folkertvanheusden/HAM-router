@@ -1,25 +1,16 @@
 #include <errno.h>
+#include <optional>
 #include <string>
 #include <string.h>
 #include <unistd.h>
 
-#include "aprs-si.h"
 #include "log.h"
 #include "net.h"
+#include "tranceiver-aprs-si.h"
 #include "utils.h"
 
-aprs_si::aprs_si(const std::string & aprs_user, const std::string & aprs_pass) :
-	aprs_user(aprs_user), aprs_pass(aprs_pass)
-{
-}
 
-aprs_si::~aprs_si()
-{
-	if (fd != -1)
-		close(fd);
-}
-
-std::string aprs_si::receive_string(const int fd)
+static std::optional<std::string> receive_string(const int fd)
 {
 	std::string reply;
 
@@ -27,7 +18,7 @@ std::string aprs_si::receive_string(const int fd)
 		char c = 0;
 		if (read(fd, &c, 1) <= 0) {
 			log(LL_WARNING, "APRS-SI: Receive failed: %s", strerror(errno));
-			return "";
+			return { };
 		}
 
 		if (c == 10)
@@ -39,9 +30,12 @@ std::string aprs_si::receive_string(const int fd)
 	return reply;
 }
 
-bool aprs_si::send_through_aprs_is(const std::string & content_out)
+transmit_error_t tranceiver_aprs_si::put_message_low(const uint8_t *const p, const size_t size)
 {
-	aprs_is_lock.lock();
+	if (s->check(p, size) == false)
+		return TE_ratelimiting;
+
+	std::unique_lock<std::mutex> lck(lock);
 
 	if (fd == -1) {
 		log(LL_INFO, "(re-)connecting to aprs2.net");
@@ -57,15 +51,15 @@ bool aprs_si::send_through_aprs_is(const std::string & content_out)
 				log(LL_WARNING, "Failed aprsi handshake (send)");
 			}
 
-			std::string reply = receive_string(fd);
+			std::optional<std::string> reply = receive_string(fd);
 
-			if (reply.empty()) {
+			if (reply.has_value() == false) {
 				log(LL_WARNING, "Failed aprsi handshake (receive)");
 				close(fd);
 				fd = -1;
 			}
 			else {
-				log(LL_DEBUG, "recv: %s", reply.c_str());
+				log(LL_DEBUG, "recv: %s", reply.value().c_str());
 			}
 		}
 		else {
@@ -74,7 +68,9 @@ bool aprs_si::send_through_aprs_is(const std::string & content_out)
 	}
 
 	if (fd != -1) {
-		std::string payload = content_out + "\r\n";
+		std::string content_out = std::string(reinterpret_cast<const char *>(p), size);
+
+		std::string payload     = content_out + "\r\n";
 
 		log(LL_DEBUG, myformat("To APRS-IS: %s", content_out.c_str()).c_str());
 
@@ -85,9 +81,23 @@ bool aprs_si::send_through_aprs_is(const std::string & content_out)
 		}
 	}
 
-	bool ok = fd >= 0;
+	return fd != -1 ? TE_ok : TE_hardware;
+}
 
-	aprs_is_lock.unlock();
+tranceiver_aprs_si::tranceiver_aprs_si(const std::string & id, const seen_t & s_pars, const std::string & aprs_user, const std::string & aprs_pass) :
+	tranceiver(id, s_pars),
+	aprs_user(aprs_user),
+	aprs_pass(aprs_pass)
+{
+}
 
-	return ok;
+tranceiver_aprs_si::~tranceiver_aprs_si()
+{
+	if (fd != -1)
+		close(fd);
+}
+
+void tranceiver_aprs_si::operator()()
+{
+	// no-op
 }

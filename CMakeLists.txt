@@ -13,12 +13,17 @@ set(CMAKE_BUILD_TYPE Debug)
 add_compile_options(-Wall -pedantic)
 
 add_executable(lora-aprs-gw
-	aprs-si.cpp
+	rate-limiter.cpp
+	crc_32.c
+	tranceiver.cpp
+	tranceiver-aprs-si.cpp
+	tranceiver-kiss.cpp
+	tranceiver-lora-sx1278.cpp
+	seen.cpp
 	db.cpp
 	error.cpp
 	gateway.cpp
 	gps.cpp
-	kiss.cpp
 	log.cpp
 	net.cpp
 	snmp-data.cpp
@@ -28,6 +33,7 @@ add_executable(lora-aprs-gw
 	utils.cpp
 	webserver.cpp
 	websockets.cpp
+	#ax25.cpp
 	LoRa.c
 	)
 

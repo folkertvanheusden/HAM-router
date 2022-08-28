@@ -1,16 +1,25 @@
+#include <errno.h>
+#include <optional>
+#include <poll.h>
+#include <pty.h>
 #include <stdio.h>
+#include <string>
 #include <string.h>
 #include <unistd.h>
 
 #include "error.h"
 #include "log.h"
 #include "net.h"
+#include "tranceiver-kiss.h"
 #include "utils.h"
+
 
 #define FEND	0xc0
 #define FESC	0xdb
 #define TFEND	0xdc
 #define TFESC	0xdd
+
+#define MAX_PACKET_LEN 256  // TODO: make dynamic size
 
 bool recv_mkiss(int fd, unsigned char **p, int *len, bool verbose)
 {
@@ -27,7 +36,9 @@ bool recv_mkiss(int fd, unsigned char **p, int *len, bool verbose)
 			if (errno == EINTR)
 				continue;
 
-			error_exit(true, "failed reading from mkiss device");
+			log(LL_ERR, "failed reading from mkiss device");
+
+			return false;
 		}
 
 		if (escape)
@@ -106,7 +117,7 @@ bool recv_mkiss(int fd, unsigned char **p, int *len, bool verbose)
 	return ok;
 }
 
-void send_mkiss(int fd, int channel, const unsigned char *p, const int len)
+bool send_mkiss(int fd, int channel, const unsigned char *p, const int len)
 {
 	int max_len = len * 2 + 1;
 	unsigned char *out = (unsigned char *)malloc(max_len);
@@ -145,7 +156,9 @@ void send_mkiss(int fd, int channel, const unsigned char *p, const int len)
 			if (rc == -1 && errno == EINTR)
 				continue;
 
-			error_exit(true, "failed writing to mkiss device");
+			log(LL_ERR, "failed writing to mkiss device");
+
+			return false;
 		}
 
 		tmp += rc;
@@ -153,5 +166,72 @@ void send_mkiss(int fd, int channel, const unsigned char *p, const int len)
 	}
 
 	free(out);
+
+	return true;
 }
 
+transmit_error_t tranceiver_kiss::put_message_low(const uint8_t *const p, const size_t len)
+{
+	if (send_mkiss(fd, 0, p, len))
+		return TE_ok;
+
+	return TE_hardware;
+}
+
+tranceiver_kiss::tranceiver_kiss(const std::string & id, const seen_t & s_pars, const std::string & callsign, const std::string & if_up) :
+	tranceiver(id, s_pars)
+{
+	int fd_master = -1;
+	int fd_slave  = -1;
+
+	log(LL_INFO, "Configuring kiss interface");
+
+	if (openpty(&fd_master, &fd_slave, NULL, NULL, NULL) == -1)
+		error_exit(true, "openpty failed");
+
+	int disc = N_AX25;
+	if (ioctl(fd_slave, TIOCSETD, &disc) == -1)
+		error_exit(true, "error setting line discipline");
+
+	if (setifcall(fd_slave, callsign.c_str()) == -1)
+		error_exit(false, "cannot set call");
+
+	int v = 4;
+	if (ioctl(fd_slave, SIOCSIFENCAP, &v) == -1)
+		error_exit(true, "failed to set encapsulation");
+
+	char dev_name[64] = { 0 };
+	if (ioctl(fd_slave, SIOCGIFNAME, dev_name) == -1)
+		error_exit(true, "failed retrieving name of ax25 network device name");
+
+	startiface(dev_name);
+
+	if (if_up.empty() == false)
+		system((if_up + " " + dev_name).c_str());
+
+	fd = fd_master;
+}
+
+tranceiver_kiss::~tranceiver_kiss()
+{
+}
+
+void tranceiver_kiss::operator()()
+{
+	pollfd fds[] = { { fd, POLLIN, 0 } };
+
+	while(!terminate) {
+		int rc = poll(fds, 1, 100);
+
+		if (rc == 0)
+			continue;
+
+		if (rc == -1)
+			break;
+
+		uint8_t *p   = nullptr;
+		int      len = 0;
+		if (!recv_mkiss(fd, &p, &len, true))
+			break;
+	}
+}
