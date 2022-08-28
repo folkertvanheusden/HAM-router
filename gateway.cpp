@@ -2,6 +2,8 @@
 #include <atomic>
 
 #include "configuration.h"
+#include "log.h"
+#include "utils.h"
 
 
 std::atomic_bool terminate { false };
@@ -21,6 +23,8 @@ void process(configuration *const cfg, work_queue_t *const w)
 
 		message_t m = t_has_work->get_message();
 
+		log(LL_DEBUG_VERBOSE, "Forwarding message %s", dump_replace(m.message, m.s).c_str());
+
 		cfg->get_switchboard()->put_message(t_has_work, m.message, m.s, true);
 
 		free(m.message);
@@ -29,6 +33,8 @@ void process(configuration *const cfg, work_queue_t *const w)
 
 int main(int argc, char *argv[])
 {
+	setlogfile("/var/log/gateway.log", LL_DEBUG_VERBOSE);
+
 	work_queue_t  w;
 
 	configuration cfg("gateway.cfg", &w);

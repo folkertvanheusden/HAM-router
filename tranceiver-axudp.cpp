@@ -11,6 +11,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 
+#include "crc_ppp.h"
 #include "error.h"
 #include "log.h"
 #include "net.h"
@@ -20,15 +21,29 @@
 
 transmit_error_t tranceiver_axudp::put_message_low(const uint8_t *const msg, const size_t len)
 {
-	for(auto d : destinations) {
-		log(LL_DEBUG_VERBOSE, "tranceiver_axudp::put_message_low: transmit to %s", d.c_str());
+	int      temp_len = len + 2;
+	uint8_t *temp     = reinterpret_cast<uint8_t *>(malloc(temp_len));
 
-		if (transmit_udp(d, msg, len) == false && continue_on_error == false) {
+	memcpy(temp, msg, len);
+
+	uint16_t crc = compute_crc(const_cast<uint8_t *>(msg), len);
+
+	temp[len] = crc;
+	temp[len + 1] = crc >> 8;
+
+	for(auto d : destinations) {
+		log(LL_DEBUG_VERBOSE, "tranceiver_axudp::put_message_low: transmit to %s (%s)", d.c_str(), dump_replace(temp, temp_len).c_str());
+
+		if (transmit_udp(d, temp, temp_len) == false && continue_on_error == false) {
 			log(LL_WARNING, "Problem sending");
+
+			free(temp);
 
 			return TE_hardware;
 		}
 	}
+
+	free(temp);
 
 	return TE_ok;
 }
@@ -105,12 +120,15 @@ void tranceiver_axudp::operator()()
 				message_t m { 0 };
 				gettimeofday(&m.tv, nullptr);
 				m.message = reinterpret_cast<uint8_t *>(buffer);
-				m.s       = len;
+				m.s       = len - 2;  // "remove" crc
 
 				queue_incoming_message(m);
 
-				if (distribute)
+				if (distribute) {
+					m.s = len;
+
 					send_to_other_axudp_targets(m, came_from);
+				}
 			}
 			else {
 				free(buffer);

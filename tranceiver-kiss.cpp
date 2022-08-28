@@ -240,12 +240,14 @@ void tranceiver_kiss::operator()()
 		uint8_t *p   = nullptr;
 		int      len = 0;
 		if (!recv_mkiss(&p, &len, true))
-			break;
+			continue;
 
 		message_t m { 0 };
 		gettimeofday(&m.tv, nullptr);
 		m.message = p;
 		m.s       = len;
+
+		log(LL_DEBUG_VERBOSE, "KISS received message");
 
 		queue_incoming_message(m);
 	}

@@ -15,6 +15,7 @@ add_compile_options(-Wall -pedantic)
 add_executable(lora-aprs-gw
 	configuration.cpp
 	crc_32.c
+	crc_ppp.cpp
 	rate-limiter.cpp
 	seen.cpp
 	switchboard.cpp
