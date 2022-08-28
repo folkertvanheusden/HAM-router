@@ -13,8 +13,9 @@ set(CMAKE_BUILD_TYPE Debug)
 add_compile_options(-Wall -pedantic)
 
 add_executable(lora-aprs-gw
-	rate-limiter.cpp
 	crc_32.c
+	rate-limiter.cpp
+	switchboard.cpp
 	tranceiver.cpp
 	tranceiver-aprs-si.cpp
 	tranceiver-kiss.cpp
