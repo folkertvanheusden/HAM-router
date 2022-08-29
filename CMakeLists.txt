@@ -19,6 +19,7 @@ add_executable(lora-aprs-gw
 	hashing.cpp
 	rate-limiter.cpp
 	seen.cpp
+	str.cpp
 	switchboard.cpp
 	time.cpp
 	tranceiver.cpp
