@@ -76,7 +76,7 @@ tranceiver *tranceiver_beacon::instantiate(const libconfig::Setting & node_in, w
 	std::string   beacon_text     = "Hello, this is dog!";
 	int           beacon_interval = 60;
 	beacon_mode_t bm              = beacon_mode_ax25;
-	std::string   callsign        = "mycallsign";
+	std::string   callsign;
 
         for(int i=0; i<node_in.getLength(); i++) {
                 const libconfig::Setting & node = node_in[i];
@@ -87,7 +87,7 @@ tranceiver *tranceiver_beacon::instantiate(const libconfig::Setting & node_in, w
 			id = node_in.lookup(type).c_str();
 		else if (type == "text")
 			beacon_text = node_in.lookup(type).c_str();
-		else if (type == "callsign")
+		else if (type == "source-callsign")
 			callsign = node_in.lookup(type).c_str();
 		else if (type == "interval")
 			beacon_interval = node_in.lookup(type);
@@ -105,6 +105,9 @@ tranceiver *tranceiver_beacon::instantiate(const libconfig::Setting & node_in, w
 			error_exit(false, "setting \"%s\" is now known", type.c_str());
 		}
         }
+
+	if (callsign.empty())
+		error_exit(false, "beacons need a source-callsign configured");
 
 	return new tranceiver_beacon(id, s, w, beacon_text, beacon_interval, bm, callsign);
 }
