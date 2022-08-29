@@ -16,6 +16,7 @@
 #include "error.h"
 #include "log.h"
 #include "net.h"
+#include "time.h"
 #include "tranceiver-beacon.h"
 
 
@@ -46,7 +47,7 @@ void tranceiver_beacon::operator()()
 
 	sleep(1);
 
-        for(;;) {
+        for(;!terminate;) {
 		log(LL_INFO, "Send beacon");
 
 		message_t m { 0 };
@@ -64,7 +65,7 @@ void tranceiver_beacon::operator()()
 
 		queue_incoming_message(m);
 
-		sleep(beacon_interval);
+		myusleep(beacon_interval * 1000000, &terminate);
         }
 }
 

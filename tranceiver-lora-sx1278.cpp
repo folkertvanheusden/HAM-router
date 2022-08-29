@@ -39,6 +39,7 @@ void * rx_f(void *in)
 
 transmit_error_t tranceiver_lora_sx1278::put_message_low(const uint8_t *const p, const size_t len)
 {
+#ifdef HAS_GPIO
 	if (len > 255) {
 		log(LL_WARNING, "tranceiver_lora_sx1278::put_message_low: packet too big (%d bytes)", len);
 
@@ -71,6 +72,9 @@ transmit_error_t tranceiver_lora_sx1278::put_message_low(const uint8_t *const p,
 	LoRa_receive(&modem);
 
 	return TE_ok;
+#else
+	return TE_hardware;
+#endif
 }
 
 tranceiver_lora_sx1278::tranceiver_lora_sx1278(const std::string & id, seen *const s, work_queue_t *const w, const int dio0_pin, const int reset_pin) :

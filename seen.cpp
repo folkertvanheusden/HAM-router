@@ -18,6 +18,7 @@ seen::~seen()
 {
 	terminate = true;
 
+	std::unique_lock<std::mutex> lck(history_lock);
 	history_cv.notify_one();
 
 	th->join();

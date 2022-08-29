@@ -105,7 +105,7 @@ void tranceiver_axudp::operator()()
 
 	log(LL_INFO, "APRS-SI: started thread");
 
-        for(;;) {
+        for(;!terminate;) {
                 try {
                         char               *buffer     = reinterpret_cast<char *>(calloc(1, 1600));
                         struct sockaddr_in  clientaddr { 0 };
@@ -123,13 +123,13 @@ void tranceiver_axudp::operator()()
 				m.message = reinterpret_cast<uint8_t *>(buffer);
 				m.s       = len - 2;  // "remove" crc
 
-				queue_incoming_message(m);
-
 				if (distribute) {
 					m.s = len;
 
 					send_to_other_axudp_targets(m, came_from);
 				}
+
+				queue_incoming_message(m);
 			}
 			else {
 				free(buffer);

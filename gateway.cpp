@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <atomic>
+#include <signal.h>
 
 #include "configuration.h"
 #include "log.h"
@@ -8,13 +9,21 @@
 
 std::atomic_bool terminate { false };
 
+void signal_handler(int sig)
+{
+	terminate = true;
+}
+
 void process(configuration *const cfg, work_queue_t *const w)
 {
-	while(!terminate) {
+	for(;;) {
 		std::unique_lock lck(w->work_lock);
 
-		while(w->work_list.empty())
+		while(w->work_list.empty() && !terminate)
 			w->work_cv.wait(lck);
+
+		if (terminate)
+			break;
 
 		tranceiver *const t_has_work = w->work_list.front();
 		w->work_list.pop();
@@ -33,7 +42,9 @@ void process(configuration *const cfg, work_queue_t *const w)
 
 int main(int argc, char *argv[])
 {
-	setlogfile("/var/log/gateway.log", LL_DEBUG_VERBOSE);
+	setlogfile("gateway.log", LL_DEBUG_VERBOSE);
+
+	signal(SIGINT, signal_handler);
 
 	work_queue_t  w;
 

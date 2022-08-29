@@ -89,7 +89,7 @@ tranceiver *tranceiver::instantiate(const libconfig::Setting & node, work_queue_
 	else if (type == "kiss") {
 		t = tranceiver_kiss::instantiate(node, w);
 	}
-	else if (type == "lora-sx1278") {  // TODO
+	else if (type == "lora-sx1278") {
 		t = tranceiver_lora_sx1278::instantiate(node, w);
 	}
 	else if (type == "axudp") {
