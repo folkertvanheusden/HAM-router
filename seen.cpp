@@ -1,8 +1,9 @@
 #include <time.h>
+#include <vector>
 
 #include "error.h"
+#include "hashing.h"
 #include "seen.h"
-#include "utils.h"
 
 
 seen::seen(const seen_t & pars) :
@@ -17,7 +18,10 @@ seen::~seen()
 {
 	terminate = true;
 
-	history_cv.notify_one();
+	{
+		std::unique_lock<std::mutex> lck(history_lock);
+		history_cv.notify_one();
+	}
 
 	th->join();
 	delete th;

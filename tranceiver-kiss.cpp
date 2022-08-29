@@ -11,8 +11,8 @@
 #include "error.h"
 #include "log.h"
 #include "net.h"
+#include "str.h"
 #include "tranceiver-kiss.h"
-#include "utils.h"
 
 
 #define FEND	0xc0
@@ -38,6 +38,8 @@ bool tranceiver_kiss::recv_mkiss(unsigned char **p, int *len, bool verbose)
 				continue;
 
 			log(LL_ERR, "failed reading from mkiss device");
+
+			free(*p);
 
 			return false;
 		}
@@ -114,6 +116,9 @@ bool tranceiver_kiss::recv_mkiss(unsigned char **p, int *len, bool verbose)
 			ok = false; // it is ok, we just ignore it
 		}
 	}
+
+	if (!ok)
+		free(*p);
 
 	return ok;
 }
@@ -221,6 +226,10 @@ tranceiver_kiss::tranceiver_kiss(const std::string & id, seen *const s, work_que
 
 tranceiver_kiss::~tranceiver_kiss()
 {
+	terminate = true;
+
+	th->join();
+	delete th;
 }
 
 void tranceiver_kiss::operator()()
@@ -250,7 +259,8 @@ void tranceiver_kiss::operator()()
 
 		log(LL_DEBUG_VERBOSE, "KISS received message");
 
-		queue_incoming_message(m);
+		if (queue_incoming_message(m) != TE_ok)
+			free(m.message);
 	}
 }
 

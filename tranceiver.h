@@ -50,7 +50,7 @@ public:
 
 	std::string get_id() const { return id; }
 
-	void queue_incoming_message(const message_t & m);
+	transmit_error_t queue_incoming_message(const message_t & m);
 
 	bool peek();
 

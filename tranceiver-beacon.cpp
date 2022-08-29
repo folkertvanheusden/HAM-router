@@ -16,8 +16,8 @@
 #include "error.h"
 #include "log.h"
 #include "net.h"
+#include "time.h"
 #include "tranceiver-beacon.h"
-#include "utils.h"
 
 
 tranceiver_beacon::tranceiver_beacon(const std::string & id, seen *const s, work_queue_t *const w, const std::string & beacon_text, const int beacon_interval, const beacon_mode_t bm, const std::string & callsign) :
@@ -34,6 +34,10 @@ tranceiver_beacon::tranceiver_beacon(const std::string & id, seen *const s, work
 
 tranceiver_beacon::~tranceiver_beacon()
 {
+	terminate = true;
+
+	th->join();
+	delete th;
 }
 
 transmit_error_t tranceiver_beacon::put_message_low(const uint8_t *const p, const size_t s)
@@ -47,7 +51,7 @@ void tranceiver_beacon::operator()()
 
 	sleep(1);
 
-        for(;;) {
+        for(;!terminate;) {
 		log(LL_INFO, "Send beacon");
 
 		message_t m { 0 };
@@ -61,11 +65,14 @@ void tranceiver_beacon::operator()()
 		}	
 		else {
 			log(LL_INFO, "UNEXPECTED BEACON MODE");
+
+			break;
 		}
 
-		queue_incoming_message(m);
+		if (queue_incoming_message(m) != TE_ok)
+			free(m.message);
 
-		sleep(beacon_interval);
+		myusleep(beacon_interval * 1000000l, &terminate);
         }
 }
 

@@ -1,4 +1,4 @@
-// (C) 2017-2021 by folkert van heusden, released under Apache License v2.0
+// (C) 2017-2022 by folkert van heusden, released under Apache License v2.0
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,7 +8,7 @@
 
 #include "error.h"
 #include "log.h"
-#include "utils.h"
+#include "str.h"
 
 static const char *logfile = NULL;
 static int loglevel = LL_INFO;

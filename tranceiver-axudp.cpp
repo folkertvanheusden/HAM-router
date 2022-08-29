@@ -16,6 +16,7 @@
 #include "error.h"
 #include "log.h"
 #include "net.h"
+#include "str.h"
 #include "tranceiver-axudp.h"
 #include "utils.h"
 
@@ -75,6 +76,11 @@ tranceiver_axudp::tranceiver_axudp(const std::string & id, seen *const s, work_q
 tranceiver_axudp::~tranceiver_axudp()
 {
 	close(fd);
+
+	terminate = true;
+
+	th->join();
+	delete th;
 }
 
 transmit_error_t tranceiver_axudp::send_to_other_axudp_targets(const message_t & m, const std::string & came_from)
@@ -105,8 +111,21 @@ void tranceiver_axudp::operator()()
 
 	log(LL_INFO, "APRS-SI: started thread");
 
-        for(;;) {
+	pollfd fds[] = { { fd, POLLIN, 0 } };
+
+        for(;!terminate;) {
                 try {
+			int rc = poll(fds, 1, 100);
+			
+			if (rc == 0)
+				continue;
+
+			if (rc == -1) {
+				log(LL_ERR, "tranceiver_axudp::operator: poll returned %s", strerror(errno));
+
+				break;
+			}
+
                         char               *buffer     = reinterpret_cast<char *>(calloc(1, 1600));
                         struct sockaddr_in  clientaddr { 0 };
                         socklen_t           len        = sizeof(clientaddr);
@@ -120,20 +139,26 @@ void tranceiver_axudp::operator()()
 
 				message_t m { 0 };
 				gettimeofday(&m.tv, nullptr);
-				m.message = reinterpret_cast<uint8_t *>(buffer);
+				m.message = reinterpret_cast<uint8_t *>(duplicate(buffer, len));
 				m.s       = len - 2;  // "remove" crc
 
-				queue_incoming_message(m);
+				// if an error occured, do not pass on to
+				transmit_error_t rc = queue_incoming_message(m);
 
-				if (distribute) {
+				if (rc != TE_ok)
+					free(m.message);
+
+				if (distribute && rc != TE_ratelimiting) {
+					// re-assign the buffer as it is either freed when queueing
+					// failed or when queueing succeeded (e.g. always)
+					m.message = reinterpret_cast<uint8_t *>(buffer);
 					m.s = len;
 
 					send_to_other_axudp_targets(m, came_from);
 				}
 			}
-			else {
-				free(buffer);
-			}
+
+			free(buffer);
                 }
                 catch(const std::exception& e) {
                         log(LL_ERR, "tranceiver_axudp::operator: recvfrom failed: %s", e.what());

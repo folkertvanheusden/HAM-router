@@ -1,5 +1,5 @@
 #include "rate-limiter.h"
-#include "utils.h"
+#include "time.h"
 
 double get_us_float()
 {

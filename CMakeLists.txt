@@ -16,9 +16,12 @@ add_executable(lora-aprs-gw
 	configuration.cpp
 	crc_32.c
 	crc_ppp.cpp
+	hashing.cpp
 	rate-limiter.cpp
 	seen.cpp
+	str.cpp
 	switchboard.cpp
+	time.cpp
 	tranceiver.cpp
 	tranceiver-aprs-si.cpp
 	tranceiver-axudp.cpp
@@ -48,6 +51,13 @@ find_package(Threads)
 target_link_libraries(lora-aprs-gw Threads::Threads)
 
 target_link_libraries(lora-aprs-gw -lrt)
+
+if (EXISTS "/usr/include/pigpio.h")
+	target_link_libraries(lora-aprs-gw -lax25 -lmysqlcppconn -lpigpio -lutil)
+	add_definitions(-DHAS_GPIO)
+else()
+	target_link_libraries(lora-aprs-gw -lax25 -lmysqlcppconn -lutil)
+endif()
 
 include(FindPkgConfig)
 
@@ -80,6 +90,3 @@ pkg_check_modules(WEBSOCKETS REQUIRED libwebsockets)
 target_link_libraries(lora-aprs-gw ${WEBSOCKETS_LIBRARIES})
 target_include_directories(lora-aprs-gw PUBLIC ${WEBSOCKETS_INCLUDE_DIRS})
 target_compile_options(lora-aprs-gw PUBLIC ${WEBSOCKETS_CFLAGS_OTHER})
-
-target_link_libraries(lora-aprs-gw -lax25 -lmysqlcppconn -lpigpio -lutil)
-#target_link_libraries(lora-aprs-gw -lax25 -lmysqlcppconn -lutil)

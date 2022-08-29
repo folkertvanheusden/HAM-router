@@ -11,7 +11,7 @@
 #include "log.h"
 #include "snmp.h"
 #include "snmp-elem.h"
-#include "utils.h"
+#include "str.h"
 
 
 snmp::snmp(snmp_data *const sd, stats *const s, const int port) :
