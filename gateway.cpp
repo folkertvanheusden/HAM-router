@@ -25,7 +25,10 @@ void process(configuration *const cfg, work_queue_t *const w)
 
 		log(LL_DEBUG_VERBOSE, "Forwarding message %s", dump_replace(m.message, m.s).c_str());
 
-		printf("%d\n", cfg->get_switchboard()->put_message(t_has_work, m.message, m.s, true));
+		transmit_error_t rc = cfg->get_switchboard()->put_message(t_has_work, m.message, m.s, true);
+
+		if (rc != TE_ok)
+			log(LL_INFO, "Switchboard indicated error during put_message: %d", rc);
 
 		free(m.message);
 	}
