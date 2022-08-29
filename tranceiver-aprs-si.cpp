@@ -7,8 +7,8 @@
 #include "error.h"
 #include "log.h"
 #include "net.h"
+#include "str.h"
 #include "tranceiver-aprs-si.h"
-#include "utils.h"
 
 
 static std::optional<std::string> receive_string(const int fd)

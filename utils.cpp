@@ -1,4 +1,5 @@
 // (C) 2017-2022 by folkert van heusden, released under Apache License v2.0
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 

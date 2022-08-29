@@ -2,7 +2,7 @@
 #include <string>
 #include <string.h>
 
-#include "utils.h"
+#include "str.h"
 
 // https://stackoverflow.com/questions/27126714/c-latitude-and-longitude-distance-calculator
 #define RADIO_TERRESTRE 6372797.56085

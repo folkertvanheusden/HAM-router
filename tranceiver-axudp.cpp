@@ -16,8 +16,8 @@
 #include "error.h"
 #include "log.h"
 #include "net.h"
+#include "str.h"
 #include "tranceiver-axudp.h"
-#include "utils.h"
 
 
 transmit_error_t tranceiver_axudp::put_message_low(const uint8_t *const msg, const size_t len)

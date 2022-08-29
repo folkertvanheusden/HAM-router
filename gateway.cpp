@@ -3,7 +3,7 @@
 
 #include "configuration.h"
 #include "log.h"
-#include "utils.h"
+#include "str.h"
 
 
 std::atomic_bool terminate { false };

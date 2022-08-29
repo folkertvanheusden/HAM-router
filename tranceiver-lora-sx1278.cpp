@@ -7,6 +7,7 @@
 #include "error.h"
 #include "log.h"
 #include "net.h"
+#include "str.h"
 #include "tranceiver-lora-sx1278.h"
 #include "utils.h"
 

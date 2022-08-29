@@ -5,7 +5,7 @@
 #include "db.h"
 #include "log.h"
 #include "stats.h"
-#include "utils.h"
+#include "str.h"
 
 static int         ws_port { -1 };
 

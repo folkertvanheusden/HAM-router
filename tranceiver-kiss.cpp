@@ -11,8 +11,8 @@
 #include "error.h"
 #include "log.h"
 #include "net.h"
+#include "str.h"
 #include "tranceiver-kiss.h"
-#include "utils.h"
 
 
 #define FEND	0xc0

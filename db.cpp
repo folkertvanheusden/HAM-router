@@ -6,7 +6,7 @@
 
 #include "db.h"
 #include "log.h"
-#include "utils.h"
+#include "str.h"
 
 // libmysqlcppconn-dev
 

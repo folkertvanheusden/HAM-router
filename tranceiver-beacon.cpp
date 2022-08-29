@@ -17,7 +17,6 @@
 #include "log.h"
 #include "net.h"
 #include "tranceiver-beacon.h"
-#include "utils.h"
 
 
 tranceiver_beacon::tranceiver_beacon(const std::string & id, seen *const s, work_queue_t *const w, const std::string & beacon_text, const int beacon_interval, const beacon_mode_t bm, const std::string & callsign) :

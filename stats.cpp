@@ -11,7 +11,7 @@
 #include "error.h"
 #include "log.h"
 #include "stats.h"
-#include "utils.h"
+#include "str.h"
 
 constexpr char shm_name[] = "/lora-aprs-gw";
 

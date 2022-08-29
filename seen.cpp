@@ -1,8 +1,9 @@
 #include <time.h>
+#include <vector>
 
 #include "error.h"
+#include "hashing.h"
 #include "seen.h"
-#include "utils.h"
 
 
 seen::seen(const seen_t & pars) :
