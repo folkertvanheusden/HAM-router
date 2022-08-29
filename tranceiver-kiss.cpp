@@ -257,7 +257,7 @@ void tranceiver_kiss::operator()()
 		m.message = p;
 		m.s       = len;
 
-		log(LL_DEBUG_VERBOSE, "KISS received message");
+		log(LL_DEBUG_VERBOSE, "KISS received message (%s)", dump_hex(p, len).c_str());
 
 		if (queue_incoming_message(m) != TE_ok)
 			free(m.message);
