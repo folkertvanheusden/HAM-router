@@ -12,6 +12,7 @@
 #include "snmp.h"
 #include "snmp-elem.h"
 #include "str.h"
+#include "utils.h"
 
 
 snmp::snmp(snmp_data *const sd, stats *const s, const int port) :
@@ -343,6 +344,8 @@ void snmp::input(const int fd, const uint8_t *const data, const size_t data_len,
 
 void snmp::operator()()
 {
+	set_thread_name("snmp");
+
 	if (port == -1)
 		return;
 

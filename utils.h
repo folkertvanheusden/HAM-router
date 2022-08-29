@@ -2,3 +2,5 @@
 #pragma once
 
 void *duplicate(const void *in, const size_t size);
+
+void  set_thread_name(const std::string & name);

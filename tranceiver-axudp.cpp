@@ -107,6 +107,8 @@ transmit_error_t tranceiver_axudp::send_to_other_axudp_targets(const message_t &
 
 void tranceiver_axudp::operator()()
 {
+	set_thread_name("t-axudp");
+
 	if (listen_port == -1)
 		return;
 

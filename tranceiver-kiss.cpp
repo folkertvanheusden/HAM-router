@@ -14,6 +14,7 @@
 #include "str.h"
 #include "time.h"
 #include "tranceiver-kiss.h"
+#include "utils.h"
 
 
 #define FEND	0xc0
@@ -235,6 +236,8 @@ tranceiver_kiss::~tranceiver_kiss()
 
 void tranceiver_kiss::operator()()
 {
+	set_thread_name("t-kiss");
+
 	log(LL_INFO, "KISS: started thread");
 
 	pollfd fds[] = { { fd, POLLIN, 0 } };

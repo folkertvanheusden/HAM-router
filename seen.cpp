@@ -5,6 +5,7 @@
 #include "hashing.h"
 #include "seen.h"
 #include "time.h"
+#include "utils.h"
 
 
 seen::seen(const seen_t & pars) :
@@ -54,6 +55,8 @@ bool seen::check(const uint8_t *const p, const size_t s)
 
 void seen::operator()()
 {
+	set_thread_name("rl-hash");
+
 	while(!terminate) {
 		std::unique_lock<std::mutex> lck(history_lock);
 
