@@ -5,9 +5,12 @@
 #include <vector>
 
 uint64_t    get_us();
+
 std::string myformat(const char *const fmt, ...);
 std::string dump_hex(const unsigned char *p, int len);
 std::string dump_replace(const unsigned char *p, int len);
 std::vector<std::string> split(std::string in, std::string splitter);
+
+void       *duplicate(const void *in, const size_t size);
 
 uint32_t    calc_crc32(const uint8_t *const p, const size_t len);
