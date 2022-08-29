@@ -12,6 +12,10 @@ std::atomic_bool terminate { false };
 void signal_handler(int sig)
 {
 	terminate = true;
+
+	fprintf(stderr, "Terminating...\n");
+
+	signal(sig, SIG_IGN);
 }
 
 void process(configuration *const cfg, work_queue_t *const w)
