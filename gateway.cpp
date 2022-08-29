@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
 
 	work_queue_t  w;
 
-	configuration cfg("gateway.cfg", &w);
+	configuration cfg(argc == 2 ? argv[1] : "gateway.cfg", &w);
 
 	process(&cfg, &w);
 
