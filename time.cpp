@@ -2,6 +2,7 @@
 #include <atomic>
 #include <stdint.h>
 #include <time.h>
+#include <unistd.h>
 
 uint64_t get_us()
 {
