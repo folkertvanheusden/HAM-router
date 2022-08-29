@@ -24,7 +24,7 @@ void process(configuration *const cfg, work_queue_t *const w)
 		std::unique_lock lck(w->work_lock);
 
 		while(w->work_list.empty() && !terminate)
-			w->work_cv.wait(lck);
+			w->work_cv.wait_for(lck, std::chrono::milliseconds(100));
 
 		if (terminate)
 			break;
@@ -34,16 +34,23 @@ void process(configuration *const cfg, work_queue_t *const w)
 
 		assert(t_has_work->peek());
 
-		message_t m = t_has_work->get_message();
+		auto m = t_has_work->get_message();
 
-		log(LL_DEBUG_VERBOSE, "Forwarding message %s", dump_replace(m.message, m.s).c_str());
+		if (m.has_value() == false) {
+			if (!terminate)
+				log(LL_WARNING, "Tranceiver \"%s\" did not return data while it had ready-state", t_has_work->get_id().c_str());
 
-		transmit_error_t rc = cfg->get_switchboard()->put_message(t_has_work, m.message, m.s, true);
+			continue;
+		}
+
+		log(LL_DEBUG_VERBOSE, "Forwarding message %s", dump_replace(m.value().message, m.value().s).c_str());
+
+		transmit_error_t rc = cfg->get_switchboard()->put_message(t_has_work, m.value().message, m.value().s, true);
 
 		if (rc != TE_ok)
 			log(LL_INFO, "Switchboard indicated error during put_message: %d", rc);
 
-		free(m.message);
+		free(m.value().message);
 	}
 }
 

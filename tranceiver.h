@@ -3,6 +3,7 @@
 #include <condition_variable>
 #include <libconfig.h++>
 #include <mutex>
+#include <optional>
 #include <queue>
 #include <stdint.h>
 #include <string>
@@ -54,7 +55,7 @@ public:
 
 	bool peek();
 
-	message_t get_message();
+	std::optional<message_t> get_message();
 
 	transmit_error_t put_message(const uint8_t *const p, const size_t s);
 

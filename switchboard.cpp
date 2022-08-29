@@ -50,6 +50,8 @@ transmit_error_t switchboard::put_message(tranceiver *const from, const uint8_t 
 
 	// TODO in a thread; copy data then!
 	for(auto t : it->second) {
+		log(LL_DEBUG_VERBOSE, "Forwarding to: %s", t->get_id().c_str());
+
 		transmit_error_t rc = t->put_message(p, size);
 
 		if (rc != TE_ok && continue_on_error == false)

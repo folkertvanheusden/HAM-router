@@ -4,6 +4,7 @@
 #include "error.h"
 #include "hashing.h"
 #include "seen.h"
+#include "time.h"
 
 
 seen::seen(const seen_t & pars) :
@@ -57,7 +58,7 @@ void seen::operator()()
 		std::unique_lock<std::mutex> lck(history_lock);
 
 		while(history.size() < size_t(max_n) && terminate == false)
-			history_cv.wait(lck);
+			history_cv.wait_for(lck, std::chrono::milliseconds(END_CHECK_INTERVAL_ms));
 
 		std::vector<std::pair<uint32_t, time_t> > map;
 

@@ -17,6 +17,7 @@
 #include "log.h"
 #include "net.h"
 #include "str.h"
+#include "time.h"
 #include "tranceiver-axudp.h"
 #include "utils.h"
 
@@ -115,7 +116,7 @@ void tranceiver_axudp::operator()()
 
         for(;!terminate;) {
                 try {
-			int rc = poll(fds, 1, 100);
+			int rc = poll(fds, 1, END_CHECK_INTERVAL_ms);
 			
 			if (rc == 0)
 				continue;
