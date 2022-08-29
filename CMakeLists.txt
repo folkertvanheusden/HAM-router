@@ -13,6 +13,7 @@ set(CMAKE_BUILD_TYPE Debug)
 add_compile_options(-Wall -pedantic)
 
 add_executable(lora-aprs-gw
+	ax25.cpp
 	configuration.cpp
 	crc_32.c
 	crc_ppp.cpp
@@ -41,7 +42,6 @@ add_executable(lora-aprs-gw
 	utils.cpp
 	webserver.cpp
 	websockets.cpp
-	#ax25.cpp
 	LoRa.c
 	)
 

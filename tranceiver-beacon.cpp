@@ -12,6 +12,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 
+#include "ax25.h"
 #include "crc_ppp.h"
 #include "error.h"
 #include "log.h"
@@ -62,7 +63,30 @@ void tranceiver_beacon::operator()()
 
 			m.message = reinterpret_cast<uint8_t *>(strdup(output.c_str()));
 			m.s       = output.size();
-		}	
+		}
+		else if (bm == beacon_mode_ax25) {
+			ax25 packet;
+
+			std::string temp = callsign;
+			char        ssid = ' ';
+
+			std::size_t pos_min = callsign.find('-');
+			if (pos_min != std::string::npos) {
+				temp = callsign.substr(0, pos_min);
+
+				ssid = callsign.substr(pos_min + 1)[0];
+			}
+
+			packet.set_from(temp, ssid, true, false);
+			packet.set_to  ("IDENT", ' ', false, false);
+			packet.set_control(3  );  // U frame (unnumbered)
+			packet.set_pid    (240);  // no layer 3
+			packet.set_data(reinterpret_cast<const uint8_t *>(beacon_text.c_str()), beacon_text.size());
+
+			auto packet_binary = packet.generate_packet();
+			m.message = packet_binary.first;
+			m.s       = packet_binary.second;
+		}
 		else {
 			log(LL_INFO, "UNEXPECTED BEACON MODE");
 
