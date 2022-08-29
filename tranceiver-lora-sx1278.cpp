@@ -30,7 +30,8 @@ void * rx_f(void *in)
 	m.from_rf  = true;
 	m.air_time = rx->at.Tpkt;
 
-	reinterpret_cast<tranceiver_lora_sx1278 *>(rx->userPtr)->queue_incoming_message(m);
+	if (reinterpret_cast<tranceiver_lora_sx1278 *>(rx->userPtr)->queue_incoming_message(m) != TE_ok)
+		free(m.message);
 
 	free(rx);
 

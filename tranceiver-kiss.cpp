@@ -39,6 +39,8 @@ bool tranceiver_kiss::recv_mkiss(unsigned char **p, int *len, bool verbose)
 
 			log(LL_ERR, "failed reading from mkiss device");
 
+			free(*p);
+
 			return false;
 		}
 
@@ -114,6 +116,9 @@ bool tranceiver_kiss::recv_mkiss(unsigned char **p, int *len, bool verbose)
 			ok = false; // it is ok, we just ignore it
 		}
 	}
+
+	if (!ok)
+		free(*p);
 
 	return ok;
 }
@@ -254,7 +259,8 @@ void tranceiver_kiss::operator()()
 
 		log(LL_DEBUG_VERBOSE, "KISS received message");
 
-		queue_incoming_message(m);
+		if (queue_incoming_message(m) != TE_ok)
+			free(m.message);
 	}
 }
 

@@ -18,6 +18,7 @@
 #include "net.h"
 #include "str.h"
 #include "tranceiver-axudp.h"
+#include "utils.h"
 
 
 transmit_error_t tranceiver_axudp::put_message_low(const uint8_t *const msg, const size_t len)
@@ -138,20 +139,26 @@ void tranceiver_axudp::operator()()
 
 				message_t m { 0 };
 				gettimeofday(&m.tv, nullptr);
-				m.message = reinterpret_cast<uint8_t *>(buffer);
+				m.message = reinterpret_cast<uint8_t *>(duplicate(buffer, len));
 				m.s       = len - 2;  // "remove" crc
 
-				if (distribute) {
+				// if an error occured, do not pass on to
+				transmit_error_t rc = queue_incoming_message(m);
+
+				if (rc != TE_ok)
+					free(m.message);
+
+				if (distribute && rc != TE_ratelimiting) {
+					// re-assign the buffer as it is either freed when queueing
+					// failed or when queueing succeeded (e.g. always)
+					m.message = reinterpret_cast<uint8_t *>(buffer);
 					m.s = len;
 
 					send_to_other_axudp_targets(m, came_from);
 				}
+			}
 
-				queue_incoming_message(m);
-			}
-			else {
-				free(buffer);
-			}
+			free(buffer);
                 }
                 catch(const std::exception& e) {
                         log(LL_ERR, "tranceiver_axudp::operator: recvfrom failed: %s", e.what());

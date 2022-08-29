@@ -26,8 +26,16 @@ tranceiver::~tranceiver()
 	delete s;
 }
 
-void tranceiver::queue_incoming_message(const message_t & m)
+transmit_error_t tranceiver::queue_incoming_message(const message_t & m)
 {
+	// check if s was allocated because e.g. the beacon module does
+	// not allocate a seen object
+	if (s && s->check(m.message, m.s)) {
+		log(LL_DEBUG, "tranceiver::queue_incoming_message(%s): dropped because of rate limiting", id.c_str());
+
+		return TE_ratelimiting;
+	}
+
 	{
 		std::unique_lock<std::mutex> lck(incoming_lock);
 
@@ -43,6 +51,8 @@ void tranceiver::queue_incoming_message(const message_t & m)
 
 		w->work_cv.notify_one();
 	}
+
+	return TE_ok;
 }
 
 bool tranceiver::peek()
@@ -67,12 +77,7 @@ message_t tranceiver::get_message()
 
 transmit_error_t tranceiver::put_message(const uint8_t *const p, const size_t size)
 {
-	if (s->check(p, size))
-		return put_message_low(p, size);
-
-	log(LL_DEBUG, "tranceiver::put_message(%s): dropped because of rate limiting", id.c_str());
-
-	return TE_ratelimiting;
+	return put_message_low(p, size);
 }
 
 tranceiver *tranceiver::instantiate(const libconfig::Setting & node, work_queue_t *const w)

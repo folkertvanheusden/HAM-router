@@ -65,11 +65,14 @@ void tranceiver_beacon::operator()()
 		}	
 		else {
 			log(LL_INFO, "UNEXPECTED BEACON MODE");
+
+			break;
 		}
 
-		queue_incoming_message(m);
+		if (queue_incoming_message(m) != TE_ok)
+			free(m.message);
 
-		myusleep(beacon_interval * 1000000, &terminate);
+		myusleep(beacon_interval * 1000000l, &terminate);
         }
 }
 
