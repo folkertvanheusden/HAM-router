@@ -4,19 +4,6 @@
 #include <stdlib.h>
 #include <string>
 #include <vector>
-#include <sys/time.h>
-
-extern "C" {
-#include "crc_32.h"
-}
-
-uint64_t get_us()
-{
-	struct timespec tv;
-	clock_gettime(CLOCK_REALTIME, &tv);
-
-	return uint64_t(tv.tv_sec) * uint64_t(1000 * 1000) + uint64_t(tv.tv_nsec / 1000);
-}
 
 std::string myformat(const char *const fmt, ...)
 {
@@ -88,9 +75,4 @@ std::vector<std::string> split(std::string in, std::string splitter)
 		out.push_back(in);
 
 	return out;
-}
-
-uint32_t calc_crc32(const uint8_t *const p, const size_t len)
-{
-	return crc32buf(reinterpret_cast<char *>(const_cast<uint8_t *>(p)), len);
 }

@@ -16,9 +16,11 @@ add_executable(lora-aprs-gw
 	configuration.cpp
 	crc_32.c
 	crc_ppp.cpp
+	hashing.cpp
 	rate-limiter.cpp
 	seen.cpp
 	switchboard.cpp
+	time.cpp
 	tranceiver.cpp
 	tranceiver-aprs-si.cpp
 	tranceiver-axudp.cpp
