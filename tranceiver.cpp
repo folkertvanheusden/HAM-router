@@ -72,7 +72,7 @@ transmit_error_t tranceiver::put_message(const uint8_t *const p, const size_t si
 	if (s->check(p, size))
 		return put_message_low(p, size);
 
-	log(LL_DEBUG, "tranceiver::put_message: dropped because of rate limiting");
+	log(LL_DEBUG, "tranceiver::put_message(%s): dropped because of rate limiting", id.c_str());
 
 	return TE_ratelimiting;
 }
