@@ -52,5 +52,7 @@ int main(int argc, char *argv[])
 
 	process(&cfg, &w);
 
+	fprintf(stderr, "Terminating\n");
+
 	return 0;
 }
