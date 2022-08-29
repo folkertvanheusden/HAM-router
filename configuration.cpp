@@ -82,7 +82,12 @@ void configuration::load_switchboard(const libconfig::Setting & node_in) {
 		std::string to   = node.lookup("to"  ).c_str();
 
 		tranceiver *from_t = find_tranceiver(from);
+		if (!from_t)
+			error_exit(false, "Mapping: \"%s\" is an unknown tranceiver", from.c_str());
+
 		tranceiver *to_t   = find_tranceiver(to);
+		if (!to_t)
+			error_exit(false, "Mapping: \"%s\" is an unknown tranceiver", to.c_str());
 
 		sb->add_mapping(from_t, to_t);
 
