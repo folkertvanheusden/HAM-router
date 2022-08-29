@@ -1,5 +1,6 @@
 #include "error.h"
 #include "log.h"
+#include "time.h"
 #include "tranceiver.h"
 #include "tranceiver-aprs-si.h"
 #include "tranceiver-axudp.h"
@@ -62,12 +63,14 @@ bool tranceiver::peek()
 	return incoming.empty() == false;
 }
 
-message_t tranceiver::get_message()
+std::optional<message_t> tranceiver::get_message()
 {
 	std::unique_lock<std::mutex> lck(incoming_lock);
 
-	while(incoming.empty())
-		incoming_cv.wait(lck);
+	while(incoming.empty()) {
+		if (incoming_cv.wait_for(lck, std::chrono::milliseconds(END_CHECK_INTERVAL_ms)) == std::cv_status::timeout)
+			return { };
+	}
 
 	auto rc = incoming.front();
 	incoming.pop();

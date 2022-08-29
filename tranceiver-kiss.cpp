@@ -12,6 +12,7 @@
 #include "log.h"
 #include "net.h"
 #include "str.h"
+#include "time.h"
 #include "tranceiver-kiss.h"
 
 
@@ -239,7 +240,7 @@ void tranceiver_kiss::operator()()
 	pollfd fds[] = { { fd, POLLIN, 0 } };
 
 	while(!terminate) {
-		int rc = poll(fds, 1, 100);
+		int rc = poll(fds, 1, END_CHECK_INTERVAL_ms);
 
 		if (rc == 0)
 			continue;

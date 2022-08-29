@@ -101,7 +101,8 @@ void tranceiver_beacon::operator()()
 		if (queue_incoming_message(m) != TE_ok)
 			free(m.message);
 
-		myusleep(beacon_interval * 1000000l, &terminate);
+		if (!myusleep(beacon_interval * 1000000ll, &terminate))
+			break;
         }
 }
 

@@ -4,6 +4,9 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "time.h"
+
+
 uint64_t get_us()
 {
 	struct timespec tv;
@@ -12,10 +15,10 @@ uint64_t get_us()
 	return uint64_t(tv.tv_sec) * uint64_t(1000 * 1000) + uint64_t(tv.tv_nsec / 1000);
 }
 
-void myusleep(const unsigned duration, std::atomic_bool *const terminate)
+bool myusleep(const uint64_t duration, std::atomic_bool *const terminate)
 {
-	constexpr unsigned check_interval = 100000;
-	unsigned           left           = duration;
+	constexpr unsigned check_interval = END_CHECK_INTERVAL_us;
+	uint64_t           left           = duration;
 
 	while(left > 0 && *terminate == false) {
 		if (left < check_interval) {
@@ -30,4 +33,6 @@ void myusleep(const unsigned duration, std::atomic_bool *const terminate)
 
 		assert(left < duration);
 	}
+
+	return *terminate == false;
 }
