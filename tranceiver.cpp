@@ -17,6 +17,13 @@ tranceiver::tranceiver(const std::string & id, seen *const s, work_queue_t *cons
 
 tranceiver::~tranceiver()
 {
+	while(incoming.empty() == false) {
+		free(incoming.front().message);
+
+		incoming.pop();
+	}
+
+	delete s;
 }
 
 void tranceiver::queue_incoming_message(const message_t & m)

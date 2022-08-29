@@ -110,8 +110,6 @@ tranceiver_aprs_si::~tranceiver_aprs_si()
 {
 	if (fd != -1)
 		close(fd);
-
-	delete s;
 }
 
 void tranceiver_aprs_si::operator()()

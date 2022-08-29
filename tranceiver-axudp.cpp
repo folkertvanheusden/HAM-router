@@ -80,8 +80,6 @@ tranceiver_axudp::~tranceiver_axudp()
 
 	th->join();
 	delete th;
-
-	delete s;
 }
 
 transmit_error_t tranceiver_axudp::send_to_other_axudp_targets(const message_t & m, const std::string & came_from)
@@ -112,8 +110,21 @@ void tranceiver_axudp::operator()()
 
 	log(LL_INFO, "APRS-SI: started thread");
 
+	pollfd fds[] = { { fd, POLLIN, 0 } };
+
         for(;!terminate;) {
                 try {
+			int rc = poll(fds, 1, 100);
+			
+			if (rc == 0)
+				continue;
+
+			if (rc == -1) {
+				log(LL_ERR, "tranceiver_axudp::operator: poll returned %s", strerror(errno));
+
+				break;
+			}
+
                         char               *buffer     = reinterpret_cast<char *>(calloc(1, 1600));
                         struct sockaddr_in  clientaddr { 0 };
                         socklen_t           len        = sizeof(clientaddr);

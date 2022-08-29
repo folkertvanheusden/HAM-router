@@ -225,8 +225,6 @@ tranceiver_kiss::~tranceiver_kiss()
 
 	th->join();
 	delete th;
-
-	delete s;
 }
 
 void tranceiver_kiss::operator()()
