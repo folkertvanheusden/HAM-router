@@ -24,7 +24,7 @@ void * rx_f(void *in)
 
 	message_t m;
 	m.tv       = rx->last_time;
-	m.message  = reinterpret_cast<uint8_t *>(rx->buf);
+	m.message  = reinterpret_cast<uint8_t *>(duplicate(rx->buf, rx->size));
 	m.s        = rx->size;
 	m.from_rf  = true;
 	m.air_time = rx->at.Tpkt;

@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string>
+#include <string.h>
 #include <vector>
 #include <sys/time.h>
 
@@ -93,4 +94,15 @@ std::vector<std::string> split(std::string in, std::string splitter)
 uint32_t calc_crc32(const uint8_t *const p, const size_t len)
 {
 	return crc32buf(reinterpret_cast<char *>(const_cast<uint8_t *>(p)), len);
+}
+
+void *duplicate(const void *in, const size_t size)
+{
+	void *out = malloc(size);
+	if (!out)
+		return nullptr;
+
+	memcpy(out, reinterpret_cast<const uint8_t *>(in), size);
+
+	return out;
 }
