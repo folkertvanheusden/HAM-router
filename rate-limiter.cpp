@@ -1,10 +1,6 @@
 #include "rate-limiter.h"
 #include "time.h"
 
-double get_us_float()
-{
-	return get_us() / 1000000.0;
-}
 
 rate_limiter::rate_limiter(const int max_per_dt, const double dt) :
 	max_per_dt(max_per_dt),

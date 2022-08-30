@@ -5,5 +5,6 @@
 #define END_CHECK_INTERVAL_ms (END_CHECK_INTERVAL_us / 1000)
 
 uint64_t get_us();
+double   get_us_float();
 
 bool     myusleep(uint64_t duration, std::atomic_bool *const terminate);
