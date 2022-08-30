@@ -10,7 +10,6 @@ software requirements:
 * cmake
 * libax25-dev
 * libconfig++-dev
-* libinih-dev
 * libjansson-dev
 * libmicrohttpd-dev
 * libmosquitto-dev

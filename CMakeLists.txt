@@ -67,11 +67,6 @@ target_link_libraries(lora-aprs-gw ${CFG_LIBRARIES})
 target_include_directories(lora-aprs-gw PUBLIC ${CFG_INCLUDE_DIRS})
 target_compile_options(lora-aprs-gw PUBLIC ${CFG_CFLAGS_OTHER})
 
-pkg_check_modules(INIH REQUIRED inih)
-target_link_libraries(lora-aprs-gw ${INIH_LIBRARIES})
-target_include_directories(lora-aprs-gw PUBLIC ${INIH_INCLUDE_DIRS})
-target_compile_options(lora-aprs-gw PUBLIC ${INIH_CFLAGS_OTHER})
-
 pkg_check_modules(JANSSON REQUIRED jansson)
 target_link_libraries(lora-aprs-gw ${JANSSON_LIBRARIES})
 target_include_directories(lora-aprs-gw PUBLIC ${JANSSON_INCLUDE_DIRS})
