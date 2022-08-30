@@ -46,19 +46,21 @@ void * rx_f(void *in)
 transmit_error_t tranceiver_lora_sx1278::put_message_low(const message & m)
 {
 #ifdef HAS_GPIO
-	if (len > 255) {
-		log(LL_WARNING, "tranceiver_lora_sx1278::put_message_low(%s): packet too big (%d bytes)", m.get_id_short().c_str(), len);
+	auto content = m.get_content();
+
+	if (content.second > 255) {
+		log(LL_WARNING, "tranceiver_lora_sx1278::put_message_low(%s): packet too big (%d bytes)", m.get_id_short().c_str(), content.second);
 
 		return TE_hardware;
 	}
 
 	std::unique_lock<std::mutex> lck(lock);
 
-	log(LL_DEBUG, "tranceiver_lora_sx1278::put_message_low(%s): %s", m.get_id_short().c_str(), dump_replace(reinterpret_cast<const uint8_t *>(modem.tx.data.buf), len).c_str());
+	log(LL_DEBUG, "tranceiver_lora_sx1278::put_message_low(%s): %s", m.get_id_short().c_str(), dump_replace(reinterpret_cast<const uint8_t *>(modem.tx.data.buf), content.second).c_str());
 
-	memcpy(modem.tx.data.buf, p, len);
+	memcpy(modem.tx.data.buf, content.first, content.second);
 
-	modem.tx.data.size = len;
+	modem.tx.data.size = content.second;
 
 	LoRa_stop_receive(&modem);  // manually stoping RxCont mode
 
