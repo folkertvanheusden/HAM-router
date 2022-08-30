@@ -7,8 +7,7 @@
 #include "tranceiver-aprs-si.h"
 
 
-configuration::configuration(const std::string & file, work_queue_t *const w, snmp_data *const sd, stats *const st) :
-	sd(sd)
+configuration::configuration(const std::string & file, work_queue_t *const w, snmp_data *const sd, stats *const st)
 {
 	try {
 		libconfig::Config cfg;
@@ -26,13 +25,16 @@ configuration::configuration(const std::string & file, work_queue_t *const w, sn
 				// TODO
 			}
 			else if (node_name == "tranceivers") {
-				load_tranceivers(node, w, st);
+				load_tranceivers(node, w, sd, st);
 			}
 			else if (node_name == "connections") {
 				load_switchboard(node);
 			}
 			else if (node_name == "snmp") {
-				load_snmp(node);
+				load_snmp(node, sd);
+			}
+			else if (node_name == "webserver") {
+				load_webserver(node, st);
 			}
 			else {
 				error_exit(false, "Setting \"%s\" is now known", node_name.c_str());
@@ -51,13 +53,15 @@ configuration::configuration(const std::string & file, work_queue_t *const w, sn
 
 configuration::~configuration()
 {
+	stop_webserver(webserver);
+
 	delete sb;
 
 	for(auto t : tranceivers)
 		delete t;
 }
 
-void configuration::load_tranceivers(const libconfig::Setting & node_in, work_queue_t *const w, stats *const st) {
+void configuration::load_tranceivers(const libconfig::Setting & node_in, work_queue_t *const w, snmp_data *const sd, stats *const st) {
 	for(int i=0; i<node_in.getLength(); i++) {
 		const libconfig::Setting & node = node_in[i];
 
@@ -118,7 +122,7 @@ void configuration::load_switchboard(const libconfig::Setting & node_in) {
         }
 }
 
-void configuration::load_snmp(const libconfig::Setting & node_in)
+void configuration::load_snmp(const libconfig::Setting & node_in, snmp_data *const sd)
 {
         for(int i=0; i<node_in.getLength(); i++) {
                 const libconfig::Setting & node = node_in[i];
@@ -141,4 +145,30 @@ void configuration::load_snmp(const libconfig::Setting & node_in)
 		sd->register_oid("1.3.6.1.2.1.1.7.0", snmp_integer::si_integer, 254 /* everything but the physical layer */);
 		sd->register_oid("1.3.6.1.2.1.1.8.0", snmp_integer::si_integer, 0);  // The value of sysUpTime at the time of the most recent change in state or value of any instance of sysORID.
 	}
+}
+
+void configuration::load_webserver(const libconfig::Setting & node_in, stats *const st)
+{
+	int http_port = -1;
+	int ws_port   = -1;
+
+        for(int i=0; i<node_in.getLength(); i++) {
+                const libconfig::Setting & node = node_in[i];
+
+		std::string type = node.getName();
+
+		if (type == "http-port")
+			http_port = node_in.lookup(type);
+		else if (type == "websockets-port")
+			ws_port = node_in.lookup(type);
+		else
+			error_exit(false, "SNMP setting \"%s\" is now known", type.c_str());
+        }
+
+	if (ws_port != -1) {
+		// TODO
+	}
+
+	if (http_port != -1)
+		webserver = start_webserver(http_port, ws_port, st, nullptr /* TODO */);
 }

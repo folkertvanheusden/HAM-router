@@ -3,6 +3,7 @@
 #include "snmp.h"
 #include "switchboard.h"
 #include "tranceiver.h"
+#include "webserver.h"
 
 
 class configuration
@@ -14,15 +15,17 @@ private:
 
 	int                           snmp_port { -1      };
 
-	snmp_data                    *sd        { nullptr };
+	void                         *webserver { nullptr };
 
 	snmp_data_type_running_since *running_since { new snmp_data_type_running_since() };
 
-	void load_tranceivers(const libconfig::Setting & node, work_queue_t *const w, stats *const st);
+	void load_tranceivers(const libconfig::Setting & node, work_queue_t *const w, snmp_data *const sd, stats *const st);
 
-	void load_snmp       (const libconfig::Setting & node_in);
+	void load_snmp       (const libconfig::Setting & node_in, snmp_data *const sd);
 
 	void load_switchboard(const libconfig::Setting & node);
+
+	void load_webserver  (const libconfig::Setting & node, stats *const st);
 
 public:
 	configuration(const std::string & file, work_queue_t *const w, snmp_data *const sd, stats *const st);

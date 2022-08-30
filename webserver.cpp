@@ -9,7 +9,7 @@
 
 #if MHD_VERSION < 0x00097002
 // lgtm.com has a very old libmicrohttpd
-enum MHD_Result { MHD_NO = 0, MHD_YES = 1 };
+#define MHD_Result int
 #endif
 
 static MHD_Daemon *d_proc { nullptr };
@@ -68,25 +68,27 @@ MHD_Result process_http_request(void *cls,
 
 		page += "</table>";
 
-		page += "<h3>air time</h3>\n";
+		if (parameters.d) {
+			page += "<h3>air time</h3>\n";
 
-		auto at_records = parameters.d->get_airtime_per_callsign();
+			auto at_records = parameters.d->get_airtime_per_callsign();
 
-		page += "<table><tr>";
-		for(auto t : at_records.first)
-			page += "<th>" + t + "</th>";
-		page += "</tr>\n";
-
-		for(auto record : at_records.second) {
-			page += "<tr>";
-
-			for(auto col : record)
-				page += "<td>" + col + "</td>";
-
+			page += "<table><tr>";
+			for(auto t : at_records.first)
+				page += "<th>" + t + "</th>";
 			page += "</tr>\n";
-		}
 
-		page += "</table>";
+			for(auto record : at_records.second) {
+				page += "<tr>";
+
+				for(auto col : record)
+					page += "<td>" + col + "</td>";
+
+				page += "</tr>\n";
+			}
+
+			page += "</table>";
+		}
 
 		page += html_page_footer;
 	}
