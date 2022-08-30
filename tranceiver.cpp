@@ -65,7 +65,7 @@ transmit_error_t tranceiver::queue_incoming_message(const message & m)
 
 	// check if s was allocated because e.g. the beacon module does
 	// not allocate a seen object
-	if (s && s->check(content.first, content.second)) {
+	if (s && s->check(content.first, content.second) == false) {
 		log(LL_DEBUG, "tranceiver::queue_incoming_message(%s: %s): dropped because of rate limiting", id.c_str(), m.get_id_short().c_str());
 
 		return TE_ratelimiting;
