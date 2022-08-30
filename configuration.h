@@ -41,4 +41,6 @@ public:
 	switchboard * get_switchboard() const { return sb;        }
 
 	int           get_snmp_port() const   { return snmp_port; }
+
+	ws_global_context_t * get_websockets_context() { return &ws; }
 };

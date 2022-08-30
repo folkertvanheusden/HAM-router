@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <atomic>
+#include <jansson.h>
 #include <signal.h>
 
 #include "configuration.h"
@@ -8,6 +9,7 @@
 #include "stats.h"
 #include "str.h"
 #include "utils.h"
+#include "websockets.h"
 
 
 std::atomic_bool terminate { false };
@@ -19,6 +21,25 @@ void signal_handler(int sig)
 	fprintf(stderr, "Terminating...\n");
 
 	signal(sig, SIG_IGN);
+}
+
+void push_to_websockets(ws_global_context_t *const ws, const message & m)
+{
+	json_t         *meta = json_object();
+
+	json_object_set(meta, "timestamp", json_integer(m.get_tv().tv_sec));
+
+	json_object_set(meta, "source",    json_string(m.get_source().c_str()));
+
+	json_object_set(meta, "msg-id",    json_string(m.get_id_short().c_str()));
+
+	json_object_set(meta, "air-time",  json_integer(m.get_air_time()));
+
+	json_object_set(meta, "data",      json_string(dump_replace(m.get_data(), m.get_size()).c_str()));
+
+	std::string meta_str = json_dumps(meta, 0);
+
+	push_to_websockets(ws, meta_str);
 }
 
 std::thread * process(configuration *const cfg, work_queue_t *const w, snmp *const snmp_)
@@ -57,6 +78,8 @@ std::thread * process(configuration *const cfg, work_queue_t *const w, snmp *con
 
 			if (rc != TE_ok)
 				log(LL_INFO, "Switchboard indicated error during put_message: %d", rc);
+
+			push_to_websockets(cfg->get_websockets_context(), m.value());
 		}
 	});
 }

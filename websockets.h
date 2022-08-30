@@ -1,6 +1,8 @@
+#pragma once
 #include <mutex>
 #include <stdint.h>
 #include <string>
+
 
 typedef struct {
 	std::mutex  lock;

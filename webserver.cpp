@@ -137,7 +137,7 @@ void * start_webserver(const int listen_port, const std::string & ws_virtual_hos
 				"            console.log(msg);\n"
 				"            var target = document.getElementById(\"packets\");\n"
 				"            var myDate = new Date(msg['timestamp'] * 1000);\n"
-				"            target.innerHTML = myDate.toLocaleString() + \"> \" + msg['callsign-from'] + \" =&gt; \" + msg['callsign-to'] + \" (distance: \" + msg['distance'] + \"m): \" + msg['data'] + \"<br>\" + target.innerHTML;\n"
+				"            target.innerHTML = myDate.toLocaleString() + \"&gt; source=\" + msg['source'] + \", msg-id=\" + msg['msg-id'] + \", air-time=\" + msg['air-time'] + \": \" + msg['data'] + \"<br>\" + target.innerHTML;\n"
 				"        }\n"
 				"        catch (error) {\n"
 				"            console.error(error);\n"
@@ -145,7 +145,7 @@ void * start_webserver(const int listen_port, const std::string & ws_virtual_hos
 				"    };\n"
 				"};\n"
 				"document.addEventListener('DOMContentLoaded', function() { start(); });\n"
-				"</script>\n", ws_host, ws_port, ws_host, ws_port);
+				"</script>\n", ws_host.c_str(), ws_port, ws_host.c_str(), ws_port);
 
 		d_proc = MHD_start_daemon(MHD_USE_THREAD_PER_CONNECTION,
 			       listen_port,
