@@ -49,8 +49,6 @@ bool seen::check(const uint8_t *const p, const size_t s)
 		history.insert({ hash, r });
 
 		history_cv.notify_one();
-
-		return r->check();
 	}
 	else {
 		r = it->second;
