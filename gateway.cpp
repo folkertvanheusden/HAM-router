@@ -7,6 +7,7 @@
 #include "snmp.h"
 #include "stats.h"
 #include "str.h"
+#include "utils.h"
 
 
 std::atomic_bool terminate { false };
@@ -20,40 +21,44 @@ void signal_handler(int sig)
 	signal(sig, SIG_IGN);
 }
 
-void process(configuration *const cfg, work_queue_t *const w, snmp *const snmp_)
+std::thread * process(configuration *const cfg, work_queue_t *const w, snmp *const snmp_)
 {
-	for(;;) {
-		std::unique_lock lck(w->work_lock);
+	return new std::thread([cfg, w, snmp_] {
+		set_thread_name("main");
 
-		while(w->work_list.empty() && !terminate)
-			w->work_cv.wait_for(lck, std::chrono::milliseconds(100));
+		for(;;) {
+			std::unique_lock lck(w->work_lock);
 
-		if (terminate)
-			break;
+			while(w->work_list.empty() && !terminate)
+				w->work_cv.wait_for(lck, std::chrono::milliseconds(100));
 
-		tranceiver *const t_has_work = w->work_list.front();
-		w->work_list.pop();
+			if (terminate)
+				break;
 
-		assert(t_has_work->peek());
+			tranceiver *const t_has_work = w->work_list.front();
+			w->work_list.pop();
 
-		auto m = t_has_work->get_message();
+			assert(t_has_work->peek());
 
-		if (m.has_value() == false) {
-			if (!terminate)
-				log(LL_WARNING, "Tranceiver \"%s\" did not return data while it had ready-state", t_has_work->get_id().c_str());
+			auto m = t_has_work->get_message();
 
-			continue;
+			if (m.has_value() == false) {
+				if (!terminate)
+					log(LL_WARNING, "Tranceiver \"%s\" did not return data while it had ready-state", t_has_work->get_id().c_str());
+
+				continue;
+			}
+
+			auto content = m.value().get_content();
+
+			log(LL_DEBUG_VERBOSE, "Forwarding message from %s (%s): %s", m.value().get_source().c_str(), m.value().get_id_short().c_str(), dump_replace(content.first, content.second).c_str());
+
+			transmit_error_t rc = cfg->get_switchboard()->put_message(t_has_work, m.value(), true);
+
+			if (rc != TE_ok)
+				log(LL_INFO, "Switchboard indicated error during put_message: %d", rc);
 		}
-
-		auto content = m.value().get_content();
-
-		log(LL_DEBUG_VERBOSE, "Forwarding message from %s (%s): %s", m.value().get_source().c_str(), m.value().get_id_short().c_str(), dump_replace(content.first, content.second).c_str());
-
-		transmit_error_t rc = cfg->get_switchboard()->put_message(t_has_work, m.value(), true);
-
-		if (rc != TE_ok)
-			log(LL_INFO, "Switchboard indicated error during put_message: %d", rc);
-	}
+	});
 }
 
 int main(int argc, char *argv[])
@@ -72,7 +77,9 @@ int main(int argc, char *argv[])
 
 	snmp          snmp_(&sd, &st, cfg.get_snmp_port());
 
-	process(&cfg, &w, &snmp_);
+	std::thread *th = process(&cfg, &w, &snmp_);
+	th->join();
+	delete th;
 
 	unsetlogfile();
 
