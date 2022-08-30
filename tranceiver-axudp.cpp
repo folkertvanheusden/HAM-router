@@ -134,11 +134,12 @@ void tranceiver_axudp::operator()()
 				break;
 			}
 
-                        char               *buffer     = reinterpret_cast<char *>(calloc(1, 1600));
-                        struct sockaddr_in  clientaddr { 0 };
-                        socklen_t           len        = sizeof(clientaddr);
+			constexpr int       max_pkt_len { 1600 };
+                        char               *buffer      = reinterpret_cast<char *>(calloc(1, max_pkt_len));
+                        struct sockaddr_in  clientaddr  { 0 };
+                        socklen_t           len         = sizeof(clientaddr);
 
-                        int n = recvfrom(fd, buffer, sizeof buffer, 0, (sockaddr *)&clientaddr, &len);
+                        int n = recvfrom(fd, buffer, max_pkt_len, 0, (sockaddr *)&clientaddr, &len);
 
                         if (n) {
 				std::string came_from = inet_ntoa(clientaddr.sin_addr) + myformat(":%d", clientaddr.sin_port);
