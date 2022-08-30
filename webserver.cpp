@@ -7,6 +7,11 @@
 #include "stats.h"
 #include "str.h"
 
+#if MHD_VERSION < 0x00097002
+// lgtm.com has a very old libmicrohttpd
+enum MHD_Result { MHD_NO = 0, MHD_YES = 1 } _MHD_FIXED_ENUM;
+#endif
+
 static MHD_Daemon *d_proc { nullptr };
 
 struct {
