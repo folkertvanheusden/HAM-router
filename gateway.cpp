@@ -39,6 +39,8 @@ void push_to_websockets(ws_global_context_t *const ws, const message & m)
 
 	std::string meta_str = json_dumps(meta, 0);
 
+	json_decref(meta);
+
 	push_to_websockets(ws, meta_str);
 }
 
