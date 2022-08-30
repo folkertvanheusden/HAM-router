@@ -61,8 +61,6 @@ void tranceiver_beacon::operator()()
 	sleep(1);
 
         for(;!terminate;) {
-		log(LL_INFO, "Send beacon");
-
 		message *m { nullptr };
 
 		timeval tv { 0 };
@@ -120,6 +118,8 @@ void tranceiver_beacon::operator()()
 
 			break;
 		}
+
+		log(LL_INFO, "Send beacon %s", m->get_id_short().c_str());
 
 		queue_incoming_message(*m);
 
