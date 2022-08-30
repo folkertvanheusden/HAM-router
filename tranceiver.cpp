@@ -30,6 +30,10 @@ tranceiver::~tranceiver()
 
 transmit_error_t tranceiver::queue_incoming_message(const message_t & m)
 {
+	stats_add_counter(ifInOctets,   m.s);
+	stats_add_counter(ifHCInOctets, m.s);
+	stats_inc_counter(ifInUcastPkts);
+
 	// check if s was allocated because e.g. the beacon module does
 	// not allocate a seen object
 	if (s && s->check(m.message, m.s)) {
@@ -81,6 +85,10 @@ std::optional<message_t> tranceiver::get_message()
 
 transmit_error_t tranceiver::put_message(const uint8_t *const p, const size_t size)
 {
+	stats_add_counter(ifOutOctets, size);
+	stats_add_counter(ifHCOutOctets, size);
+	stats_inc_counter(ifOutUcastPkts);
+
 	return put_message_low(p, size);
 }
 

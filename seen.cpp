@@ -39,10 +39,12 @@ bool seen::check(const uint8_t *const p, const size_t s)
 
 	std::unique_lock<std::mutex> lck(history_lock);
 
+	rate_limiter *r = nullptr;
+
 	auto it = history.find(hash);
 
 	if (it == history.end()) {
-		rate_limiter *r = new rate_limiter(max_per_dt, dt);
+		r = new rate_limiter(max_per_dt, dt);
 
 		history.insert({ hash, r });
 
@@ -50,8 +52,15 @@ bool seen::check(const uint8_t *const p, const size_t s)
 
 		return r->check();
 	}
+	else {
+		r = it->second;
+	}
 
-	return it->second->check();
+	bool rc = r->check();
+
+	stats_inc_counter(rc ? counter_hit : counter_miss);
+
+	return rc;
 }
 
 void seen::operator()()
