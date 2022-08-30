@@ -61,7 +61,6 @@ static int callback_ws(struct lws *wsi, lws_callback_reasons reason, void *user,
 		break;
 
 		default:
-			log(LL_DEBUG_VERBOSE, "callback_ws, reason: %d (length: %d)", reason, len);
 			break;
 	}
 
@@ -120,10 +119,12 @@ void stop_websockets()
 {
 	ws_terminate = true;
 
-	ws_thread->join();
-	delete ws_thread;
+	if (ws_thread) {
+		ws_thread->join();
+		delete ws_thread;
 
-	lws_context_destroy(context);
+		lws_context_destroy(context);
+	}
 }
 
 void push_to_websockets(ws_global_context_t *const ws, const std::string & json_data)

@@ -4,18 +4,21 @@
 #include "switchboard.h"
 #include "tranceiver.h"
 #include "webserver.h"
+#include "websockets.h"
 
 
 class configuration
 {
 private:
-	std::vector<tranceiver *>     tranceivers;
+	std::vector<tranceiver *>  tranceivers;
 
-	switchboard                  *sb        { nullptr };
+	switchboard               *sb        { nullptr };
 
-	int                           snmp_port { -1      };
+	int                        snmp_port { -1      };
 
-	void                         *webserver { nullptr };
+	void                      *webserver { nullptr };
+
+	ws_global_context_t        ws;
 
 	snmp_data_type_running_since *running_since { new snmp_data_type_running_since() };
 

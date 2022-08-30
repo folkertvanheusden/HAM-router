@@ -55,6 +55,8 @@ configuration::~configuration()
 {
 	stop_webserver(webserver);
 
+	stop_websockets();
+
 	delete sb;
 
 	for(auto t : tranceivers)
@@ -149,8 +151,13 @@ void configuration::load_snmp(const libconfig::Setting & node_in, snmp_data *con
 
 void configuration::load_webserver(const libconfig::Setting & node_in, stats *const st)
 {
-	int http_port = -1;
-	int ws_port   = -1;
+	int         http_port       = -1;
+	int         ws_port         = -1;
+	std::string ws_virtual_host;
+	bool        ws_ssl_enabled  = false;
+	std::string ws_ssl_cert;
+	std::string ws_ssl_priv_key;
+	std::string ws_ssl_ca;
 
         for(int i=0; i<node_in.getLength(); i++) {
                 const libconfig::Setting & node = node_in[i];
@@ -161,14 +168,23 @@ void configuration::load_webserver(const libconfig::Setting & node_in, stats *co
 			http_port = node_in.lookup(type);
 		else if (type == "websockets-port")
 			ws_port = node_in.lookup(type);
+		else if (type == "websockets-virtual-host")
+			ws_virtual_host = node_in.lookup(type).c_str();
+		else if (type == "websockets-ssl-enabled")
+			ws_ssl_enabled = node_in.lookup(type);
+		else if (type == "websockets-ssl-certificate")
+			ws_ssl_cert = node_in.lookup(type).c_str();
+		else if (type == "websockets-ssl-private-key")
+			ws_ssl_priv_key = node_in.lookup(type).c_str();
+		else if (type == "websockets-ssl-ca")
+			ws_ssl_ca = node_in.lookup(type).c_str();
 		else
 			error_exit(false, "SNMP setting \"%s\" is now known", type.c_str());
         }
 
-	if (ws_port != -1) {
-		// TODO
-	}
+	if (ws_port != -1)
+                start_websocket_thread(ws_port, &ws, ws_ssl_enabled, ws_ssl_cert, ws_ssl_priv_key, ws_ssl_ca);
 
 	if (http_port != -1)
-		webserver = start_webserver(http_port, ws_port, st, nullptr /* TODO */);
+		webserver = start_webserver(http_port, ws_virtual_host, ws_port, st, nullptr /* TODO */);
 }

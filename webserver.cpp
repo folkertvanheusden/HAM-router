@@ -113,7 +113,7 @@ MHD_Result process_http_request(void *cls,
 	return ret;
 }
 
-void * start_webserver(const int listen_port, const int ws_port, stats *const s, db *const d)
+void * start_webserver(const int listen_port, const std::string & ws_virtual_host, const int ws_port, stats *const s, db *const d)
 {
 	if (listen_port != -1) {
 		log(LL_INFO, "Starting webserver");
@@ -121,12 +121,14 @@ void * start_webserver(const int listen_port, const int ws_port, stats *const s,
 		parameters.s = s;
 		parameters.d = d;
 
+		std::string ws_host = ws_virtual_host.empty() ? "' + location.hostname + '" : ws_virtual_host;
+
 		websocket_receiver = myformat("<script>\n"
 				"function start() {\n"
 				"    if (location.protocol == 'https:')\n"
-				"        s = new WebSocket('wss://' + location.hostname + ':%d/');\n"
+				"        s = new WebSocket('wss://%s:%d/');\n"
 				"    else\n"
-				"        s = new WebSocket('ws://' + location.hostname + ':%d/');\n"
+				"        s = new WebSocket('ws://%s:%d/');\n"
 				"    s.onclose = function() { console.log('Websocket closed'); setTimeout(function(){ start(); }, 500); };\n"
 				"    s.onopen = function() { console.log('Websocket connected'); };\n"
 				"    s.onmessage = function (event) {\n"
@@ -143,7 +145,7 @@ void * start_webserver(const int listen_port, const int ws_port, stats *const s,
 				"    };\n"
 				"};\n"
 				"document.addEventListener('DOMContentLoaded', function() { start(); });\n"
-				"</script>\n", ws_port, ws_port);
+				"</script>\n", ws_host, ws_port, ws_host, ws_port);
 
 		d_proc = MHD_start_daemon(MHD_USE_THREAD_PER_CONNECTION,
 			       listen_port,
