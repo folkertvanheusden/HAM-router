@@ -31,19 +31,21 @@ static std::optional<std::string> receive_string(const int fd)
 	return reply;
 }
 
-transmit_error_t tranceiver_aprs_si::put_message_low(const uint8_t *const p, const size_t size)
+transmit_error_t tranceiver_aprs_si::put_message_low(const message & m)
 {
-	if (size < 4)
+	auto content = m.get_content();
+
+	if (content.second < 4)
 		return TE_hardware;
 
-	if (p[0] != '>' || p[1] != 0xff || p[2] != 0x01) {  // not an APRS packet?
-		log(LL_DEBUG, "tranceiver_aprs_si::put_message_low: not an APRS packet %s", dump_hex(p, size).c_str());
+	if (content.first[0] != '>' || content.first[1] != 0xff || content.first[2] != 0x01) {  // not an APRS packet?
+		log(LL_DEBUG, "tranceiver_aprs_si::put_message_low(%s): not an APRS packet %s", m.get_id_short().c_str(), dump_hex(content.first, content.second).c_str());
 
 		return TE_ok;
 	}
 
-	if (s->check(p, size) == false) {
-		log(LL_DEBUG_VERBOSE, "tranceiver_aprs_si::put_message_low: denied by rate limiter");
+	if (s->check(content.first, content.second) == false) {
+		log(LL_DEBUG_VERBOSE, "tranceiver_aprs_si::put_message_low(%s): denied by rate limiter", m.get_id_short().c_str());
 
 		return TE_ratelimiting;
 	}
@@ -82,16 +84,16 @@ transmit_error_t tranceiver_aprs_si::put_message_low(const uint8_t *const p, con
 
 	if (fd != -1) {
 		// skip first bytes (lora aprs header)
-		std::string content_out = std::string(reinterpret_cast<const char *>(p + 3), size - 3);
+		std::string content_out = std::string(reinterpret_cast<const char *>(content.first + 3), content.second - 3);
 
 		std::string payload     = content_out + "\r\n";
 
-		log(LL_DEBUG, myformat("To APRS-IS: %s", content_out.c_str()).c_str());
+		log(LL_DEBUG, myformat("(%s) To APRS-IS: %s", m.get_id_short().c_str(), content_out.c_str()).c_str());
 
 		if (WRITE(fd, reinterpret_cast<const uint8_t *>(payload.c_str()), payload.size()) != ssize_t(payload.size())) {
 			close(fd);
 			fd = -1;
-			log(LL_WARNING, "Failed to transmit APRS data to aprsi (%s)", strerror(errno));
+			log(LL_WARNING, "Failed to transmit %s APRS data to aprsi (%s)", m.get_id_short().c_str(), strerror(errno));
 		}
 	}
 

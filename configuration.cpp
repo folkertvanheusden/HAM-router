@@ -114,7 +114,7 @@ void configuration::load_switchboard(const libconfig::Setting & node_in) {
 
 		sb->add_mapping(from_t, to_t);
 
-		log(LL_DEBUG_VERBOSE, "%s (%p) sends to %s (%p)", from.c_str(), from_t, to.c_str(), to_t);
+		log(LL_DEBUG_VERBOSE, "%s sends to %s", from.c_str(), to.c_str());
         }
 }
 

@@ -11,7 +11,7 @@ private:
 	std::string aprs_pass;
 
 protected:
-	transmit_error_t put_message_low(const uint8_t *const p, const size_t s) override;
+	transmit_error_t put_message_low(const message & m) override;
 
 public:
 	tranceiver_aprs_si(const std::string & id, seen *const s, work_queue_t *const w, const std::string & aprs_user, const std::string & aprs_pass);

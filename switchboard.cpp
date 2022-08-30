@@ -37,7 +37,7 @@ void switchboard::remove_mapping(tranceiver *const in, tranceiver *const out)
 		it->second.erase(out);
 }
 
-transmit_error_t switchboard::put_message(tranceiver *const from, const uint8_t *const p, const size_t size, const bool continue_on_error)
+transmit_error_t switchboard::put_message(tranceiver *const from, const message & m, const bool continue_on_error)
 {
 	std::unique_lock<std::mutex> lck(lock);  // TODO: r/w lock
 
@@ -46,19 +46,19 @@ transmit_error_t switchboard::put_message(tranceiver *const from, const uint8_t 
 	if (it == map.end())
 		return TE_hardware;
 
-	log(LL_DEBUG, "Forwarding to %zu tranceivers", it->second.size());
+	log(LL_DEBUG, "Forwarding %s to %zu tranceivers", m.get_id_short().c_str(), it->second.size());
 
 	// TODO in a thread; copy data then!
 	for(auto t : it->second) {
-		log(LL_DEBUG_VERBOSE, "Forwarding to: %s", t->get_id().c_str());
+		log(LL_DEBUG_VERBOSE, "Forwarding %s to: %s", m.get_id_short().c_str(), t->get_id().c_str());
 
-		transmit_error_t rc = t->put_message(p, size);
+		transmit_error_t rc = t->put_message(m);
 
 		if (rc != TE_ok && continue_on_error == false)
 			return rc;
 	}
 
-	log(LL_DEBUG_VERBOSE, "Forward ok");
+	log(LL_DEBUG_VERBOSE, "Forward of %s ok", m.get_id_short().c_str());
 
 	return TE_ok;
 }

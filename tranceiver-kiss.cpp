@@ -11,6 +11,7 @@
 #include "error.h"
 #include "log.h"
 #include "net.h"
+#include "random.h"
 #include "str.h"
 #include "time.h"
 #include "tranceiver-kiss.h"
@@ -178,11 +179,15 @@ bool tranceiver_kiss::send_mkiss(int channel, const unsigned char *p, const int 
 	return true;
 }
 
-transmit_error_t tranceiver_kiss::put_message_low(const uint8_t *const p, const size_t len)
+transmit_error_t tranceiver_kiss::put_message_low(const message & m)
 {
+	log(LL_DEBUG, "kiss: send %s", m.get_id_short().c_str());
+
 	std::unique_lock<std::mutex> lck(lock);
 
-	if (send_mkiss(0, p, len))
+	auto content = m.get_content();
+
+	if (send_mkiss(0, content.first, content.second))
 		return TE_ok;
 
 	return TE_hardware;
@@ -256,16 +261,22 @@ void tranceiver_kiss::operator()()
 		if (!recv_mkiss(&p, &len, true))
 			continue;
 
-		message_t m { 0 };
-		gettimeofday(&m.tv, nullptr);
-		m.source = myformat("kiss(%s)", get_id().c_str());
-		m.message = p;
-		m.s       = len;
+		timeval tv;
+		gettimeofday(&tv, nullptr);
+
+		message m(tv,
+				myformat("kiss(%s)", get_id().c_str()),
+				get_random_uint64_t(),
+				false,
+				0,
+				p,
+				len);
 
 		log(LL_DEBUG_VERBOSE, "KISS received message (%s)", dump_hex(p, len).c_str());
 
-		if (queue_incoming_message(m) != TE_ok)
-			free(m.message);
+		free(p);
+
+		queue_incoming_message(m);
 	}
 }
 

@@ -18,6 +18,7 @@
 #include "gps.h"
 #include "log.h"
 #include "net.h"
+#include "random.h"
 #include "str.h"
 #include "time.h"
 #include "tranceiver-beacon.h"
@@ -46,7 +47,7 @@ tranceiver_beacon::~tranceiver_beacon()
 	delete th;
 }
 
-transmit_error_t tranceiver_beacon::put_message_low(const uint8_t *const p, const size_t s)
+transmit_error_t tranceiver_beacon::put_message_low(const message & m)
 {
 	return TE_hardware;
 }
@@ -62,17 +63,26 @@ void tranceiver_beacon::operator()()
         for(;!terminate;) {
 		log(LL_INFO, "Send beacon");
 
-		message_t m { 0 };
-		gettimeofday(&m.tv, nullptr);
-		m.source = myformat("beacon(%s)", get_id().c_str());
+		message *m { nullptr };
+
+		timeval tv { 0 };
+		gettimeofday(&tv, nullptr);
+
+		std::string source = myformat("beacon(%s)", get_id().c_str());
+		uint64_t    msg_id = get_random_uint64_t();
 
 		if (bm == beacon_mode_aprs) {
 			std::string aprs_text = "!" + gps_double_to_aprs(latitude, longitude) + "[";
 
 			std::string output = ">\xff\x01" + callsign + "-L>APLG01,TCPIP*,qAC:" + aprs_text + beacon_text;
 
-			m.message = reinterpret_cast<uint8_t *>(strdup(output.c_str()));
-			m.s       = output.size();
+			m = new message(tv,
+					source,
+					msg_id,
+					false,
+					0,
+					reinterpret_cast<const uint8_t *>(output.c_str()),
+					output.size());
 		}
 		else if (bm == beacon_mode_ax25) {
 			ax25 packet;
@@ -94,8 +104,16 @@ void tranceiver_beacon::operator()()
 			packet.set_data(reinterpret_cast<const uint8_t *>(beacon_text.c_str()), beacon_text.size());
 
 			auto packet_binary = packet.generate_packet();
-			m.message = packet_binary.first;
-			m.s       = packet_binary.second;
+
+			m = new message(tv,
+					source,
+					msg_id,
+					false,
+					0,
+					packet_binary.first,
+					packet_binary.second);
+
+			free(packet_binary.first);
 		}
 		else {
 			log(LL_INFO, "UNEXPECTED BEACON MODE");
@@ -103,8 +121,9 @@ void tranceiver_beacon::operator()()
 			break;
 		}
 
-		if (queue_incoming_message(m) != TE_ok)
-			free(m.message);
+		queue_incoming_message(*m);
+
+		delete m;
 
 		if (!myusleep(beacon_interval * 1000000ll, &terminate))
 			break;

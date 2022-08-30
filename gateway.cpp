@@ -45,14 +45,14 @@ void process(configuration *const cfg, work_queue_t *const w, snmp *const snmp_)
 			continue;
 		}
 
-		log(LL_DEBUG_VERBOSE, "Forwarding message from %s: %s", m.value().source.c_str(), dump_replace(m.value().message, m.value().s).c_str());
+		auto content = m.value().get_content();
 
-		transmit_error_t rc = cfg->get_switchboard()->put_message(t_has_work, m.value().message, m.value().s, true);
+		log(LL_DEBUG_VERBOSE, "Forwarding message from %s (%s): %s", m.value().get_source().c_str(), m.value().get_id_short().c_str(), dump_replace(content.first, content.second).c_str());
+
+		transmit_error_t rc = cfg->get_switchboard()->put_message(t_has_work, m.value(), true);
 
 		if (rc != TE_ok)
 			log(LL_INFO, "Switchboard indicated error during put_message: %d", rc);
-
-		free(m.value().message);
 	}
 }
 

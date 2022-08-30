@@ -18,6 +18,7 @@ add_executable(lora-aprs-gw
 	crc_32.c
 	crc_ppp.cpp
 	hashing.cpp
+	random.cpp
 	rate-limiter.cpp
 	seen.cpp
 	str.cpp

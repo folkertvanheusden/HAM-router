@@ -16,29 +16,32 @@
 #include "error.h"
 #include "log.h"
 #include "net.h"
+#include "random.h"
 #include "str.h"
 #include "time.h"
 #include "tranceiver-axudp.h"
 #include "utils.h"
 
 
-transmit_error_t tranceiver_axudp::put_message_low(const uint8_t *const msg, const size_t len)
+transmit_error_t tranceiver_axudp::put_message_low(const message & m)
 {
-	int      temp_len = len + 2;
+	auto     content  = m.get_content();
+	size_t   len      = content.second;
+	size_t   temp_len = len + 2;
 	uint8_t *temp     = reinterpret_cast<uint8_t *>(malloc(temp_len));
 
-	memcpy(temp, msg, len);
+	memcpy(temp, content.first, len);
 
-	uint16_t crc = compute_crc(const_cast<uint8_t *>(msg), len);
+	uint16_t crc = compute_crc(const_cast<uint8_t *>(content.first), len);
 
 	temp[len] = crc;
 	temp[len + 1] = crc >> 8;
 
 	for(auto d : destinations) {
-		log(LL_DEBUG_VERBOSE, "tranceiver_axudp::put_message_low: transmit to %s (%s)", d.c_str(), dump_replace(temp, temp_len).c_str());
+		log(LL_DEBUG_VERBOSE, "tranceiver_axudp::put_message_low(%s): transmit to %s (%s)", m.get_id_short().c_str(), d.c_str(), dump_replace(temp, temp_len).c_str());
 
 		if (transmit_udp(d, temp, temp_len) == false && continue_on_error == false) {
-			log(LL_WARNING, "Problem sending");
+			log(LL_WARNING, "Problem sending %s", m.get_id_short().c_str());
 
 			free(temp);
 
@@ -84,19 +87,21 @@ tranceiver_axudp::~tranceiver_axudp()
 	delete th;
 }
 
-transmit_error_t tranceiver_axudp::send_to_other_axudp_targets(const message_t & m, const std::string & came_from)
+transmit_error_t tranceiver_axudp::send_to_other_axudp_targets(const message & m, const std::string & came_from)
 {
 	for(auto d : destinations) {
 		if (d == came_from) {
-			log(LL_DEBUG_VERBOSE, "tranceiver_axudp::send_to_other_axudp_targets: not (re-)sending to %s", d.c_str());
+			log(LL_DEBUG_VERBOSE, "tranceiver_axudp::send_to_other_axudp_targets(%s): not (re-)sending to %s", m.get_id_short().c_str(), d.c_str());
 
 			continue;
 		}
 
-		log(LL_DEBUG_VERBOSE, "tranceiver_axudp::send_to_other_axudp_targets: transmit to %s", d.c_str());
+		log(LL_DEBUG_VERBOSE, "tranceiver_axudp::send_to_other_axudp_targets(%s): transmit to %s", m.get_id_short().c_str(), d.c_str());
 
-		if (transmit_udp(d, m.message, m.s) == false && continue_on_error == false) {
-			log(LL_WARNING, "Problem sending");
+		auto content = m.get_content();
+
+		if (transmit_udp(d, content.first, content.second) == false && continue_on_error == false) {
+			log(LL_WARNING, "Problem sending %s", m.get_id_short().c_str());
 
 			return TE_hardware;
 		}
@@ -138,27 +143,35 @@ void tranceiver_axudp::operator()()
                         if (n) {
 				std::string came_from = inet_ntoa(clientaddr.sin_addr) + myformat(":%d", clientaddr.sin_port);
 
-				log(LL_DEBUG_VERBOSE, "tranceiver_axudp::operator: received message from %s", came_from.c_str());
+				timeval tv { 0 };
+				gettimeofday(&tv, nullptr);
 
-				message_t m;
-				m.source = myformat("axudp(%s)", get_id().c_str());
-				gettimeofday(&m.tv, nullptr);
-				m.message = reinterpret_cast<uint8_t *>(duplicate(buffer, len));
-				m.s       = len - 2;  // "remove" crc
+				std::string source = myformat("axudp(%s)", get_id().c_str());
+				uint64_t    msg_id = get_random_uint64_t();
+
+				message m(tv,
+						source,
+						msg_id,
+						false, 
+						0,
+						reinterpret_cast<const uint8_t *>(buffer),
+						len - 2 /* "remove" crc */);
+
+				log(LL_DEBUG_VERBOSE, "tranceiver_axudp::operator(%s): received message from %s", m.get_id_short().c_str(), came_from.c_str());
 
 				// if an error occured, do not pass on to
 				transmit_error_t rc = queue_incoming_message(m);
 
-				if (rc != TE_ok)
-					free(m.message);
-
 				if (distribute && rc != TE_ratelimiting) {
-					// re-assign the buffer as it is either freed when queueing
-					// failed or when queueing succeeded (e.g. always)
-					m.message = reinterpret_cast<uint8_t *>(buffer);
-					m.s = len;
+					message m_full(tv,
+						source,
+						msg_id,
+						false, 
+						0,
+						reinterpret_cast<const uint8_t *>(buffer),
+						len);
 
-					send_to_other_axudp_targets(m, came_from);
+					send_to_other_axudp_targets(m_full, came_from);
 				}
 			}
 

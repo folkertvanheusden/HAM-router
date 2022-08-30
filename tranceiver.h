@@ -16,17 +16,45 @@
 
 typedef enum { TE_ok, TE_hardware, TE_ratelimiting } transmit_error_t;
 
-typedef struct {
-	struct timeval tv;
+class message {
+private:
+	const struct timeval tv;
 
-	std::string    source;
+	const std::string    source;
 
-	bool           from_rf;   // did it come from electromagnetic waves?
-	int            air_time;  // in milliseconds
+	const uint64_t       msg_id;
 
-	uint8_t       *message;
-	size_t         s;
-} message_t;
+	const bool           from_rf;   // did it come from electromagnetic waves?
+	const int            air_time;  // in milliseconds
+
+	const uint8_t *const data;
+	const size_t         size;
+
+public:
+	message(const struct timeval tv, const std::string & source, const uint64_t msg_id, const bool from_rf, const int air_time, const uint8_t *const data, const size_t size);
+
+	message(const message & m);
+
+	virtual ~message();
+
+	struct timeval get_tv()         const { return tv;       }
+
+	std::string    get_source()     const { return source;   }
+
+	uint64_t       get_msg_id()     const { return msg_id;   }
+
+	bool           get_is_from_rf() const { return from_rf;  }
+
+	int            get_air_time()   const { return air_time; }
+
+	std::pair<const uint8_t *, size_t> get_content() const { return { data, size }; }
+
+	const uint8_t *get_data()       const { return data;     }
+
+	size_t         get_size()       const { return size;     }
+
+	std::string get_id_short()      const;
+};
 
 class tranceiver
 {
@@ -48,13 +76,13 @@ protected:
 
 	std::condition_variable incoming_cv;
 	std::mutex              incoming_lock;
-	std::queue<message_t>   incoming;
+	std::queue<message>     incoming;
 
 	std::thread      *th        { nullptr };
 
 	std::atomic_bool  terminate { false   };
 
-	virtual transmit_error_t put_message_low(const uint8_t *const p, const size_t s) = 0;
+	virtual transmit_error_t put_message_low(const message & m) = 0;
 
 public:
 	tranceiver(const std::string & id, seen *const s, work_queue_t *const w);
@@ -65,13 +93,13 @@ public:
 
 	void register_snmp_counters(stats *const s, const int device_nr);
 
-	transmit_error_t queue_incoming_message(const message_t & m);
+	transmit_error_t queue_incoming_message(const message & m);
 
 	bool peek();
 
-	std::optional<message_t> get_message();
+	std::optional<message> get_message();
 
-	transmit_error_t put_message(const uint8_t *const p, const size_t s);
+	transmit_error_t       put_message(const message & m);
 
 	static tranceiver *instantiate(const libconfig::Setting & node, work_queue_t *const w);
 
