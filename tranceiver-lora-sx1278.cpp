@@ -23,14 +23,17 @@ void * rx_f(void *in)
 
 	log(LL_DEBUG, "LoRa-sx1278 rx: %s", dump_replace(reinterpret_cast<uint8_t *>(rx->buf), rx->size).c_str());
 
+	tranceiver *const t = reinterpret_cast<tranceiver_lora_sx1278 *>(rx->userPtr);
+
 	message_t m;
 	m.tv       = rx->last_time;
+	m.source   = myformat("LoRa-sx1278(%s)", t->get_id().c_str());
 	m.message  = reinterpret_cast<uint8_t *>(duplicate(rx->buf, rx->size));
 	m.s        = rx->size;
 	m.from_rf  = true;
 	m.air_time = rx->at.Tpkt;
 
-	if (reinterpret_cast<tranceiver_lora_sx1278 *>(rx->userPtr)->queue_incoming_message(m) != TE_ok)
+	if (t->queue_incoming_message(m) != TE_ok)
 		free(m.message);
 
 	free(rx);

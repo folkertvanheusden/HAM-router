@@ -18,6 +18,8 @@ typedef enum { TE_ok, TE_hardware, TE_ratelimiting } transmit_error_t;
 typedef struct {
 	struct timeval tv;
 
+	std::string    source;
+
 	bool           from_rf;   // did it come from electromagnetic waves?
 	int            air_time;  // in milliseconds
 

@@ -140,7 +140,8 @@ void tranceiver_axudp::operator()()
 
 				log(LL_DEBUG_VERBOSE, "tranceiver_axudp::operator: received message from %s", came_from.c_str());
 
-				message_t m { 0 };
+				message_t m;
+				m.source = myformat("axudp(%s)", get_id().c_str());
 				gettimeofday(&m.tv, nullptr);
 				m.message = reinterpret_cast<uint8_t *>(duplicate(buffer, len));
 				m.s       = len - 2;  // "remove" crc

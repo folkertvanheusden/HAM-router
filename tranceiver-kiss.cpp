@@ -258,6 +258,7 @@ void tranceiver_kiss::operator()()
 
 		message_t m { 0 };
 		gettimeofday(&m.tv, nullptr);
+		m.source = myformat("kiss(%s)", get_id().c_str());
 		m.message = p;
 		m.s       = len;
 

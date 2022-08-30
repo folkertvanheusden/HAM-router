@@ -43,7 +43,7 @@ void process(configuration *const cfg, work_queue_t *const w)
 			continue;
 		}
 
-		log(LL_DEBUG_VERBOSE, "Forwarding message %s", dump_replace(m.value().message, m.value().s).c_str());
+		log(LL_DEBUG_VERBOSE, "Forwarding message from %s: %s", m.value().source.c_str(), dump_replace(m.value().message, m.value().s).c_str());
 
 		transmit_error_t rc = cfg->get_switchboard()->put_message(t_has_work, m.value().message, m.value().s, true);
 

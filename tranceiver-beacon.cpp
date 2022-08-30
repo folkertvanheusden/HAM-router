@@ -18,6 +18,7 @@
 #include "gps.h"
 #include "log.h"
 #include "net.h"
+#include "str.h"
 #include "time.h"
 #include "tranceiver-beacon.h"
 #include "utils.h"
@@ -63,6 +64,7 @@ void tranceiver_beacon::operator()()
 
 		message_t m { 0 };
 		gettimeofday(&m.tv, nullptr);
+		m.source = myformat("beacon(%s)", get_id().c_str());
 
 		if (bm == beacon_mode_aprs) {
 			std::string aprs_text = "!" + gps_double_to_aprs(latitude, longitude) + "[";
