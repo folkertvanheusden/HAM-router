@@ -4,6 +4,8 @@
 
 #include "configuration.h"
 #include "log.h"
+#include "snmp.h"
+#include "stats.h"
 #include "str.h"
 
 
@@ -18,7 +20,7 @@ void signal_handler(int sig)
 	signal(sig, SIG_IGN);
 }
 
-void process(configuration *const cfg, work_queue_t *const w)
+void process(configuration *const cfg, work_queue_t *const w, snmp *const snmp_)
 {
 	for(;;) {
 		std::unique_lock lck(w->work_lock);
@@ -62,9 +64,15 @@ int main(int argc, char *argv[])
 
 	work_queue_t  w;
 
-	configuration cfg(argc == 2 ? argv[1] : "gateway.cfg", &w);
+        snmp_data     sd;
 
-	process(&cfg, &w);
+	stats         st(8192, &sd);
+
+	configuration cfg(argc == 2 ? argv[1] : "gateway.cfg", &w, &sd, &st);
+
+	snmp          snmp_(&sd, &st, cfg.get_snmp_port());
+
+	process(&cfg, &w, &snmp_);
 
 	fprintf(stderr, "Terminating\n");
 

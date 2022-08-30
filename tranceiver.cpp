@@ -1,5 +1,6 @@
 #include "error.h"
 #include "log.h"
+#include "str.h"
 #include "time.h"
 #include "tranceiver.h"
 #include "tranceiver-aprs-si.h"
@@ -109,4 +110,15 @@ tranceiver *tranceiver::instantiate(const libconfig::Setting & node, work_queue_
 	}
 
 	return t;
+}
+
+void tranceiver::register_snmp_counters(stats *const s, const int device_nr)
+{
+        ifInOctets     = s->register_stat(myformat("%s-ifInOctets",     get_id().c_str()), myformat("1.3.6.1.2.1.2.2.1.10.%zu",    device_nr), snmp_integer::si_counter32);
+        ifHCInOctets   = s->register_stat(myformat("%s-ifHCInOctets",   get_id().c_str()), myformat("1.3.6.1.2.1.31.1.1.1.6.%zu",  device_nr), snmp_integer::si_counter64);
+        ifInUcastPkts  = s->register_stat(myformat("%s-ifInUcastPkts",  get_id().c_str()), myformat("1.3.6.1.2.1.2.2.1.11.%zu",    device_nr), snmp_integer::si_counter32);
+
+        ifOutOctets    = s->register_stat(myformat("%s-ifOutOctets",    get_id().c_str()), myformat("1.3.6.1.2.1.2.2.1.16.%zu",    device_nr), snmp_integer::si_counter32);
+        ifHCOutOctets  = s->register_stat(myformat("%s-ifHCOutOctets",  get_id().c_str()), myformat("1.3.6.1.2.1.31.1.1.1.10.%zu", device_nr), snmp_integer::si_counter64);
+        ifOutUcastPkts = s->register_stat(myformat("%s-ifOutUcastPkts", get_id().c_str()), myformat("1.3.6.1.2.1.2.2.1.17.%zu",    device_nr), snmp_integer::si_counter32);
 }

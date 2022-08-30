@@ -86,16 +86,16 @@ stats::~stats()
 
 uint64_t * stats::register_stat(const std::string & name, const std::string & oid, const snmp_integer::snmp_integer_type type)
 {
-	if (len + 48 > size) {
-		log(LL_WARNING, "stats: shm is full\n");
-		return nullptr;
-	}
+	log(LL_DEBUG_VERBOSE, "Registering statistic %s on oid %s", name.c_str(), oid.c_str());
+
+	if (len + 48 > size)
+		error_exit(false, "stats: shm is full");
 
 	std::unique_lock<std::mutex> lck(lock);
 
 	auto lut_it = lut.find(name);
 	if (lut_it != lut.end())
-		return lut_it->second.p;
+		error_exit(false, "stats: stat \"%s\" already exists?", name.c_str());
 
 	uint8_t *p_out = (uint8_t *)&p[len];
 

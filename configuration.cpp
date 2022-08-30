@@ -3,10 +3,12 @@
 #include "configuration.h"
 #include "error.h"
 #include "log.h"
+#include "str.h"
 #include "tranceiver-aprs-si.h"
 
 
-configuration::configuration(const std::string & file, work_queue_t *const w)
+configuration::configuration(const std::string & file, work_queue_t *const w, snmp_data *const sd, stats *const st) :
+	sd(sd)
 {
 	try {
 		libconfig::Config cfg;
@@ -24,10 +26,13 @@ configuration::configuration(const std::string & file, work_queue_t *const w)
 				// TODO
 			}
 			else if (node_name == "tranceivers") {
-				load_tranceivers(node, w);
+				load_tranceivers(node, w, st);
 			}
 			else if (node_name == "connections") {
 				load_switchboard(node);
+			}
+			else if (node_name == "snmp") {
+				load_snmp(node);
 			}
 			else {
 				error_exit(false, "Setting \"%s\" is now known", node_name.c_str());
@@ -52,13 +57,31 @@ configuration::~configuration()
 		delete t;
 }
 
-void configuration::load_tranceivers(const libconfig::Setting & node_in, work_queue_t *const w) {
+void configuration::load_tranceivers(const libconfig::Setting & node_in, work_queue_t *const w, stats *const st) {
 	for(int i=0; i<node_in.getLength(); i++) {
 		const libconfig::Setting & node = node_in[i];
 
 		tranceiver *t = tranceiver::instantiate(node, w);
 
 		tranceivers.push_back(t);
+	}
+
+	if (snmp_port != -1) {
+		sd->register_oid("1.3.6.1.2.1.2.1.0", snmp_integer::si_integer, tranceivers.size());  // number of network interfaces
+
+		int interface_nr = 1;
+
+		for(auto t : tranceivers) {
+			// register interface 1
+			sd->register_oid(myformat("1.3.6.1.2.1.2.2.1.1.%zu",    interface_nr), snmp_integer::si_integer, interface_nr);
+			sd->register_oid(myformat("1.3.6.1.2.1.31.1.1.1.1.%zu", interface_nr), t->get_id());  // name
+			sd->register_oid(myformat("1.3.6.1.2.1.2.2.1.2.1.%zu",  interface_nr), t->get_type_name());  // description
+			sd->register_oid(myformat("1.3.6.1.2.1.17.1.4.1.%zu",   interface_nr), snmp_integer::si_integer, 1);  // device is up (1)
+
+			t->register_snmp_counters(st, interface_nr);
+
+			interface_nr++;
+		}
 	}
 }
 
@@ -93,4 +116,29 @@ void configuration::load_switchboard(const libconfig::Setting & node_in) {
 
 		log(LL_DEBUG_VERBOSE, "%s (%p) sends to %s (%p)", from.c_str(), from_t, to.c_str(), to_t);
         }
+}
+
+void configuration::load_snmp(const libconfig::Setting & node_in)
+{
+        for(int i=0; i<node_in.getLength(); i++) {
+                const libconfig::Setting & node = node_in[i];
+
+		std::string type = node.getName();
+
+		if (type == "port")
+			snmp_port = node_in.lookup(type);
+		else
+			error_exit(false, "SNMP setting \"%s\" is now known", type.c_str());
+        }
+
+	if (snmp_port != -1) {
+		sd->register_oid("1.3.6.1.2.1.1.1.0", "lora_aprs_gw");
+		sd->register_oid("1.3.6.1.2.1.1.2.0", new snmp_data_type_oid("1.3.6.1.2.1.4.57850.2"));
+		sd->register_oid("1.3.6.1.2.1.1.3.0", &running_since);
+		sd->register_oid("1.3.6.1.2.1.1.4.0", "Folkert van Heusden <mail@vanheusden.com>");
+		sd->register_oid("1.3.6.1.2.1.1.5.0", "lora_aprs_gw");
+		sd->register_oid("1.3.6.1.2.1.1.6.0", "Earth");
+		sd->register_oid("1.3.6.1.2.1.1.7.0", snmp_integer::si_integer, 254 /* everything but the physical layer */);
+		sd->register_oid("1.3.6.1.2.1.1.8.0", snmp_integer::si_integer, 0);  // The value of sysUpTime at the time of the most recent change in state or value of any instance of sysORID.
+	}
 }

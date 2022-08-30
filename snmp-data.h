@@ -89,7 +89,7 @@ class snmp_data
 {
 private:
 	std::vector<snmp_data_type *> data;
-	std::mutex lock;
+	std::mutex                    lock;
 
 	void walk_tree(snmp_data_type & node);
 

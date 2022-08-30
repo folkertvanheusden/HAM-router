@@ -10,6 +10,7 @@
 #include <thread>
 
 #include "seen.h"
+#include "stats.h"
 #include "work.h"
 
 
@@ -32,10 +33,18 @@ class tranceiver
 private:
 	const std::string  id;
 
-protected:
-	work_queue_t *const w  { nullptr };
+	uint64_t           snmp_dummy     { 0           };
+        uint64_t          *ifInOctets     { &snmp_dummy };
+        uint64_t          *ifHCInOctets   { &snmp_dummy };
+        uint64_t          *ifInUcastPkts  { &snmp_dummy };
+        uint64_t          *ifOutOctets    { &snmp_dummy };
+        uint64_t          *ifHCOutOctets  { &snmp_dummy };
+        uint64_t          *ifOutUcastPkts { &snmp_dummy };
 
-	seen         *const s  { nullptr };
+protected:
+	work_queue_t      *const w  { nullptr };
+
+	seen              *const s  { nullptr };
 
 	std::condition_variable incoming_cv;
 	std::mutex              incoming_lock;
@@ -52,6 +61,9 @@ public:
 	virtual ~tranceiver();
 
 	std::string get_id() const { return id; }
+	virtual std::string get_type_name() const { return "base class"; }
+
+	void register_snmp_counters(stats *const s, const int device_nr);
 
 	transmit_error_t queue_incoming_message(const message_t & m);
 

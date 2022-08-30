@@ -22,6 +22,8 @@ public:
 	tranceiver_axudp(const std::string & id, seen *const s, work_queue_t *const w, const int listen_port, const std::vector<std::string> & destinations, const bool continue_on_error, const bool distribute);
 	virtual ~tranceiver_axudp();
 
+	std::string get_type_name() const override { return "AXUDP"; }
+
 	static tranceiver *instantiate(const libconfig::Setting & node, work_queue_t *const w);
 
 	void operator()() override;

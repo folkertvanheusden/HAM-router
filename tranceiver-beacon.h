@@ -23,6 +23,8 @@ public:
 	tranceiver_beacon(const std::string & id, seen *const s, work_queue_t *const w, const std::string & beacon_text, const int beacon_interval, const beacon_mode_t bm, const std::string & callsign, const double latitude, const double longitude);
 	virtual ~tranceiver_beacon();
 
+	std::string get_type_name() const override { return "beacon"; }
+
 	static tranceiver *instantiate(const libconfig::Setting & node, work_queue_t *const w);
 
 	void operator()() override;
