@@ -1,4 +1,5 @@
 // (C) 2021-2022 by folkert van heusden <mail@vanheusden.com>, released under Apache License v2.0
+#include <poll.h>
 #include <stdint.h>
 #include <unistd.h>
 #include <arpa/inet.h>
@@ -25,6 +26,10 @@ snmp::snmp(snmp_data *const sd, stats *const s, const int port) :
 
 snmp::~snmp()
 {
+	terminate = true;
+
+	th->join();
+	delete th;
 }
 
 uint64_t snmp::get_INTEGER(const uint8_t *p, const size_t length)
@@ -364,8 +369,18 @@ void snmp::operator()()
 	if (bind(fd, (const struct sockaddr *)&servaddr, sizeof(servaddr)) == -1)
 		error_exit(true, "bind() failed");
 
-	for(;;) {
+	pollfd fds[] = { { fd, POLLIN, 0 } };
+
+	for(;!terminate;) {
 		try {
+			int rc = poll(fds, 1, 100);
+
+			if (rc == 0)
+				continue;
+
+			if (rc == -1)
+				error_exit(true, "poll failed");
+
 			char               buffer[1600] { 0 };
 			struct sockaddr_in clientaddr   { 0 };
 			socklen_t          len = sizeof(clientaddr);

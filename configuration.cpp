@@ -134,7 +134,7 @@ void configuration::load_snmp(const libconfig::Setting & node_in)
 	if (snmp_port != -1) {
 		sd->register_oid("1.3.6.1.2.1.1.1.0", "lora_aprs_gw");
 		sd->register_oid("1.3.6.1.2.1.1.2.0", new snmp_data_type_oid("1.3.6.1.2.1.4.57850.2"));
-		sd->register_oid("1.3.6.1.2.1.1.3.0", &running_since);
+		sd->register_oid("1.3.6.1.2.1.1.3.0", running_since);
 		sd->register_oid("1.3.6.1.2.1.1.4.0", "Folkert van Heusden <mail@vanheusden.com>");
 		sd->register_oid("1.3.6.1.2.1.1.5.0", "lora_aprs_gw");
 		sd->register_oid("1.3.6.1.2.1.1.6.0", "Earth");

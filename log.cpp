@@ -10,7 +10,7 @@
 #include "log.h"
 #include "str.h"
 
-static const char *logfile = NULL;
+static const char *logfile = nullptr;
 static int loglevel = LL_INFO;
 
 int get_default_loglevel()
@@ -22,6 +22,13 @@ void setlogfile(const char *const file, const int ll)
 {
 	logfile = strdup(file);
 	loglevel = ll;
+}
+
+void unsetlogfile()
+{
+	free(const_cast<char *>(logfile));
+
+	logfile = nullptr;
 }
 
 std::string get_thread_name()
@@ -39,13 +46,13 @@ void _log(const std::string & id, const int ll, const char *const what, va_list 
 		return;
 
 	struct timeval tv;
-	gettimeofday(&tv, NULL);
+	gettimeofday(&tv, nullptr);
 
 	time_t tv_temp = tv.tv_sec;
 	struct tm tm;
 	localtime_r(&tv_temp, &tm);
 
-	char *msg = NULL;
+	char *msg = nullptr;
 	if (vasprintf(&msg, what, args) == -1)
 		error_exit(true, "vasprintf failed\n");
 
@@ -71,7 +78,7 @@ void _log(const std::string & id, const int ll, const char *const what, va_list 
 			break;
 	}
 
-	char *temp = NULL;
+	char *temp = nullptr;
 	if (asprintf(&temp, "%04d-%02d-%02d %02d:%02d:%02d.%06ld %5s %9s %s %s", 
 			tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
 			tm.tm_hour, tm.tm_min, tm.tm_sec, tv.tv_usec,

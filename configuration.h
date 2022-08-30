@@ -8,15 +8,15 @@
 class configuration
 {
 private:
-	std::vector<tranceiver *>    tranceivers;
+	std::vector<tranceiver *>     tranceivers;
 
-	switchboard                 *sb        { nullptr };
+	switchboard                  *sb        { nullptr };
 
-	int                          snmp_port { -1      };
+	int                           snmp_port { -1      };
 
-	snmp_data                   *sd        { nullptr };
+	snmp_data                    *sd        { nullptr };
 
-	snmp_data_type_running_since running_since;
+	snmp_data_type_running_since *running_since { new snmp_data_type_running_since() };
 
 	void load_tranceivers(const libconfig::Setting & node, work_queue_t *const w, stats *const st);
 

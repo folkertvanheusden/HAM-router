@@ -12,6 +12,7 @@
 std::string ll_to_str(const int ll);
 int get_default_loglevel();
 void setlogfile(const char *const other, const int loglevel);
+void unsetlogfile();
 void log(const int loglevel, const char *const what, ...);
 void lognee(const int loglevel, const char *const what, ...);
 void log(const std::string & id, const int loglevel, const char *const what, ...);

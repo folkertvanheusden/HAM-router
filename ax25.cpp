@@ -121,6 +121,11 @@ ax25::ax25(const std::vector<uint8_t> & in)
 	valid = true;
 }
 
+ax25::~ax25()
+{
+	free(data);
+}
+
 ax25_address ax25::get_from() const
 {
 	return from;

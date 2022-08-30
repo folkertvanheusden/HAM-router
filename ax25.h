@@ -51,6 +51,7 @@ private:
 public:
 	ax25();
 	ax25(const std::vector<uint8_t> & in);
+	~ax25();
 
 	void set_from   (const std::string & callsign, const char ssid, const bool end_mark, const bool repeated);
 	void set_to     (const std::string & callsign, const char ssid, const bool end_mark, const bool repeated);
