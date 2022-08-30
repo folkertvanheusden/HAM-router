@@ -2,7 +2,8 @@
 #include <assert.h>
 
 #include "snmp-data.h"
-#include "utils.h"
+#include "str.h"
+#include "time.h"
 
 
 static ssize_t find_oid_in_vector(std::vector<snmp_data_type *> *vec, const std::string & oid)
@@ -23,6 +24,8 @@ snmp_data_type::snmp_data_type()
 
 snmp_data_type::~snmp_data_type()
 {
+	for(auto p : data)
+		delete p;
 }
 
 std::vector<snmp_data_type *> * snmp_data_type::get_children()
@@ -117,20 +120,21 @@ snmp_data::snmp_data()
 
 snmp_data::~snmp_data()
 {
-	// delete tree 'data'
+	for(auto p : data)
+		delete p;
 }
 
 void snmp_data::register_oid(const std::string & oid, snmp_data_type *const e)
 {
 	assert(e);
 
+	std::unique_lock<std::mutex>   lck(lock);
+
 	std::vector<snmp_data_type *> *p_lut = &data;
 
 	std::vector<std::string>       parts = split(oid, ".");
 
 	std::string                    cur_oid;
-
-	std::unique_lock<std::mutex>   lck(lock);
 
 	for(size_t i=0; i<parts.size(); i++) {
 		if (cur_oid.empty() == false)
@@ -260,7 +264,7 @@ std::string snmp_data::find_next_oid(const std::string & oid)
 
 		branch.pop_back();
 
-		if (index + 1 < element->get_children()->size()) {
+		if (index + 1 < ssize_t(element->get_children()->size())) {
 			ssize_t nr = index + 1;
 
 			do {

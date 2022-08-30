@@ -5,9 +5,7 @@
 #include "db.h"
 #include "log.h"
 #include "stats.h"
-#include "utils.h"
-
-static int         ws_port { -1 };
+#include "str.h"
 
 static MHD_Daemon *d_proc { nullptr };
 
@@ -108,12 +106,10 @@ MHD_Result process_http_request(void *cls,
 	return ret;
 }
 
-void start_webserver(const int listen_port, const int ws_port_in, stats *const s, db *const d)
+void * start_webserver(const int listen_port, const int ws_port, stats *const s, db *const d)
 {
 	if (listen_port != -1) {
 		log(LL_INFO, "Starting webserver");
-
-		ws_port      = ws_port_in;
 
 		parameters.s = s;
 		parameters.d = d;
@@ -149,10 +145,15 @@ void start_webserver(const int listen_port, const int ws_port_in, stats *const s
 			       process_http_request,
 			       nullptr,
 			       MHD_OPTION_END);
+
+		return d_proc;
 	}
+
+	return nullptr;
 }
 
-void stop_webserver()
+void stop_webserver(void *d)
 {
-	MHD_stop_daemon(d_proc);
+	if (d)
+		MHD_stop_daemon(reinterpret_cast<MHD_Daemon *>(d_proc));
 }

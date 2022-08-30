@@ -1,8 +1,11 @@
+#ifdef HAS_GPIO
 #include <pigpio.h>
+#endif
 
 #include "LoRa.h"
 
 int LoRa_begin(LoRa_ctl *modem) {
+#ifdef HAS_GPIO
 	int cfg = gpioCfgGetInternals();
 	cfg |= PI_CFG_NOSIGHANDLER;  // (1<<10)
 	gpioCfgSetInternals(cfg);
@@ -52,6 +55,7 @@ int LoRa_begin(LoRa_ctl *modem) {
 	lora_reg_write_byte(modem->spid, REG_DETECTION_THRESHOLD, 0x0a);//DetectionThreshold for SF > 6
 
 	lora_set_freq(modem->spid, modem->eth.freq);
+#endif
 	return modem->spid;
 }
 
@@ -115,17 +119,23 @@ void lora_set_dio_tx_mapping(int spid){
 }
 
 void lora_set_rxdone_dioISR(int gpio_n, rxDoneISR func, LoRa_ctl *modem){
+#ifdef HAS_GPIO
 	gpioSetMode(gpio_n, PI_INPUT);
 	gpioSetISRFuncEx(gpio_n, RISING_EDGE, 0, func, (void *)modem);
+#endif
 }
 
 void lora_set_txdone_dioISR(int gpio_n, txDoneISR func, LoRa_ctl *modem){
+#ifdef HAS_GPIO
 	gpioSetMode(gpio_n, PI_INPUT);
 	gpioSetISRFuncEx(gpio_n, RISING_EDGE, 0, func, (void *)modem);
+#endif
 }
 
 void lora_remove_dioISR(int gpio_n){
+#ifdef HAS_GPIO
 	gpioSetISRFunc(gpio_n, RISING_EDGE, 0, NULL);
+#endif
 }
 
 void LoRa_send(LoRa_ctl *modem){
@@ -245,14 +255,17 @@ void txDoneISRf(int gpio_n, int level, uint32_t tick, void *modemptr){
 void * startTxCallback(void *arg){
 	LoRa_ctl *modem = (LoRa_ctl *)arg;
 
-	modem->tx.callback(&modem->tx.data);
+	if (modem->tx.callback)
+		modem->tx.callback(&modem->tx.data, modem);
 
 	return NULL;
 }
 
 void LoRa_end(LoRa_ctl *modem){
 	LoRa_stop_receive(modem);
+#ifdef HAS_GPIO
 	spiClose(modem->spid);
+#endif
 	modem->spid =-1;
 }
 
@@ -400,11 +413,15 @@ void lora_set_payload(int spid, unsigned char payload){
 }
 
 void lora_reset(unsigned char gpio_n){
+#ifdef HAS_GPIO
 	gpioSetMode(gpio_n, PI_OUTPUT);
 	gpioWrite(gpio_n, 0);
 	usleep(100);
 	gpioWrite(gpio_n, 1);
 	usleep(5000);
+#else
+	usleep(5100);
+#endif
 }
 
 void lora_reset_irq_flags(int spid){
@@ -412,6 +429,7 @@ void lora_reset_irq_flags(int spid){
 }
 
 unsigned char lora_reg_read_byte(int spid, unsigned char reg){
+#ifdef HAS_GPIO
 	int ret;
 	char rx[2], tx[2];
 	tx[0]=reg;
@@ -428,9 +446,13 @@ unsigned char lora_reg_read_byte(int spid, unsigned char reg){
 		return -1;
 
 	return rx[1];
+#else
+	return 0;
+#endif
 }
 
 int lora_reg_write_byte(int spid, unsigned char reg, unsigned char byte){
+#ifdef HAS_GPIO
 	char rx[2], tx[2];
 	tx[0]=(reg | 0x80);
 	tx[1]=byte;
@@ -439,9 +461,13 @@ int lora_reg_write_byte(int spid, unsigned char reg, unsigned char byte){
 	rx[1]=0x00;
 
 	return spiXfer(spid, tx, rx, 2);
+#else
+	return 0;
+#endif
 }
 
 int lora_reg_read_bytes(int spid, unsigned char reg, char *buff, unsigned char size){
+#ifdef HAS_GPIO
 	int ret;
 	char tx[257];
 	char rx[257];
@@ -453,9 +479,13 @@ int lora_reg_read_bytes(int spid, unsigned char reg, char *buff, unsigned char s
 	ret = spiXfer(spid, tx, rx, size+1);
 	memcpy(buff, &rx[1], ret-1);
 	return ret;
+#else
+	return 0;
+#endif
 }
 
 int lora_reg_write_bytes(int spid, unsigned char reg, char *buff, unsigned char size){
+#ifdef HAS_GPIO
 	char tx[257];
 	char rx[257];
 	memset(tx, '\0', 257);
@@ -464,6 +494,9 @@ int lora_reg_write_bytes(int spid, unsigned char reg, char *buff, unsigned char 
 	tx[0]=(reg | 0x80);
 	memcpy(&tx[1], buff, size);
 	return spiXfer(spid, tx, rx, size+1);
+#else
+	return 0;
+#endif
 }
 
 unsigned char LoRa_get_op_mode(LoRa_ctl *modem){

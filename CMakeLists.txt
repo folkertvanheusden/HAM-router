@@ -13,12 +13,27 @@ set(CMAKE_BUILD_TYPE Debug)
 add_compile_options(-Wall -pedantic)
 
 add_executable(lora-aprs-gw
-	aprs-si.cpp
+	ax25.cpp
+	configuration.cpp
+	crc_32.c
+	crc_ppp.cpp
+	hashing.cpp
+	random.cpp
+	rate-limiter.cpp
+	seen.cpp
+	str.cpp
+	switchboard.cpp
+	time.cpp
+	tranceiver.cpp
+	tranceiver-aprs-si.cpp
+	tranceiver-axudp.cpp
+	tranceiver-beacon.cpp
+	tranceiver-kiss.cpp
+	tranceiver-lora-sx1278.cpp
 	db.cpp
 	error.cpp
 	gateway.cpp
 	gps.cpp
-	kiss.cpp
 	log.cpp
 	net.cpp
 	snmp-data.cpp
@@ -38,7 +53,19 @@ target_link_libraries(lora-aprs-gw Threads::Threads)
 
 target_link_libraries(lora-aprs-gw -lrt)
 
+if (EXISTS "/usr/include/pigpio.h")
+	target_link_libraries(lora-aprs-gw -lax25 -lmysqlcppconn -lpigpio -lutil)
+	add_definitions(-DHAS_GPIO)
+else()
+	target_link_libraries(lora-aprs-gw -lax25 -lmysqlcppconn -lutil)
+endif()
+
 include(FindPkgConfig)
+
+pkg_check_modules(CFG REQUIRED libconfig++)
+target_link_libraries(lora-aprs-gw ${CFG_LIBRARIES})
+target_include_directories(lora-aprs-gw PUBLIC ${CFG_INCLUDE_DIRS})
+target_compile_options(lora-aprs-gw PUBLIC ${CFG_CFLAGS_OTHER})
 
 pkg_check_modules(INIH REQUIRED inih)
 target_link_libraries(lora-aprs-gw ${INIH_LIBRARIES})
@@ -64,5 +91,3 @@ pkg_check_modules(WEBSOCKETS REQUIRED libwebsockets)
 target_link_libraries(lora-aprs-gw ${WEBSOCKETS_LIBRARIES})
 target_include_directories(lora-aprs-gw PUBLIC ${WEBSOCKETS_INCLUDE_DIRS})
 target_compile_options(lora-aprs-gw PUBLIC ${WEBSOCKETS_CFLAGS_OTHER})
-
-target_link_libraries(lora-aprs-gw -lax25 -lmysqlcppconn -lpigpio -lutil)

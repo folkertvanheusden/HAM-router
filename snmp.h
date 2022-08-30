@@ -27,9 +27,10 @@ class snmp
 private:
 	snmp_data *const sd;
 	stats     *const s;
-	const int        port { 161 };
+	const int        port      { 161     };
 
-	std::thread     *th { nullptr };
+	std::thread     *th        { nullptr };
+	std::atomic_bool terminate { false   };
 
 	bool process_BER(const uint8_t *p, const size_t len, oid_req_t *const oids_req, const bool is_getnext, const int is_top);
 	uint64_t get_INTEGER(const uint8_t *p, const size_t len);

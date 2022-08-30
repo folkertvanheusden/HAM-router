@@ -6,7 +6,7 @@
 
 #include "error.h"
 #include "log.h"
-#include "utils.h"
+#include "time.h"
 #include "websockets.h"
 
 static std::atomic_bool  ws_terminate { false };
@@ -54,7 +54,7 @@ static int callback_ws(struct lws *wsi, lws_callback_reasons reason, void *user,
 				free(buf);
 			}
 
-			usleep(251000);
+			usleep(END_CHECK_INTERVAL_us);
 
 			lws_callback_on_writable(wsi);
 		}

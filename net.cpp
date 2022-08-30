@@ -12,6 +12,7 @@
 #include <sys/types.h>
 
 #include "error.h"
+#include "log.h"
 #include "net.h"
 
 void set_nodelay(int fd)
@@ -79,31 +80,46 @@ int connect_to(const char *host, const int portnr)
         return -1;
 }
 
-void transmit_udp(const std::string & host, const int portnr, const uint8_t *const data, const size_t data_len)
+bool transmit_udp(const std::string & dest, const uint8_t *const data, const size_t data_len)
 {
-        struct addrinfo hints = { 0 };
-        hints.ai_family = AF_UNSPEC;    // Allow IPv4 or IPv6
-        hints.ai_socktype = SOCK_DGRAM;
-        hints.ai_flags = AI_PASSIVE;    // For wildcard IP address
-        hints.ai_protocol = 0;          // Any protocol
+        struct addrinfo hints { 0 };
+        hints.ai_family    = AF_UNSPEC;    // Allow IPv4 or IPv6
+        hints.ai_socktype  = SOCK_DGRAM;
+        hints.ai_flags     = AI_PASSIVE;    // For wildcard IP address
+        hints.ai_protocol  = 0;          // Any protocol
         hints.ai_canonname = nullptr;
-        hints.ai_addr = nullptr;
-        hints.ai_next = nullptr;
+        hints.ai_addr      = nullptr;
+        hints.ai_next      = nullptr;
 
-        char portnr_str[8] = { 0 };
-        snprintf(portnr_str, sizeof portnr_str, "%d", portnr);
+	std::size_t colon = dest.find(":");
+	if (colon == std::string::npos) {
+                log(LL_ERR, "Port number missing (%s)", dest.c_str());
+
+		return false;
+	}
+
+	std::string portnr = dest.substr(colon + 1);
+
+	std::string host   = dest.substr(0, colon);
 
         struct addrinfo *result = nullptr;
-        int rc = getaddrinfo(host.c_str(), portnr_str, &hints, &result);
-        if (rc != 0)
-                error_exit(false, "Problem resolving %s: %s\n", host, gai_strerror(rc));
+        int rc = getaddrinfo(host.c_str(), portnr.c_str(), &hints, &result);
+        if (rc != 0) {
+                log(LL_WARNING, "Problem resolving %s: %s", host, gai_strerror(rc));
+
+		return false;
+	}
 
         for(struct addrinfo *rp = result; rp != nullptr; rp = rp->ai_next) {
                 int fd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
                 if (fd == -1)
                         continue;
 
-		sendto(fd, data, data_len, 0, rp->ai_addr, rp->ai_addrlen);
+		if (sendto(fd, data, data_len, 0, rp->ai_addr, rp->ai_addrlen) != ssize_t(data_len)) {
+			close(fd);
+
+			return false;
+		}
 
 		close(fd);
 
@@ -111,6 +127,8 @@ void transmit_udp(const std::string & host, const int portnr, const uint8_t *con
         }
 
         freeaddrinfo(result);
+
+	return true;
 }
 
 void startiface(const char *dev)
