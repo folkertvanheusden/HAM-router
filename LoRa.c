@@ -55,6 +55,8 @@ int LoRa_begin(LoRa_ctl *modem) {
 	lora_reg_write_byte(modem->spid, REG_DETECTION_THRESHOLD, 0x0a);//DetectionThreshold for SF > 6
 
 	lora_set_freq(modem->spid, modem->eth.freq);
+#else
+	printf(" ***** LoRa library not active: no pigpio library found! *****\n");
 #endif
 	return modem->spid;
 }
