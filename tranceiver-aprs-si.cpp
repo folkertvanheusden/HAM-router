@@ -38,7 +38,7 @@ transmit_error_t tranceiver_aprs_si::put_message_low(const message & m)
 	if (content.second < 4)
 		return TE_hardware;
 
-	if (content.first[0] != '>' || content.first[1] != 0xff || content.first[2] != 0x01) {  // not an APRS packet?
+	if (content.first[0] != '<' || content.first[1] != 0xff || content.first[2] != 0x01) {  // not an APRS packet?
 		log(LL_DEBUG, "tranceiver_aprs_si::put_message_low(%s): not an APRS packet %s", m.get_id_short().c_str(), dump_hex(content.first, content.second).c_str());
 
 		return TE_ok;
