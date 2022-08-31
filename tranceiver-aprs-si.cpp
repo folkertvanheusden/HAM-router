@@ -58,7 +58,7 @@ transmit_error_t tranceiver_aprs_si::put_message_low(const message & m)
 		fd = connect_to("rotate.aprs2.net", 14580);
 
 		if (fd != -1) {
-			std::string login = "user " + aprs_user + " pass " + aprs_pass + " vers MyAprsGw softwarevers 0.1\r\n";
+			std::string login = "user " + aprs_user + " pass " + aprs_pass + " vers MyAprsGw softwarevers 0.2\r\n";
 
 			if (WRITE(fd, reinterpret_cast<const uint8_t *>(login.c_str()), login.size()) != ssize_t(login.size())) {
 				close(fd);
