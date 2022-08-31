@@ -338,17 +338,21 @@ bool snmp::input(const int fd, const uint8_t *const data, const size_t data_len,
 
 	gen_reply(or_, &packet_out, &output_size);
 
+	bool ok = true;
+
 	if (output_size) {
 		// log(LL_DEBUG_VERBOSE, "SNMP: sending reply of %zu bytes to [%s]:%d", output_size, src_ip.to_str().c_str(), src_port);
 
-		sendto(fd, packet_out, output_size, 0, a, a_len);
+		if (sendto(fd, packet_out, output_size, 0, a, a_len) == -1)
+			ok = false;
 
 		free(packet_out);
-
-		return true;
+	}
+	else {
+		ok = false;
 	}
 
-	return false;
+	return ok;
 }
 
 void snmp::operator()()

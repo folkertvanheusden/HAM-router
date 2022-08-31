@@ -137,6 +137,10 @@ void startiface(const char *dev)
 		error_exit(true, "Cannot create (dummy) socket");
 
 	struct ifreq ifr { 0 };
+
+	if (strlen(dev) >= sizeof ifr.ifr_name)
+		error_exit(false, "Network device name too long");
+
 	strncpy(ifr.ifr_name, dev, sizeof ifr.ifr_name);
 	ifr.ifr_mtu = MAX_PACKET_SIZE;
 
