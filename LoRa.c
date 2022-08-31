@@ -124,7 +124,6 @@ void lora_set_dio_tx_mapping(int spid){
 
 void lora_set_rxdone_dioISR(int gpio_n, rxDoneISR func, LoRa_ctl *modem){
 #ifdef HAS_GPIO
-	printf("%d %p %p\n", gpio_n, func, modem);
 	gpioSetMode(gpio_n, PI_INPUT);
 	gpioSetISRFuncEx(gpio_n, RISING_EDGE, 0, func, (void *)modem);
 #endif
