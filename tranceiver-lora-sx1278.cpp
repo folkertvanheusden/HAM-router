@@ -34,7 +34,8 @@ void * rx_f(void *in)
 			reinterpret_cast<uint8_t *>(rx->buf),
 			rx->size);
 
-	log(LL_DEBUG, "LoRa-sx1278 rx(%s): %s", m.get_id_short().c_str(), dump_replace(reinterpret_cast<uint8_t *>(rx->buf), rx->size).c_str());
+	log(LL_DEBUG, "LoRa-sx1278 rx(%s): %s (ascii)", m.get_id_short().c_str(), dump_replace(reinterpret_cast<uint8_t *>(rx->buf), rx->size).c_str());
+	log(LL_DEBUG, "LoRa-sx1278 rx(%s): %s (hex)",   m.get_id_short().c_str(), dump_hex    (reinterpret_cast<uint8_t *>(rx->buf), rx->size).c_str());
 
 	t->queue_incoming_message(m);
 
