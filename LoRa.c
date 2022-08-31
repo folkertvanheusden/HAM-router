@@ -430,7 +430,7 @@ void lora_reset_irq_flags(int spid){
 	lora_reg_write_byte(spid, REG_IRQ_FLAGS, 0xff);
 }
 
-unsigned char lora_reg_read_byte(int spid, unsigned char reg){
+int char lora_reg_read_byte(int spid, unsigned char reg){
 #ifdef HAS_GPIO
 	int ret;
 	char rx[2], tx[2];
