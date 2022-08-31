@@ -451,7 +451,6 @@ void lora_set_payload(int spid, unsigned char payload){
 
 void lora_reset(unsigned char gpio_n){
 #ifdef HAS_GPIO
-	checkPigpioRc(gpioSetPullUpDown(17, PI_PUD_UP));
 	checkPigpioRc(gpioSetMode(gpio_n, PI_OUTPUT));
 	checkPigpioRc(gpioWrite(gpio_n, 0));
 	usleep(100);
