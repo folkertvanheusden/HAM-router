@@ -31,7 +31,7 @@ void * rx_f(void *in)
 			myformat("LoRa-sx1278(%s)", t->get_id().c_str()),
 			msg_id,
 			true,
-			rx->at.Tpkt,
+			rx->Tpkt,
 			reinterpret_cast<uint8_t *>(rx->buf),
 			rx->size);
 
@@ -76,7 +76,7 @@ transmit_error_t tranceiver_lora_sx1278::put_message_low(const message & m)
 	while(LoRa_get_op_mode(&modem) != STDBY_MODE && !terminate)
 		usleep(101000);
 
-	log(LL_DEBUG, "tranceiver_lora_sx1278::put_message_low(%s): time on air data - Tsym: %f; Tpkt: %f; payloadSymbNb: %u", m.get_id_short().c_str(), modem.tx.data.at.Tsym, modem.tx.data.at.Tpkt, modem.tx.data.at.payloadSymbNb);
+	log(LL_DEBUG, "tranceiver_lora_sx1278::put_message_low(%s): time on air data - Tsym: %f; Tpkt: %f; payloadSymbNb: %u", m.get_id_short().c_str(), modem.tx.data.Tsym, modem.tx.data.Tpkt, modem.tx.data.payloadSymbNb);
 	// TODO: calculate overhead by measuring how long this routine took
 
 	LoRa_receive(&modem);

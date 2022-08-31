@@ -143,18 +143,14 @@ typedef struct{
     _Bool CRC;//1 - add CRC data and checking. 0 - remove CRC data and checking
 } Modem_cfg;
 
-typedef struct {
-    double Tsym;
-    double Tpkt;
-    unsigned payloadSymbNb;
-} airTime;
-
 typedef struct{
     char buf[257];
     unsigned char size;//Size of buffer. Used in Explicit header mode. 255 MAX size
     struct timeval last_time;
+    double Tsym;
+    double Tpkt;
+    unsigned payloadSymbNb;
     void *userPtr;//user pointer passing to user callback
-    airTime at;
 } txData;
 
 typedef void (*UserTxDoneCallback)(txData *tx, void *user);
@@ -163,7 +159,6 @@ typedef struct{
     txData data;
     UserTxDoneCallback callback;
     pthread_t cbThread;
-    void *user;
 } LoRa_Tx;
 
 typedef void (*txDoneISR)(int gpio_n, int level, uint32_t tick, void *userdata);
@@ -175,8 +170,9 @@ typedef struct{
     float SNR;
     int RSSI;
     _Bool CRC;
+    double Tsym;
+    double Tpkt;
     void *userPtr;//user pointer passing to user callback
-    airTime at;
 } rxData;
 
 typedef void * (*UserRxDoneCallback)(void *rx);
@@ -200,7 +196,7 @@ typedef struct {
 int LoRa_begin(LoRa_ctl *modem);
 void LoRa_send(LoRa_ctl *modem);//After sending auto switches to standby mode.
 void LoRa_receive(LoRa_ctl *modem);//Continuous mode. You have to manually stop receiving if you want to. For example you can do it in callback right after catching packet.
-void LoRa_calculate_packet_t(LoRa_ctl *modem, airTime *at);
+void LoRa_calculate_packet_t(LoRa_ctl *modem);
 _Bool LoRa_check_conn(LoRa_ctl *modem);
 void LoRa_end(LoRa_ctl *modem);
 void LoRa_stop_receive(LoRa_ctl *modem);
@@ -250,3 +246,4 @@ void lora_set_lna(int spid, LnaGain lnaGain, _Bool lnaBoost);
 void lora_set_ocp(int spid, unsigned char OCP);
 void lora_set_implicit_header(int spid);
 void lora_set_explicit_header(int spid);
+void lora_set_rx_airtime(LoRa_ctl *modem, int payload);

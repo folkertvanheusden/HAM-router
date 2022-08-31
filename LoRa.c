@@ -4,6 +4,8 @@
 
 #include "LoRa.h"
 
+static const unsigned BW_VAL[10] = {7800, 10400, 15600, 20800, 31250, 41700, 62500, 125000, 250000, 500000};
+
 int LoRa_begin(LoRa_ctl *modem) {
 #ifdef HAS_GPIO
 	int cfg = gpioCfgGetInternals();
@@ -122,6 +124,7 @@ void lora_set_dio_tx_mapping(int spid){
 
 void lora_set_rxdone_dioISR(int gpio_n, rxDoneISR func, LoRa_ctl *modem){
 #ifdef HAS_GPIO
+	printf("%d %p %p\n", gpio_n, func, modem);
 	gpioSetMode(gpio_n, PI_INPUT);
 	gpioSetISRFuncEx(gpio_n, RISING_EDGE, 0, func, (void *)modem);
 #endif
@@ -144,7 +147,7 @@ void LoRa_send(LoRa_ctl *modem){
 	if(lora_get_op_mode(modem->spid) != STDBY_MODE){
 		lora_set_satandby_mode(modem->spid);
 	}
-	LoRa_calculate_packet_t(modem, &modem->tx.data.at);
+	LoRa_calculate_packet_t(modem);
 	if(modem->eth.lowDataRateOptimize){
 		lora_set_lowdatarateoptimize_on(modem->spid);
 	}
@@ -165,6 +168,8 @@ void LoRa_send(LoRa_ctl *modem){
 }
 
 void LoRa_receive(LoRa_ctl *modem){
+
+	LoRa_calculate_packet_t(modem);
 	if(modem->eth.lowDataRateOptimize){
 		lora_set_lowdatarateoptimize_on(modem->spid);
 	}
@@ -204,7 +209,10 @@ void rxDoneISRf(int gpio_n, int level, uint32_t tick, void *modemptr){
 	LoRa_ctl *modem = (LoRa_ctl *)modemptr;
 	unsigned char rx_nb_bytes;
 
+	printf(" *** HIER ***\n");
+
 	if(lora_reg_read_byte(modem->spid, REG_IRQ_FLAGS) & IRQ_RXDONE){
+	printf(" *** DAAR ***\n");
 		lora_reg_write_byte(modem->spid, REG_FIFO_ADDR_PTR, lora_reg_read_byte(modem->spid, REG_FIFO_RX_CURRENT_ADDR));
 
 		gettimeofday(&modem->rx.data.last_time, NULL);
@@ -226,13 +234,15 @@ void rxDoneISRf(int gpio_n, int level, uint32_t tick, void *modemptr){
 		lora_get_snr(modem);
 		lora_reset_irq_flags(modem->spid);
 
-		if (modem->rx.data.size > 0) {
-			LoRa_calculate_packet_t(modem, &modem->rx.data.at);
+		lora_set_rx_airtime(modem, modem->rx.data.size);
 
+		if (modem->rx.data.size > 0) {
+	printf(" *** HUP ***\n");
 			rxData *temp = (rxData *)malloc(sizeof(modem->rx.data));
 
 			if (!temp)
 				return;
+	printf(" *** HOP ***\n");
 
 			memcpy(temp, &modem->rx.data, sizeof(modem->rx.data));
 
@@ -286,9 +296,7 @@ unsigned char lora_get_op_mode(int spid){
 }
 
 // using same parameters for received packets
-void LoRa_calculate_packet_t(LoRa_ctl *modem, airTime *at){
-	unsigned BW_VAL[10] = {7800, 10400, 15600, 20800, 31250, 41700, 62500, 125000, 250000, 500000};
-
+void LoRa_calculate_packet_t(LoRa_ctl *modem){
 	double Tsym, Tpreamle, Tpayload, Tpacket;
 	unsigned payloadSymbNb;
 	int tmpPoly;
@@ -316,9 +324,31 @@ void LoRa_calculate_packet_t(LoRa_ctl *modem, airTime *at){
 	Tpayload = payloadSymbNb*Tsym;
 	Tpacket = Tpayload+Tpreamle;
 
-	at->Tsym = Tsym;
-	at->Tpkt = Tpacket;
-	at->payloadSymbNb = payloadSymbNb;
+	modem->tx.data.Tsym = Tsym;
+	modem->tx.data.Tpkt = Tpacket;
+	modem->tx.data.payloadSymbNb = payloadSymbNb;
+}
+
+void lora_set_rx_airtime(LoRa_ctl *modem, int payload){
+	unsigned bw = BW_VAL[(modem->eth.bw>>4)];
+	unsigned sf = modem->eth.sf>>4;
+	unsigned char ecr = 4+(modem->eth.ecr/2);
+
+	double Tsym = (pow(2, sf)/bw)*1000;
+	double payloadSymbNb, Tpayload, Tpacket;
+
+	double Tpreamle = (modem->eth.preambleLen+4.25)*Tsym;
+
+	int tmpPoly = (8*payload - 4*sf + 28 + 16 - 20*modem->eth.implicitHeader);
+	if(tmpPoly<0){
+		tmpPoly=0;
+	}
+
+	payloadSymbNb = 8+ceil(((double)tmpPoly)/(4*(sf - 2*modem->eth.lowDataRateOptimize)))*ecr;
+	Tpayload = payloadSymbNb*Tsym;
+	Tpacket = Tpayload+Tpreamle;
+
+	modem->rx.data.Tpkt = Tpacket;
 }
 
 void lora_set_addr_ptr(int spid, unsigned char addr){
