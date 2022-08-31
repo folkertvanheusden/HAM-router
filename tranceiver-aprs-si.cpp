@@ -35,7 +35,7 @@ transmit_error_t tranceiver_aprs_si::put_message_low(const message & m)
 {
 	auto content = m.get_content();
 
-	if (content.second < 4)
+	if (content.second < 5)
 		return TE_hardware;
 
 	if (content.first[0] != '<' || content.first[1] != 0xff || content.first[2] != 0x01) {  // not an APRS packet?
@@ -54,7 +54,7 @@ transmit_error_t tranceiver_aprs_si::put_message_low(const message & m)
 		return TE_ratelimiting;
 	}
 
-	std::string content_out = reinterpret_cast<const char *>(&content.first[3]);  // for OE_ only
+	std::string content_out = std::string(&reinterpret_cast<const char *>(content.first)[3], content.second - 3);  // for OE_ only
 
 	std::size_t gt = content_out.find('>');
 
