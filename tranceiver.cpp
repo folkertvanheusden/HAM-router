@@ -123,14 +123,14 @@ transmit_error_t tranceiver::put_message(const message & m)
 	return put_message_low(m);
 }
 
-tranceiver *tranceiver::instantiate(const libconfig::Setting & node, work_queue_t *const w)
+tranceiver *tranceiver::instantiate(const libconfig::Setting & node, work_queue_t *const w, stats *const st, int device_nr)
 {
 	std::string type = node.lookup("type").c_str();
 
 	tranceiver *t = nullptr;
 
 	if (type == "aprs-si") {
-		t = tranceiver_aprs_si::instantiate(node, w);
+		t = tranceiver_aprs_si::instantiate(node, w, st, device_nr);
 	}
 	else if (type == "kiss") {
 		t = tranceiver_kiss::instantiate(node, w);

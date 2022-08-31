@@ -44,10 +44,48 @@ transmit_error_t tranceiver_aprs_si::put_message_low(const message & m)
 		return TE_ok;
 	}
 
+	stats_inc_counter(cnt_frame_aprs);
+
 	if (s->check(content.first, content.second) == false) {
 		log(LL_DEBUG_VERBOSE, "tranceiver_aprs_si::put_message_low(%s): denied by rate limiter", m.get_id_short().c_str());
 
+		stats_inc_counter(cnt_frame_aprs_rate_limited);
+
 		return TE_ratelimiting;
+	}
+
+	std::string content_out = reinterpret_cast<const char *>(&content.first[3]);  // for OE_ only
+
+	std::size_t gt = content_out.find('>');
+
+	if (gt != std::string::npos) {
+		std::string from;
+		std::string to;
+
+		std::size_t colon = content_out.find(':', gt);
+
+		if (colon != std::string::npos) {
+			std::string to_full = content_out.substr(gt + 1, colon - gt - 1);
+
+			std::size_t delimiter = to_full.find(',');
+
+			if (delimiter != std::string::npos)
+				to = to_full.substr(0, delimiter);
+			else
+				to = to_full;
+
+			from    = content_out.substr(0, gt);
+
+			content_out = from + ">" + to_full + ",qAO," + local_callsign + content_out.substr(colon);
+		}
+		else {
+			stats_inc_counter(cnt_aprs_invalid);
+		}
+
+		log(LL_DEBUG_VERBOSE, "tranceiver_aprs_si::put_message_low(%s): %s => %s", m.get_id_short().c_str(), from.c_str(), to.c_str());
+	}
+	else {
+		stats_inc_counter(cnt_aprs_invalid);
 	}
 
 	std::unique_lock<std::mutex> lck(lock);
@@ -100,12 +138,17 @@ transmit_error_t tranceiver_aprs_si::put_message_low(const message & m)
 	return fd != -1 ? TE_ok : TE_hardware;
 }
 
-tranceiver_aprs_si::tranceiver_aprs_si(const std::string & id, seen *const s, work_queue_t *const w, const std::string & aprs_user, const std::string & aprs_pass) :
+tranceiver_aprs_si::tranceiver_aprs_si(const std::string & id, seen *const s, work_queue_t *const w, const std::string & aprs_user, const std::string & aprs_pass, const std::string & local_callsign, stats *const st, int device_nr) :
 	tranceiver(id, s, w),
 	aprs_user(aprs_user),
-	aprs_pass(aprs_pass)
+	aprs_pass(aprs_pass),
+	local_callsign(local_callsign)
 {
 	log(LL_INFO, "Instantiated APRS-SI (%s)", id.c_str());
+
+        cnt_frame_aprs              = st->register_stat(myformat("%s-aprs-frames",              get_id().c_str()), myformat("1.3.6.1.2.1.4.57850.2.4.%zu.1", device_nr), snmp_integer::si_counter64);
+        cnt_frame_aprs_rate_limited = st->register_stat(myformat("%s-aprs-frames-rate-limited", get_id().c_str()), myformat("1.3.6.1.2.1.4.57850.2.4.%zu.2", device_nr), snmp_integer::si_counter64);
+        cnt_aprs_invalid            = st->register_stat(myformat("%s-aprs-frames-invalid",      get_id().c_str()), myformat("1.3.6.1.2.1.4.57850.2.4.%zu.3", device_nr), snmp_integer::si_counter64);
 }
 
 tranceiver_aprs_si::~tranceiver_aprs_si()
@@ -119,12 +162,13 @@ void tranceiver_aprs_si::operator()()
 	// no-op
 }
 
-tranceiver *tranceiver_aprs_si::instantiate(const libconfig::Setting & node_in, work_queue_t *const w)
+tranceiver *tranceiver_aprs_si::instantiate(const libconfig::Setting & node_in, work_queue_t *const w, stats *const st, int device_nr)
 {
 	std::string  id;
 	seen        *s = nullptr;
 	std::string  aprs_user;
 	std::string  aprs_pass;
+	std::string  local_callsign;
 
         for(int i=0; i<node_in.getLength(); i++) {
                 const libconfig::Setting & node = node_in[i];
@@ -139,6 +183,8 @@ tranceiver *tranceiver_aprs_si::instantiate(const libconfig::Setting & node_in, 
 			aprs_pass = node_in.lookup(type).c_str();
 		else if (type == "incoming-rate-limiting")
 			s = seen::instantiate(node);
+		else if (type == "local-callsign")
+			local_callsign = node_in.lookup(type).c_str();
 		else if (type != "type")
 			error_exit(false, "setting \"%s\" is now known", type.c_str());
         }
@@ -146,5 +192,8 @@ tranceiver *tranceiver_aprs_si::instantiate(const libconfig::Setting & node_in, 
 	if (aprs_user.empty())
 		error_exit(false, "No aprs-user selected");
 
-	return new tranceiver_aprs_si(id, s, w, aprs_user, aprs_pass);
+	if (local_callsign.empty())
+		error_exit(false, "No local callsign selected");
+
+	return new tranceiver_aprs_si(id, s, w, aprs_user, aprs_pass, local_callsign, st, device_nr);
 }

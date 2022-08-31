@@ -101,7 +101,7 @@ public:
 
 	transmit_error_t       put_message(const message & m);
 
-	static tranceiver *instantiate(const libconfig::Setting & node, work_queue_t *const w);
+	static tranceiver *instantiate(const libconfig::Setting & node, work_queue_t *const w, stats *const st, const int device_nr);
 
 	virtual void operator()() = 0;
 };
