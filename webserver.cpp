@@ -55,7 +55,7 @@ MHD_Result process_http_request(void *cls,
 	if (strcmp(url, "/") == 0) {
 		page += html_page_header;
 
-		page += "<p><a href=\"/follow.html\">follow packets as they arrive</a></p>\n";
+		page += "<p><a href=\"follow.html\">follow packets as they arrive</a></p>\n";
 
 		auto stats_snapshot = parameters.s->snapshot();
 
