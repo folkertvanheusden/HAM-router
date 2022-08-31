@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <errno.h>
 #include <optional>
 #include <string>
@@ -103,16 +104,17 @@ transmit_error_t tranceiver_aprs_si::put_message_low(const message & m)
 				fd = -1;
 				log(LL_WARNING, "Failed aprsi handshake (send)");
 			}
-
-			std::optional<std::string> reply = receive_string(fd);
-
-			if (reply.has_value() == false) {
-				log(LL_WARNING, "Failed aprsi handshake (receive)");
-				close(fd);
-				fd = -1;
-			}
 			else {
-				log(LL_DEBUG, "recv: %s", reply.value().c_str());
+				std::optional<std::string> reply = receive_string(fd);
+
+				if (reply.has_value() == false) {
+					log(LL_WARNING, "Failed aprsi handshake (receive)");
+					close(fd);
+					fd = -1;
+				}
+				else {
+					log(LL_DEBUG, "recv: %s", reply.value().c_str());
+				}
 			}
 		}
 		else {
@@ -181,12 +183,15 @@ tranceiver *tranceiver_aprs_si::instantiate(const libconfig::Setting & node_in, 
 			aprs_user = node_in.lookup(type).c_str();
 		else if (type == "aprs-pass")
 			aprs_pass = node_in.lookup(type).c_str();
-		else if (type == "incoming-rate-limiting")
+		else if (type == "incoming-rate-limiting") {
+			assert(s == nullptr);
 			s = seen::instantiate(node);
+		}
 		else if (type == "local-callsign")
 			local_callsign = node_in.lookup(type).c_str();
-		else if (type != "type")
+		else if (type != "type") {
 			error_exit(false, "setting \"%s\" is now known", type.c_str());
+		}
         }
 
 	if (aprs_user.empty())

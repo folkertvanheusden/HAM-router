@@ -100,11 +100,13 @@ int main(int argc, char *argv[])
 
 	configuration cfg(argc == 2 ? argv[1] : "gateway.cfg", &w, &sd, &st);
 
-	snmp          snmp_(&sd, &st, cfg.get_snmp_port());
+	snmp          *snmp_ = new snmp(&sd, &st, cfg.get_snmp_port());
 
-	std::thread *th = process(&cfg, &w, &snmp_);
+	std::thread *th = process(&cfg, &w, snmp_);
 	th->join();
 	delete th;
+
+	delete snmp_;
 
 	unsetlogfile();
 

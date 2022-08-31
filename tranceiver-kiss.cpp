@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <errno.h>
 #include <optional>
 #include <poll.h>
@@ -81,6 +82,9 @@ bool tranceiver_kiss::recv_mkiss(unsigned char **p, int *len, bool verbose)
 			(*p)[(*len)++] = buffer;
 		}
 	}
+
+	if (*len == 0)
+		ok = false;
 
 	if (ok)
 	{
@@ -166,6 +170,8 @@ bool tranceiver_kiss::send_mkiss(int channel, const unsigned char *p, const int 
 				continue;
 
 			log(LL_ERR, "failed writing to mkiss device");
+
+			free(out);
 
 			return false;
 		}
@@ -294,14 +300,17 @@ tranceiver *tranceiver_kiss::instantiate(const libconfig::Setting & node_in, wor
 
 		if (type == "id")
 			id = node_in.lookup(type).c_str();
-		else if (type == "incoming-rate-limiting")
+		else if (type == "incoming-rate-limiting") {
+			assert(s == nullptr);
 			s = seen::instantiate(node);
+		}
 		else if (type == "callsign")
 			callsign = node_in.lookup(type).c_str();
 		else if (type == "if-up")
 			if_up = node_in.lookup(type).c_str();
-		else if (type != "type")
+		else if (type != "type") {
 			error_exit(false, "setting \"%s\" is now known", type.c_str());
+		}
         }
 
 	if (callsign.empty())

@@ -47,7 +47,7 @@ public:
 	snmp(const snmp &) = delete;
 	virtual ~snmp();
 
-	void input(const int fd, const uint8_t *const data, const size_t data_len, const sockaddr *const a, const size_t a_len);
+	bool input(const int fd, const uint8_t *const data, const size_t data_len, const sockaddr *const a, const size_t a_len);
 
 	void operator()();
 };

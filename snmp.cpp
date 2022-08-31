@@ -322,7 +322,7 @@ void snmp::gen_reply(oid_req_t & oids_req, uint8_t **const packet_out, size_t *c
 	delete se;
 }
 
-void snmp::input(const int fd, const uint8_t *const data, const size_t data_len, const sockaddr *const a, const size_t a_len)
+bool snmp::input(const int fd, const uint8_t *const data, const size_t data_len, const sockaddr *const a, const size_t a_len)
 {
 //	log(LL_DEBUG_VERBOSE, "SNMP: request from [%s]:%d", src_ip.to_str().c_str(), src_port);
 
@@ -330,7 +330,7 @@ void snmp::input(const int fd, const uint8_t *const data, const size_t data_len,
 
 	if (!process_BER(data, data_len, &or_, false, 2)) {
                 log(LL_DEBUG_VERBOSE, "SNMP: failed processing request");
-                return;
+                return false;
 	}
 
 	uint8_t *packet_out = nullptr;
@@ -344,7 +344,11 @@ void snmp::input(const int fd, const uint8_t *const data, const size_t data_len,
 		sendto(fd, packet_out, output_size, 0, a, a_len);
 
 		free(packet_out);
+
+		return true;
 	}
+
+	return false;
 }
 
 void snmp::operator()()
@@ -387,7 +391,7 @@ void snmp::operator()()
 
 			int n = recvfrom(fd, buffer, sizeof buffer, 0, (sockaddr *)&clientaddr, &len);
 
-			if (n)
+			if (n > 0)
 				input(fd, reinterpret_cast<uint8_t *>(buffer), n, (const sockaddr *)&clientaddr, len);
                 }
                 catch(const std::exception& e) {

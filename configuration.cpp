@@ -61,6 +61,8 @@ configuration::~configuration()
 
 	for(auto t : tranceivers)
 		delete t;
+
+	delete running_since;
 }
 
 void configuration::load_tranceivers(const libconfig::Setting & node_in, work_queue_t *const w, snmp_data *const sd, stats *const st) {

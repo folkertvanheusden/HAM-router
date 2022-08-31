@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <errno.h>
 #include <optional>
 #include <string>
@@ -145,14 +146,17 @@ tranceiver *tranceiver_lora_sx1278::instantiate(const libconfig::Setting & node_
 
 		if (type == "id")
 			id = node_in.lookup(type).c_str();
-		else if (type == "incoming-rate-limiting")
+		else if (type == "incoming-rate-limiting") {
+			assert(s == nullptr);
 			s = seen::instantiate(node);
+		}
 		else if (type == "dio0-pin")
 			dio0_pin = node_in.lookup(type);
 		else if (type == "reset-pin")
 			reset_pin = node_in.lookup(type);
-		else if (type != "type")
+		else if (type != "type") {
 			error_exit(false, "setting \"%s\" is now known", type.c_str());
+		}
         }
 
 	return new tranceiver_lora_sx1278(id, s, w, dio0_pin, reset_pin);

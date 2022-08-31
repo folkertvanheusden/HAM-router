@@ -110,16 +110,15 @@ bool transmit_udp(const std::string & dest, const uint8_t *const data, const siz
 		return false;
 	}
 
+	bool ok = true;
+
         for(struct addrinfo *rp = result; rp != nullptr; rp = rp->ai_next) {
                 int fd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
                 if (fd == -1)
                         continue;
 
-		if (sendto(fd, data, data_len, 0, rp->ai_addr, rp->ai_addrlen) != ssize_t(data_len)) {
-			close(fd);
-
-			return false;
-		}
+		if (sendto(fd, data, data_len, 0, rp->ai_addr, rp->ai_addrlen) != ssize_t(data_len))
+			ok = false;
 
 		close(fd);
 
@@ -128,7 +127,7 @@ bool transmit_udp(const std::string & dest, const uint8_t *const data, const siz
 
         freeaddrinfo(result);
 
-	return true;
+	return ok;
 }
 
 void startiface(const char *dev)
@@ -137,8 +136,8 @@ void startiface(const char *dev)
 	if (fd == -1)
 		error_exit(true, "Cannot create (dummy) socket");
 
-	struct ifreq ifr;
-	strcpy(ifr.ifr_name, dev);
+	struct ifreq ifr { 0 };
+	strncpy(ifr.ifr_name, dev, sizeof ifr.ifr_name);
 	ifr.ifr_mtu = MAX_PACKET_SIZE;
 
 	if (ioctl(fd, SIOCSIFMTU, &ifr) == -1)
