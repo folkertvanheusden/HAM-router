@@ -218,7 +218,7 @@ void lora_set_freq(int spid, double freq);
 void lora_set_payload(int spid, unsigned char payload);
 void lora_reset(unsigned char gpio_n);
 void lora_reset_irq_flags(int spid);
-unsigned char lora_reg_read_byte(int spid, unsigned char reg);
+int lora_reg_read_byte(int spid, unsigned char reg);
 int lora_reg_write_byte(int spid, unsigned char reg, unsigned char byte);
 int lora_reg_read_bytes(int spid, unsigned char reg, char *buff, unsigned char size);
 int lora_reg_write_bytes(int spid, unsigned char reg, char *buff, unsigned char size);
