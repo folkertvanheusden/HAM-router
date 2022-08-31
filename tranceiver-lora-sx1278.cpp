@@ -56,7 +56,7 @@ transmit_error_t tranceiver_lora_sx1278::put_message_low(const message & m)
 
 	std::unique_lock<std::mutex> lck(lock);
 
-	log(LL_DEBUG, "tranceiver_lora_sx1278::put_message_low(%s): %s", m.get_id_short().c_str(), dump_replace(reinterpret_cast<const uint8_t *>(modem.tx.data.buf), content.second).c_str());
+	log(LL_DEBUG, "tranceiver_lora_sx1278::put_message_low(%s): %s", m.get_id_short().c_str(), dump_replace(reinterpret_cast<const uint8_t *>(content.first), content.second).c_str());
 
 	memcpy(modem.tx.data.buf, content.first, content.second);
 
@@ -65,13 +65,13 @@ transmit_error_t tranceiver_lora_sx1278::put_message_low(const message & m)
 	LoRa_stop_receive(&modem);  // manually stoping RxCont mode
 
 	// TODO: timeout
-	while(LoRa_get_op_mode(&modem) != STDBY_MODE)
+	while(LoRa_get_op_mode(&modem) != STDBY_MODE && !terminate)
 		usleep(101000);
 
 	LoRa_send(&modem);
 
 	// TODO: timeout
-	while(LoRa_get_op_mode(&modem) != STDBY_MODE)
+	while(LoRa_get_op_mode(&modem) != STDBY_MODE && !terminate)
 		usleep(101000);
 
 	log(LL_DEBUG, "tranceiver_lora_sx1278::put_message_low(%s): time on air data - Tsym: %f; Tpkt: %f; payloadSymbNb: %u", m.get_id_short().c_str(), modem.tx.data.at.Tsym, modem.tx.data.at.Tpkt, modem.tx.data.at.payloadSymbNb);
