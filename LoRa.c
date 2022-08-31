@@ -1,3 +1,4 @@
+#include <assert.h>
 #ifdef HAS_GPIO
 #include <pigpio.h>
 #endif
@@ -6,11 +7,22 @@
 
 static const unsigned BW_VAL[10] = {7800, 10400, 15600, 20800, 31250, 41700, 62500, 125000, 250000, 500000};
 
+void checkPigpioRc(int rc)
+{
+	assert(rc == 0);
+}
+
+void checkPigpioRcPos(int rc)
+{
+	assert(rc >= 0);
+}
+
 int LoRa_begin(LoRa_ctl *modem) {
 #ifdef HAS_GPIO
 	int cfg = gpioCfgGetInternals();
+	checkPigpioRc(cfg);
 	cfg |= PI_CFG_NOSIGHANDLER;  // (1<<10)
-	gpioCfgSetInternals(cfg);
+	checkPigpioRc(gpioCfgSetInternals(cfg));
 
 	if (gpioInitialise() < 0)
 	{
@@ -20,12 +32,12 @@ int LoRa_begin(LoRa_ctl *modem) {
 
 	lora_reset(modem->eth.resetGpioN);
 
-	if( (modem->spid = spiOpen(modem->spiCS, 32000, 0))<0 )
+	if ((modem->spid = spiOpen(modem->spiCS, 32000, 0)) < 0)
 		return modem->spid;
 
 	lora_set_lora_mode(modem->spid);
 
-	if(modem->eth.implicitHeader) {
+	if(modem->eth.implicitHeader){
 		lora_set_implicit_header(modem->spid);
 		lora_set_payload(modem->spid, modem->eth.payloadLen);
 	}
@@ -37,7 +49,7 @@ int LoRa_begin(LoRa_ctl *modem) {
 	lora_set_bandwidth(modem->spid, modem->eth.bw);
 	lora_set_sf(modem->spid, modem->eth.sf);
 
-	if(modem->eth.CRC) {
+	if(modem->eth.CRC){
 		lora_set_crc_on(modem->spid);
 	}
 	else{
@@ -124,21 +136,21 @@ void lora_set_dio_tx_mapping(int spid){
 
 void lora_set_rxdone_dioISR(int gpio_n, rxDoneISR func, LoRa_ctl *modem){
 #ifdef HAS_GPIO
-	gpioSetMode(gpio_n, PI_INPUT);
-	gpioSetISRFuncEx(gpio_n, RISING_EDGE, 0, func, (void *)modem);
+	checkPigpioRc(gpioSetMode(gpio_n, PI_INPUT));
+	checkPigpioRc(gpioSetISRFuncEx(gpio_n, RISING_EDGE, 1000, func, (void *)modem));
 #endif
 }
 
 void lora_set_txdone_dioISR(int gpio_n, txDoneISR func, LoRa_ctl *modem){
 #ifdef HAS_GPIO
-	gpioSetMode(gpio_n, PI_INPUT);
-	gpioSetISRFuncEx(gpio_n, RISING_EDGE, 0, func, (void *)modem);
+	checkPigpioRc(gpioSetMode(gpio_n, PI_INPUT));
+	checkPigpioRc(gpioSetISRFuncEx(gpio_n, RISING_EDGE, 1000, func, (void *)modem));
 #endif
 }
 
 void lora_remove_dioISR(int gpio_n){
 #ifdef HAS_GPIO
-	gpioSetISRFunc(gpio_n, RISING_EDGE, 0, NULL);
+	checkPigpioRc(gpioSetISRFunc(gpio_n, RISING_EDGE, 0, NULL));
 #endif
 }
 
@@ -208,10 +220,7 @@ void rxDoneISRf(int gpio_n, int level, uint32_t tick, void *modemptr){
 	LoRa_ctl *modem = (LoRa_ctl *)modemptr;
 	unsigned char rx_nb_bytes;
 
-	printf(" *** HIER ***\n");
-
 	if(lora_reg_read_byte(modem->spid, REG_IRQ_FLAGS) & IRQ_RXDONE){
-	printf(" *** DAAR ***\n");
 		lora_reg_write_byte(modem->spid, REG_FIFO_ADDR_PTR, lora_reg_read_byte(modem->spid, REG_FIFO_RX_CURRENT_ADDR));
 
 		gettimeofday(&modem->rx.data.last_time, NULL);
@@ -236,12 +245,9 @@ void rxDoneISRf(int gpio_n, int level, uint32_t tick, void *modemptr){
 		lora_set_rx_airtime(modem, modem->rx.data.size);
 
 		if (modem->rx.data.size > 0) {
-	printf(" *** HUP ***\n");
 			rxData *temp = (rxData *)malloc(sizeof(modem->rx.data));
-
 			if (!temp)
 				return;
-	printf(" *** HOP ***\n");
 
 			memcpy(temp, &modem->rx.data, sizeof(modem->rx.data));
 
@@ -445,10 +451,11 @@ void lora_set_payload(int spid, unsigned char payload){
 
 void lora_reset(unsigned char gpio_n){
 #ifdef HAS_GPIO
-	gpioSetMode(gpio_n, PI_OUTPUT);
-	gpioWrite(gpio_n, 0);
+	checkPigpioRc(gpioSetPullUpDown(17, PI_PUD_UP));
+	checkPigpioRc(gpioSetMode(gpio_n, PI_OUTPUT));
+	checkPigpioRc(gpioWrite(gpio_n, 0));
 	usleep(100);
-	gpioWrite(gpio_n, 1);
+	checkPigpioRc(gpioWrite(gpio_n, 1));
 	usleep(5000);
 #else
 	usleep(5100);
@@ -470,6 +477,7 @@ int lora_reg_read_byte(int spid, unsigned char reg){
 	rx[1]=0x00;
 
 	ret = spiXfer(spid, tx, rx, 2);
+	checkPigpioRcPos(ret);
 	if(ret<0)
 		return ret;
 
@@ -484,6 +492,7 @@ int lora_reg_read_byte(int spid, unsigned char reg){
 
 int lora_reg_write_byte(int spid, unsigned char reg, unsigned char byte){
 #ifdef HAS_GPIO
+	int ret = 0;
 	char rx[2], tx[2];
 	tx[0]=(reg | 0x80);
 	tx[1]=byte;
@@ -491,7 +500,9 @@ int lora_reg_write_byte(int spid, unsigned char reg, unsigned char byte){
 	rx[0]=0x00;
 	rx[1]=0x00;
 
-	return spiXfer(spid, tx, rx, 2);
+	ret = spiXfer(spid, tx, rx, 2);
+	checkPigpioRcPos(ret);
+	return ret;
 #else
 	return 0;
 #endif
@@ -509,6 +520,7 @@ int lora_reg_read_bytes(int spid, unsigned char reg, char *buff, unsigned char s
 	tx[0]=reg;
 	ret = spiXfer(spid, tx, rx, size+1);
 	memcpy(buff, &rx[1], ret-1);
+	checkPigpioRcPos(ret);
 	return ret;
 #else
 	return 0;
@@ -517,6 +529,7 @@ int lora_reg_read_bytes(int spid, unsigned char reg, char *buff, unsigned char s
 
 int lora_reg_write_bytes(int spid, unsigned char reg, char *buff, unsigned char size){
 #ifdef HAS_GPIO
+	int ret = 0;
 	char tx[257];
 	char rx[257];
 	memset(tx, '\0', 257);
@@ -524,7 +537,9 @@ int lora_reg_write_bytes(int spid, unsigned char reg, char *buff, unsigned char 
 
 	tx[0]=(reg | 0x80);
 	memcpy(&tx[1], buff, size);
-	return spiXfer(spid, tx, rx, size+1);
+	ret = spiXfer(spid, tx, rx, size+1);
+	checkPigpioRcPos(ret);
+	return ret;
 #else
 	return 0;
 #endif
