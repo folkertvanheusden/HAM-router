@@ -155,7 +155,7 @@ void configuration::load_webserver(const libconfig::Setting & node_in, stats *co
 {
 	int         http_port       = -1;
 	int         ws_port         = -1;
-	std::string ws_virtual_host;
+	std::string ws_url;
 	bool        ws_ssl_enabled  = false;
 	std::string ws_ssl_cert;
 	std::string ws_ssl_priv_key;
@@ -170,8 +170,8 @@ void configuration::load_webserver(const libconfig::Setting & node_in, stats *co
 			http_port = node_in.lookup(type);
 		else if (type == "websockets-port")
 			ws_port = node_in.lookup(type);
-		else if (type == "websockets-virtual-host")
-			ws_virtual_host = node_in.lookup(type).c_str();
+		else if (type == "websockets-url")
+			ws_url = node_in.lookup(type).c_str();
 		else if (type == "websockets-ssl-enabled")
 			ws_ssl_enabled = node_in.lookup(type);
 		else if (type == "websockets-ssl-certificate")
@@ -188,5 +188,5 @@ void configuration::load_webserver(const libconfig::Setting & node_in, stats *co
                 start_websocket_thread(ws_port, &ws, ws_ssl_enabled, ws_ssl_cert, ws_ssl_priv_key, ws_ssl_ca);
 
 	if (http_port != -1)
-		webserver = start_webserver(http_port, ws_virtual_host, ws_port, st, nullptr /* TODO */);
+		webserver = start_webserver(http_port, ws_url, ws_port, st, nullptr /* TODO */);
 }

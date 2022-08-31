@@ -113,7 +113,7 @@ MHD_Result process_http_request(void *cls,
 	return ret;
 }
 
-void * start_webserver(const int listen_port, const std::string & ws_virtual_host, const int ws_port, stats *const s, db *const d)
+void * start_webserver(const int listen_port, const std::string & ws_url_in, const int ws_port, stats *const s, db *const d)
 {
 	if (listen_port != -1) {
 		log(LL_INFO, "Starting webserver");
@@ -121,14 +121,20 @@ void * start_webserver(const int listen_port, const std::string & ws_virtual_hos
 		parameters.s = s;
 		parameters.d = d;
 
-		std::string ws_host = ws_virtual_host.empty() ? "' + location.hostname + '" : ws_virtual_host;
+		std::string ws_ssl_url = myformat("'wss://' + location.hostname + ':%d/'", ws_port);
+		std::string ws_url     = myformat("'ws://'  + location.hostname + ':%d/'", ws_port);
+
+		if (ws_url_in.empty() == false) {
+			ws_ssl_url = "'wss" + ws_url_in + "'";
+			ws_url     = "'ws"  + ws_url_in + "'";
+		}
 
 		websocket_receiver = myformat("<script>\n"
 				"function start() {\n"
 				"    if (location.protocol == 'https:')\n"
-				"        s = new WebSocket('wss://%s:%d/');\n"
+				"        s = new WebSocket(%s);\n"
 				"    else\n"
-				"        s = new WebSocket('ws://%s:%d/');\n"
+				"        s = new WebSocket(%s);\n"
 				"    s.onclose = function() { console.log('Websocket closed'); setTimeout(function(){ start(); }, 500); };\n"
 				"    s.onopen = function() { console.log('Websocket connected'); };\n"
 				"    s.onmessage = function (event) {\n"
@@ -145,7 +151,7 @@ void * start_webserver(const int listen_port, const std::string & ws_virtual_hos
 				"    };\n"
 				"};\n"
 				"document.addEventListener('DOMContentLoaded', function() { start(); });\n"
-				"</script>\n", ws_host.c_str(), ws_port, ws_host.c_str(), ws_port);
+				"</script>\n", ws_ssl_url.c_str(), ws_url.c_str());
 
 		d_proc = MHD_start_daemon(MHD_USE_THREAD_PER_CONNECTION,
 			       listen_port,
