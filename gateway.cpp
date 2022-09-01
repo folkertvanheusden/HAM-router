@@ -100,7 +100,7 @@ std::thread * process(configuration *const cfg, work_queue_t *const w, snmp *con
 
 			db *d = cfg->get_db();
 
-#ifdef HAVE_LIBMONGOCXX
+#if LIBMONGOCXX_FOUND == 1
 			if (d)
 				insert_into_database(d, m.value());
 #endif

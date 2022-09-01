@@ -1,5 +1,5 @@
 #include "config.h"
-#ifdef HAVE_LIBMONGOCXX
+#if LIBMONGOCXX_FOUND == 1
 #include <bsoncxx/builder/stream/document.hpp>
 #include <chrono>
 #include <mongocxx/client.hpp>

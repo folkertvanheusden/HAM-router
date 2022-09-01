@@ -1,5 +1,5 @@
 #include "config.h"
-#ifdef HAVE_LIBMONGOCXX
+#if LIBMONGOCXX_FOUND == 1
 #include <mongocxx/client.hpp>
 
 #include "db.h"
