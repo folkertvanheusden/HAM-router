@@ -30,6 +30,7 @@ add_executable(lora-aprs-gw
 	tranceiver-beacon.cpp
 	tranceiver-kiss.cpp
 	tranceiver-lora-sx1278.cpp
+	db.cpp
 	error.cpp
 	gateway.cpp
 	gps.cpp
@@ -53,10 +54,10 @@ target_link_libraries(lora-aprs-gw Threads::Threads)
 target_link_libraries(lora-aprs-gw -lrt)
 
 if (EXISTS "/usr/include/pigpio.h")
-	target_link_libraries(lora-aprs-gw -lax25 -lpigpio -lutil)
+	target_link_libraries(lora-aprs-gw -lax25 -lmysqlcppconn -lpigpio -lutil)
 	add_definitions(-DHAS_GPIO)
 else()
-	target_link_libraries(lora-aprs-gw -lax25 -lutil)
+	target_link_libraries(lora-aprs-gw -lax25 -lmysqlcppconn -lutil)
 endif()
 
 include(FindPkgConfig)
