@@ -1,10 +1,10 @@
 This gateway software can receive APRS and AX.25 over LoRa.
 It can also send AX.25 over LoRa.
 
-Packets can be logged as json via MQTT, WebSockets and syslog.
-Statistics of this server-program can be retreived via SNMP.
-APRS data can also be send to APRS-IS. It also has a simple
-web-interface.
+Packets can be logged as json via MQTT, WebSockets and syslog. They can
+also be stored in a (MySQL compatible-)database. Statistics of this
+server-program can be retreived via SNMP. APRS data can also be send to
+APRS-IS. It also has a simple web-interface.
 
 software requirements:
 * cmake
