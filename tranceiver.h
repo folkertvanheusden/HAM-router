@@ -9,6 +9,7 @@
 #include <string>
 #include <thread>
 
+#include "data.h"
 #include "seen.h"
 #include "stats.h"
 #include "work.h"
@@ -27,8 +28,7 @@ private:
 	const bool           from_rf;   // did it come from electromagnetic waves?
 	const int            air_time;  // in milliseconds
 
-	const uint8_t *const data;
-	const size_t         size;
+	const data           d;
 
 public:
 	message(const struct timeval tv, const std::string & source, const uint64_t msg_id, const bool from_rf, const int air_time, const uint8_t *const data, const size_t size);
@@ -47,13 +47,15 @@ public:
 
 	int            get_air_time()   const { return air_time; }
 
-	std::pair<const uint8_t *, size_t> get_content() const { return { data, size }; }
+	std::pair<const uint8_t *, size_t> get_content() const { return d.get_content(); }
 
-	const uint8_t *get_data()       const { return data;     }
+	const uint8_t *get_data()       const { return d.get_data(); }
 
-	size_t         get_size()       const { return size;     }
+	size_t         get_size()       const { return d.get_size(); }
 
-	std::string get_id_short()      const;
+	const data   & get_data_obj()   const { return d;            }
+
+	std::string    get_id_short()   const;
 };
 
 class tranceiver

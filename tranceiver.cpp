@@ -17,8 +17,7 @@ message::message(const struct timeval tv, const std::string & source, const uint
 	msg_id  (msg_id),
 	from_rf (from_rf),
 	air_time(air_time),
-	data(reinterpret_cast<uint8_t *>(duplicate(data, size))),
-	size    (size)
+	d       (reinterpret_cast<uint8_t *>(duplicate(data, size)), size)
 {
 }
 
@@ -28,14 +27,12 @@ message::message(const message & m) :
 	msg_id  (m.get_msg_id()),
 	from_rf (m.get_is_from_rf()),
 	air_time(m.get_air_time()),
-	data    (reinterpret_cast<uint8_t *>(duplicate(m.get_data(), m.get_size()))),
-	size    (m.get_size())
+	d       (m.get_data_obj())
 {
 }
 
 message::~message()
 {
-	free(const_cast<uint8_t *>(data));
 }
 
 std::string message::get_id_short() const
