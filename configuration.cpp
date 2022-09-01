@@ -197,6 +197,7 @@ void configuration::load_webserver(const libconfig::Setting & node_in, stats *co
 
 void configuration::load_database(const libconfig::Setting & node_in)
 {
+#if LIBMONGOCXX_FOUND == 1
 	std::string db_uri;
 	std::string db_database;
 	std::string db_collection;
@@ -224,4 +225,7 @@ void configuration::load_database(const libconfig::Setting & node_in)
 
 		d->init_database();
 	}
+#else
+	log(LL_ERR, "No MongoDB support compiled in!");
+#endif
 }
