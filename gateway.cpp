@@ -1,3 +1,4 @@
+#include "config.h"
 #include <assert.h>
 #include <atomic>
 #include <jansson.h>
@@ -99,8 +100,10 @@ std::thread * process(configuration *const cfg, work_queue_t *const w, snmp *con
 
 			db *d = cfg->get_db();
 
+#ifdef HAVE_LIBMONGOCXX
 			if (d)
 				insert_into_database(d, m.value());
+#endif
 
 			push_to_websockets(cfg->get_websockets_context(), m.value());
 		}

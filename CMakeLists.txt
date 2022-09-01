@@ -95,3 +95,6 @@ pkg_check_modules(WEBSOCKETS REQUIRED libwebsockets)
 target_link_libraries(lora-aprs-gw ${WEBSOCKETS_LIBRARIES})
 target_include_directories(lora-aprs-gw PUBLIC ${WEBSOCKETS_INCLUDE_DIRS})
 target_compile_options(lora-aprs-gw PUBLIC ${WEBSOCKETS_CFLAGS_OTHER})
+
+configure_file(config.h.in config.h)
+target_include_directories(lora-aprs-gw PUBLIC "${PROJECT_BINARY_DIR}")
