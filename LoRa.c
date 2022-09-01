@@ -137,14 +137,14 @@ void lora_set_dio_tx_mapping(int spid){
 void lora_set_rxdone_dioISR(int gpio_n, rxDoneISR func, LoRa_ctl *modem){
 #ifdef HAS_GPIO
 	checkPigpioRc(gpioSetMode(gpio_n, PI_INPUT));
-	checkPigpioRc(gpioSetISRFuncEx(gpio_n, RISING_EDGE, 1000, func, (void *)modem));
+	checkPigpioRc(gpioSetISRFuncEx(gpio_n, RISING_EDGE, 100 /* TODO */, func, (void *)modem));
 #endif
 }
 
 void lora_set_txdone_dioISR(int gpio_n, txDoneISR func, LoRa_ctl *modem){
 #ifdef HAS_GPIO
 	checkPigpioRc(gpioSetMode(gpio_n, PI_INPUT));
-	checkPigpioRc(gpioSetISRFuncEx(gpio_n, RISING_EDGE, 1000, func, (void *)modem));
+	checkPigpioRc(gpioSetISRFuncEx(gpio_n, RISING_EDGE, 100 /* TODO */, func, (void *)modem));
 #endif
 }
 
