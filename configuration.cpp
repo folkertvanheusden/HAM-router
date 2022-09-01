@@ -186,5 +186,5 @@ void configuration::load_webserver(const libconfig::Setting & node_in, stats *co
                 start_websocket_thread(ws_port, &ws, ws_ssl_enabled, ws_ssl_cert, ws_ssl_priv_key, ws_ssl_ca);
 
 	if (http_port != -1)
-		webserver = start_webserver(http_port, ws_url, ws_port, st, nullptr /* TODO */);
+		webserver = start_webserver(http_port, ws_url, ws_port, st);
 }

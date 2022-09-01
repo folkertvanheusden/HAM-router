@@ -2,10 +2,10 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "db.h"
 #include "log.h"
 #include "stats.h"
 #include "str.h"
+
 
 #if MHD_VERSION < 0x00097002
 // lgtm.com has a very old libmicrohttpd
@@ -16,7 +16,6 @@ static MHD_Daemon *d_proc { nullptr };
 
 struct {
 	stats *s;
-	db    *d;
 } parameters;
 
 const std::string html_page_header = "<!DOCTYPE html>"
@@ -68,28 +67,6 @@ MHD_Result process_http_request(void *cls,
 
 		page += "</table>";
 
-		if (parameters.d) {
-			page += "<h3>air time</h3>\n";
-
-			auto at_records = parameters.d->get_airtime_per_callsign();
-
-			page += "<table><tr>";
-			for(auto t : at_records.first)
-				page += "<th>" + t + "</th>";
-			page += "</tr>\n";
-
-			for(auto record : at_records.second) {
-				page += "<tr>";
-
-				for(auto col : record)
-					page += "<td>" + col + "</td>";
-
-				page += "</tr>\n";
-			}
-
-			page += "</table>";
-		}
-
 		page += html_page_footer;
 	}
 	else if (strcmp(url, "/follow.html") == 0) {
@@ -113,13 +90,12 @@ MHD_Result process_http_request(void *cls,
 	return ret;
 }
 
-void * start_webserver(const int listen_port, const std::string & ws_url_in, const int ws_port, stats *const s, db *const d)
+void * start_webserver(const int listen_port, const std::string & ws_url_in, const int ws_port, stats *const s)
 {
 	if (listen_port != -1) {
 		log(LL_INFO, "Starting webserver");
 
 		parameters.s = s;
-		parameters.d = d;
 
 		std::string ws_ssl_url = myformat("'wss://' + location.hostname + ':%d/'", ws_port);
 		std::string ws_url     = myformat("'ws://'  + location.hostname + ':%d/'", ws_port);
