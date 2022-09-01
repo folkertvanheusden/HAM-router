@@ -67,7 +67,7 @@ MHD_Result process_http_request(void *cls,
 			page += "<tr><td>" + pair.first + "</td><td>" + pair.second + "</td></tr>\n";
 
 		page += "</table>";
-
+#if 0
 		if (parameters.d) {
 			page += "<h3>air time</h3>\n";
 
@@ -89,7 +89,7 @@ MHD_Result process_http_request(void *cls,
 
 			page += "</table>";
 		}
-
+#endif
 		page += html_page_footer;
 	}
 	else if (strcmp(url, "/follow.html") == 0) {

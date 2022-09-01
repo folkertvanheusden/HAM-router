@@ -14,11 +14,17 @@ add_compile_options(-Wall -pedantic)
 
 add_executable(lora-aprs-gw
 	ax25.cpp
+	buffer.cpp
 	configuration.cpp
 	crc_32.c
 	crc_ppp.cpp
-	data.cpp
+	db.cpp
+	db-common.cpp
+	db-mongodb.cpp
+	error.cpp
+	gateway.cpp
 	hashing.cpp
+	message.cpp
 	random.cpp
 	rate-limiter.cpp
 	seen.cpp
@@ -31,9 +37,6 @@ add_executable(lora-aprs-gw
 	tranceiver-beacon.cpp
 	tranceiver-kiss.cpp
 	tranceiver-lora-sx1278.cpp
-	db.cpp
-	error.cpp
-	gateway.cpp
 	gps.cpp
 	log.cpp
 	net.cpp
@@ -62,6 +65,11 @@ else()
 endif()
 
 include(FindPkgConfig)
+
+pkg_check_modules(LIBMONGOCXX libmongocxx)
+target_link_libraries(lora-aprs-gw ${LIBMONGOCXX_LIBRARIES})
+target_include_directories(lora-aprs-gw PUBLIC ${LIBMONGOCXX_INCLUDE_DIRS})
+target_compile_options(lora-aprs-gw PUBLIC ${LIBMONGOCXX_CFLAGS_OTHER})
 
 pkg_check_modules(CFG REQUIRED libconfig++)
 target_link_libraries(lora-aprs-gw ${CFG_LIBRARIES})

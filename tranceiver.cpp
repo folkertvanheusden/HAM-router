@@ -1,5 +1,6 @@
 #include "error.h"
 #include "log.h"
+#include "log.h"
 #include "str.h"
 #include "time.h"
 #include "utils.h"
@@ -10,35 +11,6 @@
 #include "tranceiver-kiss.h"
 #include "tranceiver-lora-sx1278.h"
 
-
-message::message(const struct timeval tv, const std::string & source, const uint64_t msg_id, const bool from_rf, const int air_time, const uint8_t *const data, const size_t size) :
-	tv      (tv),
-	source  (source),
-	msg_id  (msg_id),
-	from_rf (from_rf),
-	air_time(air_time),
-	d       (reinterpret_cast<uint8_t *>(duplicate(data, size)), size)
-{
-}
-
-message::message(const message & m) :
-	tv      (m.get_tv()),
-	source  (m.get_source()),
-	msg_id  (m.get_msg_id()),
-	from_rf (m.get_is_from_rf()),
-	air_time(m.get_air_time()),
-	d       (m.get_data_obj())
-{
-}
-
-message::~message()
-{
-}
-
-std::string message::get_id_short() const
-{
-	return myformat("%08x", msg_id);
-}
 
 tranceiver::tranceiver(const std::string & id, seen *const s, work_queue_t *const w) :
 	id(id),
@@ -111,7 +83,7 @@ std::optional<message> tranceiver::get_message()
 
 transmit_error_t tranceiver::put_message(const message & m)
 {
-	size_t size = m.get_size();
+	size_t size = m.get_content().second;
 
 	stats_add_counter(ifOutOctets,   size);
 	stats_add_counter(ifHCOutOctets, size);

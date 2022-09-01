@@ -1,6 +1,7 @@
 #include <libconfig.h++>
 
 #include "configuration.h"
+#include "db-mongodb.h"
 #include "error.h"
 #include "log.h"
 #include "str.h"
@@ -23,6 +24,9 @@ configuration::configuration(const std::string & file, work_queue_t *const w, sn
 
 			if (node_name == "general") {
 				// TODO
+			}
+			else if (node_name == "database") {
+				load_database(node);
 			}
 			else if (node_name == "tranceivers") {
 				load_tranceivers(node, w, sd, st);
@@ -61,6 +65,8 @@ configuration::~configuration()
 
 	for(auto t : tranceivers)
 		delete t;
+
+	delete d;
 }
 
 void configuration::load_tranceivers(const libconfig::Setting & node_in, work_queue_t *const w, snmp_data *const sd, stats *const st) {
@@ -179,7 +185,7 @@ void configuration::load_webserver(const libconfig::Setting & node_in, stats *co
 		else if (type == "websockets-ssl-ca")
 			ws_ssl_ca = node_in.lookup(type).c_str();
 		else
-			error_exit(false, "SNMP setting \"%s\" is now known", type.c_str());
+			error_exit(false, "Webserver setting \"%s\" is now known", type.c_str());
         }
 
 	if (ws_port != -1)
@@ -187,4 +193,35 @@ void configuration::load_webserver(const libconfig::Setting & node_in, stats *co
 
 	if (http_port != -1)
 		webserver = start_webserver(http_port, ws_url, ws_port, st, nullptr /* TODO */);
+}
+
+void configuration::load_database(const libconfig::Setting & node_in)
+{
+	std::string db_uri;
+	std::string db_database;
+	std::string db_collection;
+
+        for(int i=0; i<node_in.getLength(); i++) {
+                const libconfig::Setting & node = node_in[i];
+
+		std::string type = node.getName();
+
+		if (type == "uri")
+			db_uri = node_in.lookup(type).c_str();
+		else if (type == "database")
+			db_database = node_in.lookup(type).c_str();
+		else if (type == "collection")
+			db_collection = node_in.lookup(type).c_str();
+		else
+			error_exit(false, "Database setting \"%s\" is now known", type.c_str());
+        }
+
+	if (db_uri.empty() == false) {
+		if (db_database.empty() == true || db_collection.empty() == true)
+			error_exit(false, "Database is missing settings");
+
+		d = new db_mongodb(db_uri, db_database, db_collection);
+
+		d->init_database();
+	}
 }

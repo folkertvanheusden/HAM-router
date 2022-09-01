@@ -196,3 +196,45 @@ int setifcall(int fd, const char *name)
  
         return 0;
 }
+
+uint16_t get_net_short(const uint8_t *const p)
+{
+	return (p[0] << 8) | p[1];
+}
+
+uint32_t get_net_long(const uint8_t *const p)
+{
+	return (p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3];
+}
+
+uint64_t get_net_long_long(const uint8_t *const p)
+{
+	uint64_t out = 0;
+
+	for(int i=0; i<8; i++) {
+		out <<= 8;
+		out |= p[i];
+	}
+
+	return out;
+}
+
+void put_net_long(uint8_t *const p, const uint32_t v)
+{
+	p[0] = v >> 24;
+	p[1] = v >> 16;
+	p[2] = v >>  8;
+	p[3] = v;
+}
+
+void put_net_long_long(uint8_t *const p, const uint64_t v)
+{
+	p[0] = v >> 56;
+	p[1] = v >> 48;
+	p[2] = v >> 40;
+	p[3] = v >> 32;
+	p[4] = v >> 24;
+	p[5] = v >> 16;
+	p[6] = v >>  8;
+	p[7] = v;
+}

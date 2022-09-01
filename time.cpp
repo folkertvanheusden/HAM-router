@@ -41,3 +41,8 @@ bool myusleep(const uint64_t duration, std::atomic_bool *const terminate)
 
 	return *terminate == false;
 }
+
+std::chrono::system_clock::time_point to_time_point(const timeval & tv)
+{
+    return std::chrono::system_clock::time_point{std::chrono::seconds{tv.tv_sec} + std::chrono::microseconds{tv.tv_usec}};
+}

@@ -9,54 +9,14 @@
 #include <string>
 #include <thread>
 
-#include "data.h"
+#include "buffer.h"
+#include "message.h"
 #include "seen.h"
 #include "stats.h"
 #include "work.h"
 
 
 typedef enum { TE_ok, TE_hardware, TE_ratelimiting } transmit_error_t;
-
-class message {
-private:
-	const struct timeval tv;
-
-	const std::string    source;
-
-	const uint64_t       msg_id;
-
-	const bool           from_rf;   // did it come from electromagnetic waves?
-	const int            air_time;  // in milliseconds
-
-	const data           d;
-
-public:
-	message(const struct timeval tv, const std::string & source, const uint64_t msg_id, const bool from_rf, const int air_time, const uint8_t *const data, const size_t size);
-
-	message(const message & m);
-
-	virtual ~message();
-
-	struct timeval get_tv()         const { return tv;       }
-
-	std::string    get_source()     const { return source;   }
-
-	uint64_t       get_msg_id()     const { return msg_id;   }
-
-	bool           get_is_from_rf() const { return from_rf;  }
-
-	int            get_air_time()   const { return air_time; }
-
-	std::pair<const uint8_t *, size_t> get_content() const { return d.get_content(); }
-
-	const uint8_t *get_data()       const { return d.get_data(); }
-
-	size_t         get_size()       const { return d.get_size(); }
-
-	const data   & get_data_obj()   const { return d;            }
-
-	std::string    get_id_short()   const;
-};
 
 class tranceiver
 {

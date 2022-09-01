@@ -2,9 +2,9 @@ This gateway software can receive APRS and AX.25 over LoRa.
 It can also send AX.25 over LoRa.
 
 Packets can be logged as json via MQTT, WebSockets and syslog. They can
-also be stored in a (MySQL compatible-)database. Statistics of this
-server-program can be retreived via SNMP. APRS data can also be send to
-APRS-IS. It also has a simple web-interface.
+also be stored in a MongoDB. Statistics of this server-program can be
+retreived via SNMP. APRS data can also be send to APRS-IS. It also has
+a simple web-interface.
 
 software requirements:
 * cmake
@@ -12,8 +12,8 @@ software requirements:
 * libconfig++-dev
 * libjansson-dev
 * libmicrohttpd-dev
+* libmongocxx-dev
 * libmosquitto-dev
-* libmysqlcppconn-dev
 * libpigpio-dev
 * libwebsockets-dev
 
@@ -35,27 +35,15 @@ The result is: build/lora-aprs-gw
 (optional) database schema:
 
 ```
-  CREATE TABLE APRS (
-    ts datetime NOT NULL,
-    rssi double DEFAULT NULL,
-    snr double DEFAULT NULL,
-    crc int(1) NOT NULL,
-    content blob DEFAULT NULL,
-    latitude double DEFAULT NULL,
-    longitude double DEFAULT NULL,
-    distance double DEFAULT NULL
-  );
-
-  CREATE TABLE `airtime` (
-    `ts` datetime NOT NULL,
-    `duration` double NOT NULL,
-    `transmit` int(1) NOT NULL,
-    `callsign` varchar(32) DEFAULT NULL,
-    PRIMARY KEY (`ts`)
+  CREATE TABLE traffic (
+    ts DATETIME NOT NULL,
+    raw BLOB NOT NULL,
+    other JSON NOT NULL,
+    PRIMARY KEY(ts)
   );
 ```
 
-Configuration: gateway.ini 
+Configuration: gateway.cfg 
 
 
 This gateway software is using the LoRa SX1278 library
