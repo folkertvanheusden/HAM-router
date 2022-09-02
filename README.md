@@ -1,10 +1,9 @@
 This gateway software can function as a gateway and digipeater for AX.25
 and APRS over LoRa, axudp, local ax.25 network interface.
 
-Packets can be logged as json via MQTT, WebSockets. They can
-also be stored in a MongoDB. Statistics of this server-program can be
-retreived via SNMP. APRS data can also be send to APRS-IS. It also has
-a simple web-interface.
+Packets can be stored in a MongoDB, viewed via a web-interface (using
+web-sockets). The program has a built-in SNMP server (for statistics).
+APRS data can be transmitted to APRS-SI.
 
 software requirements:
 * cmake
@@ -12,12 +11,12 @@ software requirements:
 * libconfig++-dev
 * libjansson-dev
 * libmicrohttpd-dev
-* libmongocxx-dev
+* libmongocxx-dev      or from https://mongocxx.org/mongocxx-v3/installation/
 * libmosquitto-dev
 * libpigpio-dev
 * libwebsockets-dev
 
-hardware requirements:
+optional hardware:
 * SX1278 tranceiver (e.g. https://www.otronic.nl/a-65481848/lora/sx1278-ra-02-lora-module-433mhz/ )
 * something with SPI and GPIO pins to connect the SX1278 to (e.g. a raspberry pi)
 
