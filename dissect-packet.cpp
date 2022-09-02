@@ -87,6 +87,11 @@ std::optional<std::map<std::string, db_record_data> > parse_aprs(const uint8_t *
 		fields.insert({ "longitude", db_record_gen(longitude) });
 	}
 
+        std::size_t bracket = work.find('[');
+
+	if (bracket != std::string::npos)
+		fields.insert({ "content",   db_record_gen(work.substr(bracket + 1)) });
+
 	return fields;
 }
 
