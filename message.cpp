@@ -20,7 +20,8 @@ message::message(const message & m) :
 	msg_id  (m.get_msg_id()),
 	from_rf (m.get_is_from_rf()),
 	air_time(m.get_air_time()),
-	b       (m.get_buffer())
+	b       (m.get_buffer()),
+	meta    (m.get_meta())
 {
 }
 
