@@ -11,6 +11,7 @@
 #include "tranceiver-db.h"
 #include "tranceiver-kiss.h"
 #include "tranceiver-lora-sx1278.h"
+#include "tranceiver-mqtt.h"
 
 
 tranceiver::tranceiver(const std::string & id, seen *const s, work_queue_t *const w) :
@@ -116,6 +117,9 @@ tranceiver *tranceiver::instantiate(const libconfig::Setting & node, work_queue_
 	}
 	else if (type == "database") {
 		t = tranceiver_db::instantiate(node, w);
+	}
+	else if (type == "mqtt") {
+		t = tranceiver_mqtt::instantiate(node, w);
 	}
 	else {
 		error_exit(false, "\"%s\" is an unknown tranceiver type", type.c_str());
