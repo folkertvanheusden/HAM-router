@@ -114,19 +114,23 @@ void configuration::load_switchboard(const libconfig::Setting & node_in) {
                 const libconfig::Setting & node = node_in[i];
 
 		std::string from = node.lookup("from").c_str();
-		std::string to   = node.lookup("to"  ).c_str();
+		std::string tos  = node.lookup("to"  ).c_str();
 
 		tranceiver *from_t = find_tranceiver(from);
 		if (!from_t)
 			error_exit(false, "Mapping: \"%s\" is an unknown tranceiver", from.c_str());
 
-		tranceiver *to_t   = find_tranceiver(to);
-		if (!to_t)
-			error_exit(false, "Mapping: \"%s\" is an unknown tranceiver", to.c_str());
+		std::vector<std::string> parts = split(tos, " ");
 
-		sb->add_mapping(from_t, to_t);
+		for(auto & to : parts) {
+			tranceiver *to_t = find_tranceiver(to);
+			if (!to_t)
+				error_exit(false, "Mapping: \"%s\" is an unknown tranceiver", to.c_str());
 
-		log(LL_DEBUG_VERBOSE, "%s sends to %s", from.c_str(), to.c_str());
+			log(LL_DEBUG_VERBOSE, "%s sends to %s", from.c_str(), to.c_str());
+
+			sb->add_mapping(from_t, to_t);
+		}
         }
 }
 
