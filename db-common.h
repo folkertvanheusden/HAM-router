@@ -26,8 +26,8 @@ struct db_record_data
 	buffer      b;
 
 	std::string s_value;
-	uint64_t    i_value;
-	double      d_value;
+	uint64_t    i_value { 0 };
+	double      d_value { 0 };
 
 	data_type_t dt;
 };
