@@ -104,6 +104,8 @@ int main(int argc, char *argv[])
 
 	configuration cfg(argc == 2 ? argv[1] : "gateway.cfg", &w, &sd, &st);
 
+	setlogfile(cfg.get_logfile().c_str(), LL_DEBUG_VERBOSE);
+
 	snmp          *snmp_ = new snmp(&sd, &st, cfg.get_snmp_port());
 
 	std::thread *th = process(&cfg, &w, snmp_);

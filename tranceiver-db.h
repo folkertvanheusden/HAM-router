@@ -11,12 +11,12 @@ protected:
 	transmit_error_t put_message_low(const message & m) override;
 
 public:
-	tranceiver_db(const std::string & id, seen *const s, work_queue_t *const w, db *const d);
+	tranceiver_db(const std::string & id, seen *const s, work_queue_t *const w, const position_t & pos, db *const d);
 	virtual ~tranceiver_db();
 
 	std::string get_type_name() const override { return "MongoDB"; }
 
-	static tranceiver *instantiate(const libconfig::Setting & node, work_queue_t *const w);
+	static tranceiver *instantiate(const libconfig::Setting & node, work_queue_t *const w, const position_t & pos);
 
 	void operator()() override;
 };

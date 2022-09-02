@@ -15,12 +15,12 @@ protected:
 	transmit_error_t put_message_low(const message & m) override;
 
 public:
-	tranceiver_kiss(const std::string & id, seen *const s, work_queue_t *const w, const std::string & callsign, const std::string & if_up);
+	tranceiver_kiss(const std::string & id, seen *const s, work_queue_t *const w, const position_t & pos, const std::string & callsign, const std::string & if_up);
 	virtual ~tranceiver_kiss();
 
 	std::string get_type_name() const override { return "KISS"; }
 
-	static tranceiver *instantiate(const libconfig::Setting & node, work_queue_t *const w);
+	static tranceiver *instantiate(const libconfig::Setting & node, work_queue_t *const w, const position_t & pos);
 
 	void operator()() override;
 };

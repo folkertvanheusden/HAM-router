@@ -55,8 +55,8 @@ transmit_error_t tranceiver_axudp::put_message_low(const message & m)
 	return TE_ok;
 }
 
-tranceiver_axudp::tranceiver_axudp(const std::string & id, seen *const s, work_queue_t *const w, const int listen_port, const std::vector<std::string> & destinations, const bool continue_on_error, const bool distribute) :
-	tranceiver(id, s, w),
+tranceiver_axudp::tranceiver_axudp(const std::string & id, seen *const s, work_queue_t *const w, const position_t & pos, const int listen_port, const std::vector<std::string> & destinations, const bool continue_on_error, const bool distribute) :
+	tranceiver(id, s, w, pos),
 	listen_port(listen_port),
 	destinations(destinations),
 	continue_on_error(continue_on_error),
@@ -185,7 +185,7 @@ void tranceiver_axudp::operator()()
         }
 }
 
-tranceiver *tranceiver_axudp::instantiate(const libconfig::Setting & node_in, work_queue_t *const w)
+tranceiver *tranceiver_axudp::instantiate(const libconfig::Setting & node_in, work_queue_t *const w, const position_t & pos)
 {
 	std::string               id;
 	seen                     *s                 = nullptr;
@@ -221,5 +221,5 @@ tranceiver *tranceiver_axudp::instantiate(const libconfig::Setting & node_in, wo
 		}
         }
 
-	return new tranceiver_axudp(id, s, w, listen_port, destinations, continue_on_error, distribute);
+	return new tranceiver_axudp(id, s, w, pos, listen_port, destinations, continue_on_error, distribute);
 }

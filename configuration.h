@@ -22,9 +22,15 @@ private:
 
 	ws_global_context_t        ws;
 
+	position_t                 local_pos { 0       };
+
+	std::string                logfile   { "gateway.log" };
+
 	snmp_data_type_running_since *running_since { new snmp_data_type_running_since() };
 
 	void load_database   (const libconfig::Setting & node_in);
+
+	void load_general    (const libconfig::Setting & node_in);
 
 	void load_snmp       (const libconfig::Setting & node_in, snmp_data *const sd);
 
@@ -49,4 +55,8 @@ public:
 	int           get_snmp_port() const   { return snmp_port; }
 
 	ws_global_context_t * get_websockets_context() { return &ws; }
+
+	position_t    get_local_pos() const   { return local_pos; }
+
+	std::string   get_logfile() const     { return logfile;   }
 };

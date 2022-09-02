@@ -18,6 +18,7 @@ void * rx_f(void *in)
 {
 	rxData *rx = reinterpret_cast<rxData *>(in);
 	if (rx->size == 0 || rx->CRC) {
+		// TODO count these failures
 		free(rx);
 
 		return nullptr;
@@ -93,8 +94,8 @@ transmit_error_t tranceiver_lora_sx1278::put_message_low(const message & m)
 #endif
 }
 
-tranceiver_lora_sx1278::tranceiver_lora_sx1278(const std::string & id, seen *const s, work_queue_t *const w, const int dio0_pin, const int reset_pin, const bool digipeater) :
-	tranceiver(id, s, w),
+tranceiver_lora_sx1278::tranceiver_lora_sx1278(const std::string & id, seen *const s, work_queue_t *const w, const position_t & pos, const int dio0_pin, const int reset_pin, const bool digipeater) :
+	tranceiver(id, s, w, pos),
 	digipeater(digipeater)
 {
 	log(LL_INFO, "Instantiated LoRa SX1278 (%s)", id.c_str());
@@ -139,7 +140,7 @@ void tranceiver_lora_sx1278::operator()()
 {
 }
 
-tranceiver *tranceiver_lora_sx1278::instantiate(const libconfig::Setting & node_in, work_queue_t *const w)
+tranceiver *tranceiver_lora_sx1278::instantiate(const libconfig::Setting & node_in, work_queue_t *const w, const position_t & pos)
 {
 	std::string  id;
 	seen        *s          = nullptr;
@@ -169,5 +170,5 @@ tranceiver *tranceiver_lora_sx1278::instantiate(const libconfig::Setting & node_
 		}
         }
 
-	return new tranceiver_lora_sx1278(id, s, w, dio0_pin, reset_pin, digipeater);
+	return new tranceiver_lora_sx1278(id, s, w, pos, dio0_pin, reset_pin, digipeater);
 }

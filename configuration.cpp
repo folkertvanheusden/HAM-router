@@ -23,7 +23,7 @@ configuration::configuration(const std::string & file, work_queue_t *const w, sn
 			std::string node_name = node.getName();
 
 			if (node_name == "general") {
-				// TODO
+				load_general(node);
 			}
 			else if (node_name == "tranceivers") {
 				load_tranceivers(node, w, sd, st);
@@ -38,7 +38,7 @@ configuration::configuration(const std::string & file, work_queue_t *const w, sn
 				load_webserver(node, st);
 			}
 			else {
-				error_exit(false, "Setting \"%s\" is now known", node_name.c_str());
+				error_exit(false, "Setting \"%s\" is not known", node_name.c_str());
 			}
 		}
 	}
@@ -70,7 +70,7 @@ void configuration::load_tranceivers(const libconfig::Setting & node_in, work_qu
 	for(int i=0; i<node_in.getLength(); i++) {
 		const libconfig::Setting & node = node_in[i];
 
-		tranceiver *t = tranceiver::instantiate(node, w, st, i + 1);
+		tranceiver *t = tranceiver::instantiate(node, w, local_pos, st, i + 1);
 
 		tranceivers.push_back(t);
 	}
@@ -141,7 +141,7 @@ void configuration::load_snmp(const libconfig::Setting & node_in, snmp_data *con
 		if (type == "port")
 			snmp_port = node_in.lookup(type);
 		else
-			error_exit(false, "SNMP setting \"%s\" is now known", type.c_str());
+			error_exit(false, "SNMP setting \"%s\" is not known", type.c_str());
         }
 
 	if (snmp_port != -1) {
@@ -186,7 +186,7 @@ void configuration::load_webserver(const libconfig::Setting & node_in, stats *co
 		else if (type == "websockets-ssl-ca")
 			ws_ssl_ca = node_in.lookup(type).c_str();
 		else
-			error_exit(false, "Webserver setting \"%s\" is now known", type.c_str());
+			error_exit(false, "Webserver setting \"%s\" is not known", type.c_str());
         }
 
 	if (ws_port != -1)
@@ -194,4 +194,28 @@ void configuration::load_webserver(const libconfig::Setting & node_in, stats *co
 
 	if (http_port != -1)
 		webserver = start_webserver(http_port, ws_url, ws_port, st, nullptr /* TODO */);
+}
+
+void configuration::load_general(const libconfig::Setting & node_in)
+{
+	bool lat_set = false;
+	bool lng_set = false;
+
+        for(int i=0; i<node_in.getLength(); i++) {
+                const libconfig::Setting & node = node_in[i];
+
+		std::string type = node.getName();
+
+		if (type == "local-latitude")
+			local_pos.latitude = node_in.lookup(type),  lat_set = true;
+		else if (type == "local-longitude")
+			local_pos.longitude = node_in.lookup(type), lng_set = true;
+		else if (type == "logfile")
+			logfile = node_in.lookup(type).c_str();
+		else
+			error_exit(false, "General setting \"%s\" is not known", type.c_str());
+        }
+
+	if (lat_set != lng_set)
+		error_exit(false, "General settings: either latitude or longitude is not set");
 }

@@ -20,12 +20,12 @@ protected:
 	transmit_error_t put_message_low(const message & m) override;
 
 public:
-	tranceiver_aprs_si(const std::string & id, seen *const s, work_queue_t *const w, const std::string & aprs_user, const std::string & aprs_pass, const std::string & local_callsign, stats *const st, int device_nr);
+	tranceiver_aprs_si(const std::string & id, seen *const s, work_queue_t *const w, const position_t & pos, const std::string & aprs_user, const std::string & aprs_pass, const std::string & local_callsign, stats *const st, int device_nr);
 	virtual ~tranceiver_aprs_si();
 
 	std::string get_type_name() const override { return "APRS-SI"; }
 
-	static tranceiver *instantiate(const libconfig::Setting & node, work_queue_t *const w, stats *const st, int device_nr);
+	static tranceiver *instantiate(const libconfig::Setting & node, work_queue_t *const w, const position_t & pos, stats *const st, int device_nr);
 
 	void operator()() override;
 };

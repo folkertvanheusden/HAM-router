@@ -10,6 +10,7 @@
 #include <thread>
 
 #include "buffer.h"
+#include "gps.h"
 #include "message.h"
 #include "seen.h"
 #include "stats.h"
@@ -36,6 +37,8 @@ protected:
 
 	seen              *const s  { nullptr };
 
+	const position_t         local_pos;
+
 	std::condition_variable incoming_cv;
 	std::mutex              incoming_lock;
 	std::queue<message>     incoming;
@@ -47,7 +50,7 @@ protected:
 	virtual transmit_error_t put_message_low(const message & m) = 0;
 
 public:
-	tranceiver(const std::string & id, seen *const s, work_queue_t *const w);
+	tranceiver(const std::string & id, seen *const s, work_queue_t *const w, const position_t & local_pos);
 	virtual ~tranceiver();
 
 	std::string get_id() const { return id; }
@@ -63,7 +66,7 @@ public:
 
 	transmit_error_t       put_message(const message & m);
 
-	static tranceiver *instantiate(const libconfig::Setting & node, work_queue_t *const w, stats *const st, const int device_nr);
+	static tranceiver *instantiate(const libconfig::Setting & node, work_queue_t *const w, const position_t & pos, stats *const st, const int device_nr);
 
 	virtual void operator()() = 0;
 };

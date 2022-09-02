@@ -1,4 +1,13 @@
+#pragma once
+
 #include <string>
+
+
+typedef struct
+{
+	double latitude;
+	double longitude;
+} position_t;
 
 double calcGPSDistance(double latitude_new, double longitude_new, double latitude_old, double longitude_old);
 double convertToDecimalDegrees(const char *latLon, const char direction);

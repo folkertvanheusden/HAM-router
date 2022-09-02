@@ -25,14 +25,12 @@
 #include "utils.h"
 
 
-tranceiver_beacon::tranceiver_beacon(const std::string & id, seen *const s, work_queue_t *const w, const std::string & beacon_text, const int beacon_interval, const beacon_mode_t bm, const std::string & callsign, const double latitude, const double longitude) :
-	tranceiver(id, s, w),
+tranceiver_beacon::tranceiver_beacon(const std::string & id, seen *const s, work_queue_t *const w, const position_t & pos, const std::string & beacon_text, const int beacon_interval, const beacon_mode_t bm, const std::string & callsign) :
+	tranceiver(id, s, w, pos),
 	beacon_text(beacon_text),
 	beacon_interval(beacon_interval),
 	bm(bm),
-	callsign(callsign),
-	latitude(latitude),
-	longitude(longitude)
+	callsign(callsign)
 {
 	log(LL_INFO, "Instantiated beacon (%s)", id.c_str());
 
@@ -70,7 +68,7 @@ void tranceiver_beacon::operator()()
 		uint64_t    msg_id = get_random_uint64_t();
 
 		if (bm == beacon_mode_aprs) {
-			std::string aprs_text = "!" + gps_double_to_aprs(latitude, longitude) + "[";
+			std::string aprs_text = "!" + gps_double_to_aprs(local_pos.latitude, local_pos.longitude) + "[";
 
 			std::string output = "<\xff\x01" + callsign + "-L>APLG01,TCPIP*,qAC:" + aprs_text + beacon_text;
 
@@ -130,7 +128,7 @@ void tranceiver_beacon::operator()()
         }
 }
 
-tranceiver *tranceiver_beacon::instantiate(const libconfig::Setting & node_in, work_queue_t *const w)
+tranceiver *tranceiver_beacon::instantiate(const libconfig::Setting & node_in, work_queue_t *const w, const position_t & pos)
 {
 	std::string   id;
 	seen         *s               = nullptr;
@@ -138,8 +136,6 @@ tranceiver *tranceiver_beacon::instantiate(const libconfig::Setting & node_in, w
 	int           beacon_interval = 60;
 	beacon_mode_t bm              = beacon_mode_ax25;
 	std::string   callsign;
-	double        latitude        = 0.;
-	double        longitude       = 0.;
 
         for(int i=0; i<node_in.getLength(); i++) {
                 const libconfig::Setting & node = node_in[i];
@@ -154,10 +150,6 @@ tranceiver *tranceiver_beacon::instantiate(const libconfig::Setting & node_in, w
 			callsign = node_in.lookup(type).c_str();
 		else if (type == "interval")
 			beacon_interval = node_in.lookup(type);
-		else if (type == "latitude")
-			latitude = node_in.lookup(type);
-		else if (type == "longitude")
-			longitude = node_in.lookup(type);
 		else if (type == "mode") {
 			std::string mode = node_in.lookup(type).c_str();
 
@@ -176,5 +168,5 @@ tranceiver *tranceiver_beacon::instantiate(const libconfig::Setting & node_in, w
 	if (callsign.empty())
 		error_exit(false, "beacons need a source-callsign configured");
 
-	return new tranceiver_beacon(id, s, w, beacon_text, beacon_interval, bm, callsign, latitude, longitude);
+	return new tranceiver_beacon(id, s, w, pos, beacon_text, beacon_interval, bm, callsign);
 }
