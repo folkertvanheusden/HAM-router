@@ -52,6 +52,7 @@ tranceiver_db::tranceiver_db(const std::string & id, seen *const s, work_queue_t
 
 tranceiver_db::~tranceiver_db()
 {
+	delete d;
 }
 
 void tranceiver_db::operator()()
