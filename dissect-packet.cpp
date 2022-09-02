@@ -64,8 +64,7 @@ std::optional<std::map<std::string, db_record_data> > parse_aprs(const uint8_t *
                         else
                                 to = to_full;
 
-                        from    = work.substr(0, gt);
-
+                        from    = work.substr(3, gt - 3);
 
 			fields.insert({ "from", from });
 
@@ -93,7 +92,11 @@ std::optional<std::map<std::string, db_record_data> > parse_aprs(const uint8_t *
 
 std::optional<std::map<std::string, db_record_data> > dissect_packet(const uint8_t *const data, const size_t len)
 {
-	// check for AX.25
+	auto aprs = parse_aprs(data, len);
+
+	if (aprs.has_value())
+		return aprs;
+
 	auto ax25 = parse_ax25(data, len);
 
 	if (ax25.has_value())
