@@ -34,13 +34,9 @@ void insert_into_database(db *const d, const message & m)
 
 transmit_error_t tranceiver_db::put_message_low(const message & m)
 {
-#ifdef HAS_GPIO
 	insert_into_database(d, m);
 
 	return TE_ok;
-#else
-	return TE_hardware;
-#endif
 }
 
 tranceiver_db::tranceiver_db(const std::string & id, seen *const s, work_queue_t *const w, db *const d) :
