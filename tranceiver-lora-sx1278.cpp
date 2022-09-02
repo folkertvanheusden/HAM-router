@@ -17,7 +17,7 @@
 void * rx_f(void *in)
 {
 	rxData *rx = reinterpret_cast<rxData *>(in);
-	if (rx->size == 0) {
+	if (rx->size == 0 || rx->CRC) {
 		free(rx);
 
 		return nullptr;
