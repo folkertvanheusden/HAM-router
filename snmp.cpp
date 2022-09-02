@@ -399,7 +399,7 @@ void snmp::operator()()
 				input(fd, reinterpret_cast<uint8_t *>(buffer), n, (const sockaddr *)&clientaddr, len);
                 }
                 catch(const std::exception& e) {
-                        log(LL_ERR, "snmp::operator(): exception %s", e.what());
+                        log(LL_ERROR, "snmp::operator(): exception %s", e.what());
                 }
 	}
 }

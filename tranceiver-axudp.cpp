@@ -130,7 +130,7 @@ void tranceiver_axudp::operator()()
 				continue;
 
 			if (rc == -1) {
-				log(LL_ERR, "tranceiver_axudp::operator: poll returned %s", strerror(errno));
+				log(LL_ERROR, "tranceiver_axudp::operator: poll returned %s", strerror(errno));
 
 				break;
 			}
@@ -180,7 +180,7 @@ void tranceiver_axudp::operator()()
 			free(buffer);
                 }
                 catch(const std::exception& e) {
-                        log(LL_ERR, "tranceiver_axudp::operator: recvfrom failed: %s", e.what());
+                        log(LL_ERROR, "tranceiver_axudp::operator: recvfrom failed: %s", e.what());
                 }
         }
 }

@@ -93,7 +93,7 @@ bool transmit_udp(const std::string & dest, const uint8_t *const data, const siz
 
 	std::size_t colon = dest.find(":");
 	if (colon == std::string::npos) {
-                log(LL_ERR, "Port number missing (%s)", dest.c_str());
+                log(LL_ERROR, "Port number missing (%s)", dest.c_str());
 
 		return false;
 	}

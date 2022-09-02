@@ -109,7 +109,7 @@ void start_websocket_thread(const int port, ws_global_context_t *const p, const 
 					lws_service(context, 100);
 		                }
 				catch(const std::exception& e) {
-					log(LL_ERR, "ws_thread: exception %s", e.what());
+					log(LL_ERROR, "ws_thread: exception %s", e.what());
 				}
 			}
 		});

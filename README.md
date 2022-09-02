@@ -1,7 +1,7 @@
-This gateway software can receive APRS and AX.25 over LoRa.
-It can also send AX.25 over LoRa.
+This gateway software can function as a gateway and digipeater for AX.25
+and APRS over LoRa, axudp, local ax.25 network interface.
 
-Packets can be logged as json via MQTT, WebSockets and syslog. They can
+Packets can be logged as json via MQTT, WebSockets. They can
 also be stored in a MongoDB. Statistics of this server-program can be
 retreived via SNMP. APRS data can also be send to APRS-IS. It also has
 a simple web-interface.

@@ -41,7 +41,7 @@ bool tranceiver_kiss::recv_mkiss(unsigned char **p, int *len, bool verbose)
 			if (errno == EINTR)
 				continue;
 
-			log(LL_ERR, "failed reading from mkiss device");
+			log(LL_ERROR, "failed reading from mkiss device");
 
 			free(*p);
 
@@ -58,7 +58,7 @@ bool tranceiver_kiss::recv_mkiss(unsigned char **p, int *len, bool verbose)
 			else if (buffer == TFESC)
 				(*p)[(*len)++] = FESC;
 			else if (verbose)
-				log(LL_ERR, "unexpected mkiss escape %02x", buffer);
+				log(LL_ERROR, "unexpected mkiss escape %02x", buffer);
 
 			escape = false;
 		}
@@ -169,7 +169,7 @@ bool tranceiver_kiss::send_mkiss(int channel, const unsigned char *p, const int 
 			if (rc == -1 && errno == EINTR)
 				continue;
 
-			log(LL_ERR, "failed writing to mkiss device");
+			log(LL_ERROR, "failed writing to mkiss device");
 
 			free(out);
 

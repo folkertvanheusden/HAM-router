@@ -118,7 +118,7 @@ transmit_error_t tranceiver_aprs_si::put_message_low(const message & m)
 			}
 		}
 		else {
-			log(LL_ERR, "failed to connect: %s", strerror(errno));
+			log(LL_ERROR, "failed to connect: %s", strerror(errno));
 		}
 	}
 

@@ -61,7 +61,7 @@ void _log(const std::string & id, const int ll, const char *const what, va_list 
 		case LL_FATAL:
 			lls = "FATAL";
 			break;
-		case LL_ERR:
+		case LL_ERROR:
 			lls = "ERROR";
 			break;
 		case LL_WARNING:

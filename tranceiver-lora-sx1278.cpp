@@ -39,6 +39,13 @@ void * rx_f(void *in)
 
 	t->queue_incoming_message(m);
 
+	if (reinterpret_cast<tranceiver_lora_sx1278 *>(t)->is_digipeater()) {
+		auto rc = t->put_message(m);
+
+		if (rc != TE_ok)
+			log(LL_WARNING, "LoRa-sx1278 digipeat(%s), failed: %d", m.get_id_short().c_str(), rc);
+	}
+
 	free(rx);
 
 	return nullptr;
@@ -86,8 +93,9 @@ transmit_error_t tranceiver_lora_sx1278::put_message_low(const message & m)
 #endif
 }
 
-tranceiver_lora_sx1278::tranceiver_lora_sx1278(const std::string & id, seen *const s, work_queue_t *const w, const int dio0_pin, const int reset_pin) :
-	tranceiver(id, s, w)
+tranceiver_lora_sx1278::tranceiver_lora_sx1278(const std::string & id, seen *const s, work_queue_t *const w, const int dio0_pin, const int reset_pin, const bool digipeater) :
+	tranceiver(id, s, w),
+	digipeater(digipeater)
 {
 	log(LL_INFO, "Instantiated LoRa SX1278 (%s)", id.c_str());
 
@@ -134,9 +142,10 @@ void tranceiver_lora_sx1278::operator()()
 tranceiver *tranceiver_lora_sx1278::instantiate(const libconfig::Setting & node_in, work_queue_t *const w)
 {
 	std::string  id;
-	seen        *s = nullptr;
-	int          dio0_pin  = -1;
-	int          reset_pin = -1;
+	seen        *s          = nullptr;
+	int          dio0_pin   = -1;
+	int          reset_pin  = -1;
+	bool         digipeater = false;
 
         for(int i=0; i<node_in.getLength(); i++) {
                 const libconfig::Setting & node = node_in[i];
@@ -153,10 +162,12 @@ tranceiver *tranceiver_lora_sx1278::instantiate(const libconfig::Setting & node_
 			dio0_pin = node_in.lookup(type);
 		else if (type == "reset-pin")
 			reset_pin = node_in.lookup(type);
+		else if (type == "digipeater")
+			digipeater = node_in.lookup(type);
 		else if (type != "type") {
 			error_exit(false, "setting \"%s\" is now known", type.c_str());
 		}
         }
 
-	return new tranceiver_lora_sx1278(id, s, w, dio0_pin, reset_pin);
+	return new tranceiver_lora_sx1278(id, s, w, dio0_pin, reset_pin, digipeater);
 }
