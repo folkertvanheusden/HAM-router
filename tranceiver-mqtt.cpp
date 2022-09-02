@@ -14,18 +14,47 @@
 #include "utils.h"
 
 
-mosquitto *init_mqtt(const std::string & mqtt_host, const int mqtt_port)
+void on_mqtt_message(mosquitto *mi, void *user, const mosquitto_message *msg)
+{
+	tranceiver_mqtt *t = reinterpret_cast<tranceiver_mqtt *>(user);
+
+	log(LL_DEBUG, "Transmit msg from MQTT: %s", std::string(reinterpret_cast<const char *>(msg->payload), msg->payloadlen).c_str());
+
+        uint64_t msg_id = get_random_uint64_t();
+
+	timeval tv;
+	gettimeofday(&tv, nullptr);
+
+        message m(tv,
+                        myformat("MQTT(%s)", t->get_id().c_str()),
+                        msg_id,
+                        false,
+                        0,
+                        reinterpret_cast<uint8_t *>(msg->payload),
+                        msg->payloadlen);
+
+        t->queue_incoming_message(m);
+}
+
+mosquitto *init_mqtt(tranceiver *const t, const std::string & mqtt_host, const int mqtt_port, const std::string & topic_in)
 {
 	log(LL_INFO, "Initializing MQTT");
 
 	int err = 0;
 
-	mosquitto *mi = mosquitto_new(nullptr, true, nullptr);
+	mosquitto *mi = mosquitto_new(nullptr, true, t);
 	if (!mi)
 		error_exit(false, "Cannot crate mosquitto instance");
 
 	if ((err = mosquitto_connect(mi, mqtt_host.c_str(), mqtt_port, 30)) != MOSQ_ERR_SUCCESS)
 		error_exit(false, "mqtt failed to connect (%s)", mosquitto_strerror(err));
+
+	mosquitto_message_callback_set(mi, on_mqtt_message);
+
+	if (topic_in.empty() == false) {
+		if ((err = mosquitto_subscribe(mi, nullptr, topic_in.c_str(), 0)) != MOSQ_ERR_SUCCESS)
+			error_exit(false, "mqtt failed to subscribe (%s)", mosquitto_strerror(err));
+	}
 
 	if ((err = mosquitto_loop_start(mi)) != MOSQ_ERR_SUCCESS)
 		error_exit(false, "mqtt failed to start thread (%s)", mosquitto_strerror(err));
@@ -47,12 +76,13 @@ transmit_error_t tranceiver_mqtt::put_message_low(const message & m)
 	return TE_ok;
 }
 
-tranceiver_mqtt::tranceiver_mqtt(const std::string & id, seen *const s, work_queue_t *const w, mosquitto *const mi, const std::string & topic_in, const std::string & topic_out) :
+tranceiver_mqtt::tranceiver_mqtt(const std::string & id, seen *const s, work_queue_t *const w, const std::string & mqtt_host, const int mqtt_port, const std::string & topic_in, const std::string & topic_out) :
 	tranceiver(id, s, w),
-	mi(mi),
 	topic_in(topic_in), topic_out(topic_out)
 {
 	log(LL_INFO, "Instantiated MQTT (%s)", id.c_str());
+
+	mi = init_mqtt(this, mqtt_host, mqtt_port, topic_in);
 }
 
 tranceiver_mqtt::~tranceiver_mqtt()
@@ -62,7 +92,6 @@ tranceiver_mqtt::~tranceiver_mqtt()
 
 void tranceiver_mqtt::operator()()
 {
-	// TODO
 }
 
 tranceiver *tranceiver_mqtt::instantiate(const libconfig::Setting & node_in, work_queue_t *const w)
@@ -101,7 +130,5 @@ tranceiver *tranceiver_mqtt::instantiate(const libconfig::Setting & node_in, wor
 	if (mqtt_host.empty())
 		error_exit(true, "No MQTT server selected");
 
-	mosquitto *mi = init_mqtt(mqtt_host, mqtt_port);
-
-	return new tranceiver_mqtt(id, s, w, mi, topic_in, topic_out);
+	return new tranceiver_mqtt(id, s, w, mqtt_host, mqtt_port, topic_in, topic_out);
 }
