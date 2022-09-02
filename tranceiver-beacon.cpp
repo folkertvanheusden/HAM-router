@@ -72,7 +72,7 @@ void tranceiver_beacon::operator()()
 		if (bm == beacon_mode_aprs) {
 			std::string aprs_text = "!" + gps_double_to_aprs(latitude, longitude) + "[";
 
-			std::string output = ">\xff\x01" + callsign + "-L>APLG01,TCPIP*,qAC:" + aprs_text + beacon_text;
+			std::string output = "<\xff\x01" + callsign + "-L>APLG01,TCPIP*,qAC:" + aprs_text + beacon_text;
 
 			m = new message(tv,
 					source,
