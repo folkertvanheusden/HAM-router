@@ -30,6 +30,27 @@ struct db_record_data
 	double      d_value { 0 };
 
 	data_type_t dt;
+
+	db_record_data() {
+	}
+
+	db_record_data(const buffer & b) :
+		b(b),
+		dt(dt_octetArray) {
+	}
+
+	db_record_data(const std::string & s) :
+		s_value(s),
+		dt(dt_string) {
+	}
+
+	db_record_data(const db_record_data & other) :
+		b(other.b),
+		s_value(other.s_value),
+		i_value(other.i_value),
+		d_value(other.d_value),
+		dt(other.dt) {
+	}
 };
 
 struct db_record
@@ -43,7 +64,9 @@ struct db_record
 	}
 };
 
-void db_record_insert(db_record *const r, const std::string & name, const buffer & b);
-void db_record_insert(db_record *const r, const std::string & name, const std::string & str);
-void db_record_insert(db_record *const r, const std::string & name, const int64_t v);
-void db_record_insert(db_record *const r, const std::string & name, const double v);
+db_record_data db_record_gen(const buffer & b);
+db_record_data db_record_gen(const std::string & str);
+db_record_data db_record_gen(const int64_t v);
+db_record_data db_record_gen(const double v);
+
+void db_record_insert(db_record *const r, const std::string & name, const db_record_data & data);

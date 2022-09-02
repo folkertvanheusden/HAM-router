@@ -78,12 +78,12 @@ transmit_error_t tranceiver_aprs_si::put_message_low(const message & m)
 			from    = content_out.substr(0, gt);
 
 			content_out = from + ">" + to_full + ",qAO," + local_callsign + content_out.substr(colon);
+
+			log(LL_DEBUG_VERBOSE, "tranceiver_aprs_si::put_message_low(%s): %s => %s", m.get_id_short().c_str(), from.c_str(), to.c_str());
 		}
 		else {
 			stats_inc_counter(cnt_aprs_invalid);
 		}
-
-		log(LL_DEBUG_VERBOSE, "tranceiver_aprs_si::put_message_low(%s): %s => %s", m.get_id_short().c_str(), from.c_str(), to.c_str());
 	}
 	else {
 		stats_inc_counter(cnt_aprs_invalid);

@@ -49,6 +49,8 @@ double convertToDecimalDegrees(const char *latLon, const char direction)
 
 void parse_nmea_pos(const char *what, double *const lat, double *const lng)
 {
+	*lat = *lng = 0.;
+
 	if (what[0] == '@') {  // ignore time code
 		what += 7;
 		// TODO

@@ -32,3 +32,8 @@ std::string message::get_id_short() const
 {
 	return myformat("%08x", msg_id);
 }
+
+void message::set_meta(const std::map<std::string, db_record_data> & meta)
+{
+	this->meta = meta;
+}

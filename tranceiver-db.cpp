@@ -20,14 +20,17 @@ void insert_into_database(db *const d, const message & m)
 {
 	db_record record(m.get_tv());
 
-	db_record_insert(&record, "raw-data", m.get_buffer());
+	db_record_insert(&record, "raw-data", db_record_gen(m.get_buffer()));
 
-	db_record_insert(&record, "source", m.get_source());
+	db_record_insert(&record, "source", db_record_gen(m.get_source()));
 
-	db_record_insert(&record, "msg-id", int64_t(m.get_msg_id()));
+	db_record_insert(&record, "msg-id", db_record_gen(int64_t(m.get_msg_id())));
 
 	if (m.get_is_from_rf())
-		db_record_insert(&record, "air-time", double(m.get_air_time()));
+		db_record_insert(&record, "air-time", db_record_gen(double(m.get_air_time())));
+
+	for(auto r : m.get_meta())
+		db_record_insert(&record, r.first, r.second);
 
 	d->insert(record);
 }

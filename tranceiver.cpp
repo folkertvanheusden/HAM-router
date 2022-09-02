@@ -1,3 +1,4 @@
+#include "dissect-packet.h"
 #include "error.h"
 #include "log.h"
 #include "log.h"
@@ -43,9 +44,16 @@ transmit_error_t tranceiver::queue_incoming_message(const message & m)
 	}
 
 	{
+		message copy = m;
+
+		auto    meta = dissect_packet(content.first, content.second);
+
+		if (meta.has_value())
+			copy.set_meta(meta.value());
+
 		std::unique_lock<std::mutex> lck(incoming_lock);
 
-		incoming.push(m);
+		incoming.push(copy);
 
 		incoming_cv.notify_all();
 	}
