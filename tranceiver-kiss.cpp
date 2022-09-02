@@ -113,7 +113,7 @@ bool tranceiver_kiss::recv_mkiss(unsigned char **p, int *len, bool verbose)
 				else if (cmd == 5)
 					log(LL_DEBUG, "full duplex: %d\n", (*p)[1]);
 				else if (cmd == 6) {
-					log(LL_DEBUG, "set hardware: %s", dump_hex(&(*p)[1], *len - 1));
+					log(LL_DEBUG, "set hardware: %s", dump_hex(&(*p)[1], *len - 1).c_str());
 				}
 				else if (cmd == 15) {
 					log(LL_INFO, "kernel asked for shutdown");

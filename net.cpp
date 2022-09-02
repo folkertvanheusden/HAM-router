@@ -105,7 +105,7 @@ bool transmit_udp(const std::string & dest, const uint8_t *const data, const siz
         struct addrinfo *result = nullptr;
         int rc = getaddrinfo(host.c_str(), portnr.c_str(), &hints, &result);
         if (rc != 0) {
-                log(LL_WARNING, "Problem resolving %s: %s", host, gai_strerror(rc));
+                log(LL_WARNING, "Problem resolving %s: %s", host.c_str(), gai_strerror(rc));
 
 		return false;
 	}
