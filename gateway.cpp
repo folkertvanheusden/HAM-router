@@ -27,17 +27,21 @@ void push_to_websockets(ws_global_context_t *const ws, const message & m)
 {
 	json_t         *meta = json_object();
 
-	json_object_set(meta, "timestamp", json_integer(m.get_tv().tv_sec));
+	json_object_set_new(meta, "timestamp", json_integer(m.get_tv().tv_sec));
 
-	json_object_set(meta, "source",    json_string(m.get_source().c_str()));
+	json_object_set_new(meta, "source",    json_string(m.get_source().c_str()));
 
-	json_object_set(meta, "msg-id",    json_string(m.get_id_short().c_str()));
+	json_object_set_new(meta, "msg-id",    json_string(m.get_id_short().c_str()));
 
-	json_object_set(meta, "air-time",  json_integer(m.get_air_time()));
+	json_object_set_new(meta, "air-time",  json_integer(m.get_air_time()));
 
-	json_object_set(meta, "data",      json_string(dump_replace(m.get_content().first, m.get_content().second).c_str()));
+	json_object_set_new(meta, "data",      json_string(dump_replace(m.get_content().first, m.get_content().second).c_str()));
 
-	std::string meta_str = json_dumps(meta, 0);
+	char *json = json_dumps(meta, 0);
+
+	std::string meta_str = json;
+
+	free(json);
 
 	json_decref(meta);
 
