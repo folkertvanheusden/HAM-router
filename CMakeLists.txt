@@ -23,11 +23,19 @@ add_executable(lora-aprs-gw
 	db-mongodb.cpp
 	error.cpp
 	gateway.cpp
+	gps.cpp
 	hashing.cpp
+	log.cpp
+	LoRa.c
 	message.cpp
+	net.cpp
 	random.cpp
 	rate-limiter.cpp
 	seen.cpp
+	snmp-data.cpp
+	snmp-elem.cpp
+	snmp.cpp
+	stats.cpp
 	str.cpp
 	switchboard.cpp
 	time.cpp
@@ -35,19 +43,12 @@ add_executable(lora-aprs-gw
 	tranceiver-aprs-si.cpp
 	tranceiver-axudp.cpp
 	tranceiver-beacon.cpp
+	tranceiver-db.cpp
 	tranceiver-kiss.cpp
 	tranceiver-lora-sx1278.cpp
-	gps.cpp
-	log.cpp
-	net.cpp
-	snmp-data.cpp
-	snmp-elem.cpp
-	snmp.cpp
-	stats.cpp
 	utils.cpp
 	webserver.cpp
 	websockets.cpp
-	LoRa.c
 	)
 
 set(CMAKE_THREAD_PREFER_PTHREAD TRUE)

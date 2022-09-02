@@ -25,9 +25,6 @@ configuration::configuration(const std::string & file, work_queue_t *const w, sn
 			if (node_name == "general") {
 				// TODO
 			}
-			else if (node_name == "database") {
-				load_database(node);
-			}
 			else if (node_name == "tranceivers") {
 				load_tranceivers(node, w, sd, st);
 			}
@@ -197,39 +194,4 @@ void configuration::load_webserver(const libconfig::Setting & node_in, stats *co
 
 	if (http_port != -1)
 		webserver = start_webserver(http_port, ws_url, ws_port, st, nullptr /* TODO */);
-}
-
-void configuration::load_database(const libconfig::Setting & node_in)
-{
-#if LIBMONGOCXX_FOUND == 1
-	std::string db_uri;
-	std::string db_database;
-	std::string db_collection;
-
-        for(int i=0; i<node_in.getLength(); i++) {
-                const libconfig::Setting & node = node_in[i];
-
-		std::string type = node.getName();
-
-		if (type == "uri")
-			db_uri = node_in.lookup(type).c_str();
-		else if (type == "database")
-			db_database = node_in.lookup(type).c_str();
-		else if (type == "collection")
-			db_collection = node_in.lookup(type).c_str();
-		else
-			error_exit(false, "Database setting \"%s\" is now known", type.c_str());
-        }
-
-	if (db_uri.empty() == false) {
-		if (db_database.empty() == true || db_collection.empty() == true)
-			error_exit(false, "Database is missing settings");
-
-		d = new db_mongodb(db_uri, db_database, db_collection);
-
-		d->init_database();
-	}
-#else
-	log(LL_ERR, "No MongoDB support compiled in!");
-#endif
 }

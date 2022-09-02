@@ -8,6 +8,7 @@
 #include "tranceiver-aprs-si.h"
 #include "tranceiver-axudp.h"
 #include "tranceiver-beacon.h"
+#include "tranceiver-db.h"
 #include "tranceiver-kiss.h"
 #include "tranceiver-lora-sx1278.h"
 
@@ -112,6 +113,9 @@ tranceiver *tranceiver::instantiate(const libconfig::Setting & node, work_queue_
 	}
 	else if (type == "beacon") {
 		t = tranceiver_beacon::instantiate(node, w);
+	}
+	else if (type == "database") {
+		t = tranceiver_db::instantiate(node, w);
 	}
 	else {
 		error_exit(false, "\"%s\" is an unknown tranceiver type", type.c_str());

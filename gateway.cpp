@@ -1,4 +1,3 @@
-#include "config.h"
 #include <assert.h>
 #include <atomic>
 #include <jansson.h>
@@ -22,22 +21,6 @@ void signal_handler(int sig)
 	fprintf(stderr, "Terminating...\n");
 
 	signal(sig, SIG_IGN);
-}
-
-void insert_into_database(db *const d, const message & m)
-{
-	db_record record(m.get_tv());
-
-	db_record_insert(&record, "raw-data", m.get_buffer());
-
-	db_record_insert(&record, "source", m.get_source());
-
-	db_record_insert(&record, "msg-id", int64_t(m.get_msg_id()));
-
-	if (m.get_is_from_rf())
-		db_record_insert(&record, "air-time", double(m.get_air_time()));
-
-	d->insert(record);
 }
 
 void push_to_websockets(ws_global_context_t *const ws, const message & m)
@@ -97,13 +80,6 @@ std::thread * process(configuration *const cfg, work_queue_t *const w, snmp *con
 
 			if (rc != TE_ok)
 				log(LL_INFO, "Switchboard indicated error during put_message: %d", rc);
-
-			db *d = cfg->get_db();
-
-#if LIBMONGOCXX_FOUND == 1
-			if (d)
-				insert_into_database(d, m.value());
-#endif
 
 			push_to_websockets(cfg->get_websockets_context(), m.value());
 		}
