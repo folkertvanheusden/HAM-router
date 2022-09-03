@@ -25,7 +25,7 @@ void signal_handler(int sig)
 
 void push_to_websockets(ws_global_context_t *const ws, const message & m)
 {
-	auto            meta     = m.get_meta();
+	auto          & meta     = m.get_meta();
 
 	json_t         *json_out = json_object();
 

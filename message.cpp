@@ -20,9 +20,9 @@ message::message(const message & m) :
 	msg_id  (m.get_msg_id()),
 	from_rf (m.get_is_from_rf()),
 	air_time(m.get_air_time()),
-	b       (m.get_buffer()),
-	meta    (m.get_meta())
+	b       (m.get_buffer())
 {
+	set_meta(m.get_meta());
 }
 
 message::~message()
@@ -34,7 +34,8 @@ std::string message::get_id_short() const
 	return myformat("%08x", msg_id);
 }
 
-void message::set_meta(const std::map<std::string, db_record_data> & meta)
+void message::set_meta(const std::map<std::string, db_record_data> & meta_in)
 {
-	this->meta = meta;
+	for(auto mrec : meta_in)
+		meta[mrec.first] = mrec.second;
 }

@@ -46,6 +46,16 @@ struct db_record_data
 		s_value(s) {
 	}
 
+	db_record_data operator=(const db_record_data & in) {
+		dt      = in.dt;
+		b       = in.b;
+		s_value = in.s_value;
+		i_value = in.i_value;
+		d_value = in.d_value;
+
+		return *this;
+	}
+
 	db_record_data(const db_record_data & other) :
 		dt(other.dt),
 		b(other.b),

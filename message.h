@@ -49,5 +49,5 @@ public:
 
 	void           set_meta(const std::map<std::string, db_record_data> & meta);
 
-	auto           get_meta()       const { return meta;    }
+	auto         & get_meta()       const { return meta;    }
 };

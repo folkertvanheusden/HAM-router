@@ -7,15 +7,17 @@
 class buffer
 {
 private:
-	const uint8_t *const p    { nullptr };
-	const int            size { 0       };
-	int                  o    { 0       };
+	uint8_t *p    { nullptr };
+	int      size { 0       };
+	int      o    { 0       };
 
 public:
 	buffer(const uint8_t *p, const int size);
 	buffer(const buffer & b);
 	buffer();
 	virtual ~buffer();
+
+	buffer    & operator=(const buffer &);
 
 	uint8_t     get_byte();
 	uint16_t    get_net_short();  // 2 bytes

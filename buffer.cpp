@@ -24,6 +24,16 @@ buffer::~buffer()
 	free(const_cast<uint8_t *>(p));
 }
 
+buffer & buffer::operator=(const buffer & in)
+{
+	free(const_cast<uint8_t *>(p));
+
+	p    = reinterpret_cast<uint8_t *>(duplicate(in.get_pointer(), in.get_size()));
+	size = in.get_size();
+
+	return *this;
+}
+
 uint8_t  buffer::get_byte()
 {
 	if (o >= size)
