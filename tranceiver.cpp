@@ -67,6 +67,8 @@ transmit_error_t tranceiver::queue_incoming_message(const message & m)
 		incoming.push(copy);
 
 		incoming_cv.notify_all();
+
+		log(LL_DEBUG, "tranceiver::queue_incoming_message(%s: %s): message queued", id.c_str(), m.get_id_short().c_str());
 	}
 
 	{
