@@ -142,6 +142,8 @@ void startiface(const char *dev)
 		error_exit(false, "Network device name too long");
 
 	strncpy(ifr.ifr_name, dev, sizeof ifr.ifr_name);
+	ifr.ifr_name[sizeof ifr.ifr_name - 1] = 0;
+
 	ifr.ifr_mtu = MAX_PACKET_SIZE;
 
 	if (ioctl(fd, SIOCSIFMTU, &ifr) == -1)
