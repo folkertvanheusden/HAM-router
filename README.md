@@ -3,7 +3,9 @@ and APRS over LoRa, axudp, local ax.25 network interface.
 
 Packets can be stored in a MongoDB, viewed via a web-interface (using
 web-sockets). The program has a built-in SNMP server (for statistics).
-APRS data can be transmitted to APRS-SI.
+APRS data can be transmitted to APRS-SI. It can bridge between AXUDP,
+local interface and LoRa: each bridge can have a filter with one or more
+rules.
 
 software requirements:
 * cmake
