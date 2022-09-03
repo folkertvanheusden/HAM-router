@@ -26,11 +26,11 @@ ax25_address::ax25_address(const std::vector<uint8_t> & from)
 			address += c;
 	}
 
-	end_mark = from[7] & 1;
+	end_mark = from[6] & 1;
 
-	repeated = !!(from[7] & 128);
+	repeated = !!(from[6] & 128);
 
-	ssid = '0' + ((from[7] >> 1) & 0x0f);
+	ssid = '0' + ((from[6] >> 1) & 0x0f);
 
 	valid = true;
 }
@@ -107,7 +107,7 @@ ax25::ax25(const std::vector<uint8_t> & in)
 
 	std::size_t offset = 14;
 
-	for(int i=0; i<8 && end_mark == false; i++) {
+	for(int i=0; i<2 && end_mark == false; i++) {
 		ax25_address a(std::vector<uint8_t>(in.begin() + offset, in.begin() + offset + 7));
 		offset += 7;
 
@@ -116,14 +116,16 @@ ax25::ax25(const std::vector<uint8_t> & in)
 		seen_by.push_back(a);
 	}
 
-	// TODO data
+	// TODO control & pid fields
+
+	if (offset < in.size() - 1)
+		data = buffer(in.data() + offset, in.size() - offset);
 
 	valid = true;
 }
 
 ax25::~ax25()
 {
-	free(data);
 }
 
 ax25_address ax25::get_from() const
@@ -141,9 +143,9 @@ std::vector<ax25_address> ax25::get_seen_by() const
 	return seen_by;
 }
 
-std::pair<uint8_t *, size_t> ax25::get_data() const
+buffer ax25::get_data() const
 {
-	return { data, data_len };
+	return data;
 }
 
 void ax25::set_from(const std::string & callsign, const char ssid, const bool end_mark, const bool repeated)
@@ -158,10 +160,7 @@ void ax25::set_to(const std::string & callsign, const char ssid, const bool end_
 
 void ax25::set_data(const uint8_t *const p, const size_t size)
 {
-	free(data);
-
-	data     = reinterpret_cast<uint8_t *>(duplicate(p, size));
-	data_len = size;
+	data = buffer(p, size);
 }
 
 void ax25::set_control(const uint8_t control)
@@ -176,13 +175,15 @@ void ax25::set_pid(const uint8_t pid)
 
 std::pair<uint8_t *, size_t> ax25::generate_packet() const
 {
-	uint8_t *out  = reinterpret_cast<uint8_t *>(calloc(1, data_len + 1024 /* more than enough for an ax.25 header */));
+	int      data_size = data.get_size();
 
-	auto addr_to   = to  .generate_address();
+	uint8_t *out       = reinterpret_cast<uint8_t *>(calloc(1, data_size + 1024 /* more than enough for an ax.25 header */));
+
+	auto addr_to       = to  .generate_address();
 	memcpy(&out[0], addr_to  .first, 7);
 	free(addr_to  .first);
 
-	auto addr_from = from.generate_address();
+	auto addr_from     = from.generate_address();
 	memcpy(&out[7], addr_from.first, 7);
 	free(addr_from.first);
 
@@ -190,7 +191,7 @@ std::pair<uint8_t *, size_t> ax25::generate_packet() const
 	
 	out[15] = pid;
 
-	memcpy(&out[16], data, data_len);
+	memcpy(&out[16], data.get_pointer(), data_size);
 
-	return { out, data_len + 16 };
+	return { out, data_size + 16 };
 }

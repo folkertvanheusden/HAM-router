@@ -1,6 +1,7 @@
 #include "ax25.h"
 #include "dissect-packet.h"
 #include "gps.h"
+#include "str.h"
 
 
 std::optional<std::map<std::string, db_record_data> > parse_ax25(const uint8_t *const data, const size_t len)
@@ -29,6 +30,10 @@ std::optional<std::map<std::string, db_record_data> > parse_ax25(const uint8_t *
 	fields.insert({ "from", db_record_gen(packet.get_from().get_address()) });
 
 	fields.insert({ "to",   db_record_gen(packet.get_to  ().get_address()) });
+
+	buffer payload = packet.get_data();
+
+	fields.insert({ "payload",  db_record_gen(dump_replace(payload.get_pointer(), payload.get_size())) });
 
 	return fields;
 }
@@ -92,7 +97,7 @@ std::optional<std::map<std::string, db_record_data> > parse_aprs(const uint8_t *
         std::size_t bracket = work.find('[');
 
 	if (bracket != std::string::npos)
-		fields.insert({ "content",   db_record_gen(work.substr(bracket + 1)) });
+		fields.insert({ "payload",   db_record_gen(work.substr(bracket + 1)) });
 
 	fields.insert({ "protocol", db_record_gen("APRS-OE") });
 

@@ -37,8 +37,6 @@ void push_to_websockets(ws_global_context_t *const ws, const message & m)
 
 	json_object_set_new(json_out, "air-time",  json_integer(m.get_air_time()));
 
-	json_object_set_new(json_out, "data",      json_string(dump_replace(m.get_content().first, m.get_content().second).c_str()));
-
 	if (meta.find("from") != meta.end())
 		json_object_set_new(json_out, "from", json_string(meta.at("from").s_value.c_str()));
 
@@ -53,6 +51,9 @@ void push_to_websockets(ws_global_context_t *const ws, const message & m)
 
 	if (meta.find("protocol")  != meta.end())
 		json_object_set_new(json_out, "protocol",  json_string(meta.at("protocol").s_value.c_str()));
+
+	if (meta.find("payload")   != meta.end())
+		json_object_set_new(json_out, "payload",   json_string(meta.at("payload").s_value.c_str()));
 
 	char *json = json_dumps(json_out, 0);
 

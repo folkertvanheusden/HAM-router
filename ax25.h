@@ -2,6 +2,8 @@
 #include <string>
 #include <vector>
 
+#include "buffer.h"
+
 
 class ax25_address
 {
@@ -45,8 +47,7 @@ private:
 	std::vector<ax25_address> seen_by;
 	uint8_t                   control  { 0       };
 	uint8_t                   pid      { 0       };
-	uint8_t                  *data     { nullptr };
-	size_t                    data_len { 0       };
+	buffer                    data;
 
 public:
 	ax25();
@@ -62,7 +63,7 @@ public:
 	ax25_address get_from() const;
 	ax25_address get_to  () const;
 	std::vector<ax25_address> get_seen_by() const;
-	std::pair<uint8_t *, size_t> get_data() const;
+	buffer       get_data() const;
 
 	std::pair<uint8_t *, size_t> generate_packet() const;
 };
