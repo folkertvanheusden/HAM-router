@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <exception>
 #include <optional>
 #include <poll.h>
 #include <pty.h>
@@ -58,74 +59,79 @@ void tranceiver_beacon::operator()()
 
 	sleep(1);
 
-        for(;!terminate;) {
-		message *m { nullptr };
+	try {
+		for(;!terminate;) {
+			message *m { nullptr };
 
-		timeval tv { 0 };
-		gettimeofday(&tv, nullptr);
+			timeval tv { 0 };
+			gettimeofday(&tv, nullptr);
 
-		std::string source = myformat("beacon(%s)", get_id().c_str());
-		uint64_t    msg_id = get_random_uint64_t();
+			std::string source = myformat("beacon(%s)", get_id().c_str());
+			uint64_t    msg_id = get_random_uint64_t();
 
-		if (bm == beacon_mode_aprs) {
-			std::string aprs_text = "!" + gps_double_to_aprs(local_pos.latitude, local_pos.longitude) + "[";
+			if (bm == beacon_mode_aprs) {
+				std::string aprs_text = "!" + gps_double_to_aprs(local_pos.latitude, local_pos.longitude) + "[";
 
-			std::string output = "<\xff\x01" + callsign + "-L>APLG01,TCPIP*,qAC:" + aprs_text + beacon_text;
+				std::string output = "<\xff\x01" + callsign + "-L>APLG01,TCPIP*,qAC:" + aprs_text + beacon_text;
 
-			m = new message(tv,
-					source,
-					msg_id,
-					false,
-					0,
-					reinterpret_cast<const uint8_t *>(output.c_str()),
-					output.size());
-		}
-		else if (bm == beacon_mode_ax25) {
-			ax25 packet;
+				m = new message(tv,
+						source,
+						msg_id,
+						false,
+						0,
+						reinterpret_cast<const uint8_t *>(output.c_str()),
+						output.size());
+			}
+			else if (bm == beacon_mode_ax25) {
+				ax25 packet;
 
-			std::string temp = callsign;
-			char        ssid = ' ';
+				std::string temp = callsign;
+				char        ssid = ' ';
 
-			std::size_t pos_min = callsign.find('-');
-			if (pos_min != std::string::npos) {
-				temp = callsign.substr(0, pos_min);
+				std::size_t pos_min = callsign.find('-');
+				if (pos_min != std::string::npos) {
+					temp = callsign.substr(0, pos_min);
 
-				ssid = callsign.substr(pos_min + 1)[0];
+					ssid = callsign.substr(pos_min + 1)[0];
+				}
+
+				packet.set_from(temp, ssid, true, false);
+				packet.set_to  ("IDENT", ' ', false, false);
+				packet.set_control(3  );  // U frame (unnumbered)
+				packet.set_pid    (240);  // no layer 3
+				packet.set_data(reinterpret_cast<const uint8_t *>(beacon_text.c_str()), beacon_text.size());
+
+				auto packet_binary = packet.generate_packet();
+
+				m = new message(tv,
+						source,
+						msg_id,
+						false,
+						0,
+						packet_binary.first,
+						packet_binary.second);
+
+				free(packet_binary.first);
+			}
+			else {
+				log(LL_INFO, "UNEXPECTED BEACON MODE");
+
+				break;
 			}
 
-			packet.set_from(temp, ssid, true, false);
-			packet.set_to  ("IDENT", ' ', false, false);
-			packet.set_control(3  );  // U frame (unnumbered)
-			packet.set_pid    (240);  // no layer 3
-			packet.set_data(reinterpret_cast<const uint8_t *>(beacon_text.c_str()), beacon_text.size());
+			log(LL_INFO, "Send beacon %s", m->get_id_short().c_str());
 
-			auto packet_binary = packet.generate_packet();
+			queue_incoming_message(*m);
 
-			m = new message(tv,
-					source,
-					msg_id,
-					false,
-					0,
-					packet_binary.first,
-					packet_binary.second);
+			delete m;
 
-			free(packet_binary.first);
+			if (!myusleep(beacon_interval * 1000000ll, &terminate))
+				break;
 		}
-		else {
-			log(LL_INFO, "UNEXPECTED BEACON MODE");
-
-			break;
-		}
-
-		log(LL_INFO, "Send beacon %s", m->get_id_short().c_str());
-
-		queue_incoming_message(*m);
-
-		delete m;
-
-		if (!myusleep(beacon_interval * 1000000ll, &terminate))
-			break;
-        }
+	}
+	catch(std::exception & e) {
+		log(LL_ERROR, "Caught exception in tranceiver_beacon::operator: %s", e.what());
+	}
 }
 
 tranceiver *tranceiver_beacon::instantiate(const libconfig::Setting & node_in, work_queue_t *const w, const position_t & pos)

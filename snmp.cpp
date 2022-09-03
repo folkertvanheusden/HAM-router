@@ -1,4 +1,5 @@
 // (C) 2021-2022 by folkert van heusden <mail@vanheusden.com>, released under Apache License v2.0
+#include <exception>
 #include <poll.h>
 #include <stdint.h>
 #include <unistd.h>
@@ -364,42 +365,47 @@ void snmp::operator()()
 
 	log(LL_INFO, "Starting SNMP server");
 
-	int fd = socket(AF_INET, SOCK_DGRAM, 0);
-	if (fd == -1)
-		error_exit(true, "socket() failed");
+	try {
+		int fd = socket(AF_INET, SOCK_DGRAM, 0);
+		if (fd == -1)
+			error_exit(true, "socket() failed");
 
-	struct sockaddr_in servaddr { 0 };
+		struct sockaddr_in servaddr { 0 };
 
-	servaddr.sin_family      = AF_INET; // IPv4
-	servaddr.sin_addr.s_addr = INADDR_ANY;
-	servaddr.sin_port        = htons(port);
+		servaddr.sin_family      = AF_INET; // IPv4
+		servaddr.sin_addr.s_addr = INADDR_ANY;
+		servaddr.sin_port        = htons(port);
 
-	if (bind(fd, (const struct sockaddr *)&servaddr, sizeof(servaddr)) == -1)
-		error_exit(true, "bind() failed");
+		if (bind(fd, (const struct sockaddr *)&servaddr, sizeof(servaddr)) == -1)
+			error_exit(true, "bind() failed");
 
-	pollfd fds[] = { { fd, POLLIN, 0 } };
+		pollfd fds[] = { { fd, POLLIN, 0 } };
 
-	for(;!terminate;) {
-		try {
-			int rc = poll(fds, 1, 100);
+		for(;!terminate;) {
+			try {
+				int rc = poll(fds, 1, 100);
 
-			if (rc == 0)
-				continue;
+				if (rc == 0)
+					continue;
 
-			if (rc == -1)
-				error_exit(true, "poll failed");
+				if (rc == -1)
+					error_exit(true, "poll failed");
 
-			char               buffer[1600] { 0 };
-			struct sockaddr_in clientaddr   { 0 };
-			socklen_t          len = sizeof(clientaddr);
+				char               buffer[1600] { 0 };
+				struct sockaddr_in clientaddr   { 0 };
+				socklen_t          len = sizeof(clientaddr);
 
-			int n = recvfrom(fd, buffer, sizeof buffer, 0, (sockaddr *)&clientaddr, &len);
+				int n = recvfrom(fd, buffer, sizeof buffer, 0, (sockaddr *)&clientaddr, &len);
 
-			if (n > 0)
-				input(fd, reinterpret_cast<uint8_t *>(buffer), n, (const sockaddr *)&clientaddr, len);
-                }
-                catch(const std::exception& e) {
-                        log(LL_ERROR, "snmp::operator(): exception %s", e.what());
-                }
+				if (n > 0)
+					input(fd, reinterpret_cast<uint8_t *>(buffer), n, (const sockaddr *)&clientaddr, len);
+			}
+			catch(const std::exception& e) {
+				log(LL_ERROR, "snmp::operator(): exception %s", e.what());
+			}
+		}
+	}
+	catch(std::exception & e) {
+		log(LL_ERROR, "Caught exception in snmp::operator: %s", e.what());
 	}
 }
