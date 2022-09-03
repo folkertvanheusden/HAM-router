@@ -54,16 +54,20 @@ std::thread * process(configuration *const cfg, work_queue_t *const w, snmp *con
 		set_thread_name("main");
 
 		for(;;) {
-			std::unique_lock lck(w->work_lock);
+			tranceiver *t_has_work { nullptr };
 
-			while(w->work_list.empty() && !terminate)
-				w->work_cv.wait_for(lck, std::chrono::milliseconds(100));
+			{
+				std::unique_lock lck(w->work_lock);
 
-			if (terminate)
-				break;
+				while(w->work_list.empty() && !terminate)
+					w->work_cv.wait_for(lck, std::chrono::milliseconds(100));
 
-			tranceiver *const t_has_work = w->work_list.front();
-			w->work_list.pop();
+				if (terminate)
+					break;
+
+				t_has_work = w->work_list.front();
+				w->work_list.pop();
+			}
 
 			assert(t_has_work->peek());
 

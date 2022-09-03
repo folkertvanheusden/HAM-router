@@ -44,6 +44,7 @@ transmit_error_t tranceiver::queue_incoming_message(const message & m)
 		return TE_ratelimiting;
 	}
 
+	// push to incoming queue of this tranceiver (TODO: empty when not consuming (eg beacon))
 	{
 		message copy { m };
 
@@ -71,6 +72,7 @@ transmit_error_t tranceiver::queue_incoming_message(const message & m)
 		log(LL_DEBUG, "tranceiver::queue_incoming_message(%s: %s): message queued", id.c_str(), m.get_id_short().c_str());
 	}
 
+	// let main know that there's work to process
 	{
 		std::unique_lock<std::mutex> lck(w->work_lock);
 
