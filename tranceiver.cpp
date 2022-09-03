@@ -45,7 +45,7 @@ transmit_error_t tranceiver::queue_incoming_message(const message & m)
 	}
 
 	{
-		message copy = m;
+		message copy { m };
 
 		auto    meta = dissect_packet(content.first, content.second);
 
