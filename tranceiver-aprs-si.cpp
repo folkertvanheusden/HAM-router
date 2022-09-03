@@ -47,7 +47,9 @@ transmit_error_t tranceiver_aprs_si::put_message_low(const message & m)
 
 	stats_inc_counter(cnt_frame_aprs);
 
-	if (s->check(content.first, content.second) == false) {
+	auto rate_limit_rc = s->check(content.first, content.second);
+
+	if (rate_limit_rc.first == false) {
 		log(LL_DEBUG_VERBOSE, "tranceiver_aprs_si::put_message_low(%s): denied by rate limiter", m.get_id_short().c_str());
 
 		stats_inc_counter(cnt_frame_aprs_rate_limited);

@@ -52,10 +52,20 @@ transmit_error_t tranceiver::queue_incoming_message(const message & m)
 
 	// check if s was allocated because e.g. the beacon module does
 	// not allocate a seen object
-	if (s && s->check(content.first, content.second) == false) {
-		log(LL_DEBUG, "tranceiver::queue_incoming_message(%s: %s): dropped because of rate limiting", id.c_str(), m.get_id_short().c_str());
+	uint32_t hash       = 0;
+	bool     hash_valid = false;
 
-		return TE_ratelimiting;
+	if (s) {
+		auto ratelimit_rc = s->check(content.first, content.second);
+
+		if (ratelimit_rc.first == false) {
+			log(LL_DEBUG, "tranceiver::queue_incoming_message(%s: %s): dropped because of rate limiting", id.c_str(), m.get_id_short().c_str());
+
+			return TE_ratelimiting;
+		}
+
+		hash       = ratelimit_rc.second;
+		hash_valid = true;
 	}
 
 	// push to incoming queue of this tranceiver (TODO: empty when not consuming (eg beacon))
@@ -73,6 +83,9 @@ transmit_error_t tranceiver::queue_incoming_message(const message & m)
 
 				meta.value().insert({ "distance", myformat("%.2f", distance) });
 			}
+
+			if (hash_valid)
+				meta.value().insert({ "pkt-crc", myformat("%08x", hash) });
 
 			copy.set_meta(meta.value());
 		}

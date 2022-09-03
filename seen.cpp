@@ -39,7 +39,7 @@ void seen::stop()
 	}
 }
 
-bool seen::check(const uint8_t *const p, const size_t s)
+std::pair<bool, uint32_t> seen::check(const uint8_t *const p, const size_t s)
 {
 	uint32_t hash = calc_crc32(p, s);
 
@@ -64,7 +64,7 @@ bool seen::check(const uint8_t *const p, const size_t s)
 
 	stats_inc_counter(rc ? counter_hit : counter_miss);
 
-	return rc;
+	return { rc, hash };
 }
 
 void seen::operator()()

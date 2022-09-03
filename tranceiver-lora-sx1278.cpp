@@ -32,9 +32,15 @@ void * rx_f(void *in)
 			myformat("LoRa-sx1278(%s)", t->get_id().c_str()),
 			msg_id,
 			true,
-			rx->Tpkt,
+			rx->Tpkt,  // TODO: move to meta
 			reinterpret_cast<uint8_t *>(rx->buf),
 			rx->size);
+
+	std::map<std::string, db_record_data> meta;
+
+	meta.insert({ "rssi", db_record_gen(myformat("%ddBm", rx->RSSI)) });
+
+	m.set_meta(meta);
 
 	log(LL_DEBUG, "LoRa-sx1278 rx(%s), SNR: %f, RSSI: %d, CRC: %d: %s (ascii)", m.get_id_short().c_str(), rx->SNR, rx->RSSI, rx->CRC, dump_replace(reinterpret_cast<uint8_t *>(rx->buf), rx->size).c_str());
 

@@ -96,7 +96,8 @@ MHD_Result process_http_request(void *cls,
 		page += html_page_header;
 
 		page += "<table id=\"packets\" width=100%>";
-		page += "<tr><th>time</th><th>source</th><th>from</th><th>to</th><th>msg id</th><th>air time</th><th>payload</th><th>latitude</th><th>longitude</th><th>protocol</th></tr>\n";
+		page += "<tr><th>time</th><th>source</th><th>from</th><th>to</th><th>msg id</th><th>air time</th><th>payload</th></tr>\n";
+		page += "<tr><th>date</th><th>latitude</th><th>longitude</th><th>pkt crc</th><th>protocol</th><th>rssi</th></tr>\n";
 		page += "</table>";
 
 		page += websocket_receiver;
@@ -155,12 +156,25 @@ void * start_webserver(const int listen_port, const std::string & ws_url_in, con
 				"            var payload = msg['payload'];\n"
 				"            var lat     = 'latitude'  in msg ? msg['latitude' ].toPrecision(7) : '';\n"
 				"            var lng     = 'longitude' in msg ? msg['longitude'].toPrecision(7) : '';\n"
+				"            var pkt_crc = msg['pkt-crc'];\n"
 				"            var prot    = msg['protocol'];\n"
+				"            var rssi    = 'rssi' in msg ? msg['rssi'] : '';\n"
 				"\n"
-				"            var row = table.insertRow(1);\n"
+				"            var row = table.insertRow(2);\n"
 				"            var cell0 = row.insertCell(0);\n"
 				"	     cell0.innerHTML = date;\n"
-				"            var row = table.insertRow(1);\n"
+				"            var cell1 = row.insertCell(1);\n"
+				"	     cell1.innerHTML = lat;\n"
+				"            var cell2 = row.insertCell(2);\n"
+				"	     cell2.innerHTML = lng;\n"
+				"            var cell3 = row.insertCell(3);\n"
+				"            cell3.innerHTML = pkt_crc;\n"
+				"            var cell4 = row.insertCell(4);\n"
+				"	     cell4.innerHTML = prot;\n"
+				"            var cell5 = row.insertCell(5);\n"
+				"	     cell5.innerHTML = rssi;\n"
+				"\n"
+				"            var row = table.insertRow(2);\n"
 				"            var cell0 = row.insertCell(0);\n"
 				"	     cell0.innerHTML = time;\n"
 				"            var cell1 = row.insertCell(1);\n"
@@ -175,12 +189,6 @@ void * start_webserver(const int listen_port, const std::string & ws_url_in, con
 				"	     cell5.innerHTML = air_t;\n"
 				"            var cell6 = row.insertCell(6);\n"
 				"	     cell6.innerHTML = payload;\n"
-				"            var cell7 = row.insertCell(7);\n"
-				"	     cell7.innerHTML = lat;\n"
-				"            var cell8 = row.insertCell(8);\n"
-				"	     cell8.innerHTML = lng;\n"
-				"            var cell9 = row.insertCell(9);\n"
-				"	     cell9.innerHTML = prot;\n"
 				"\n"
 				"            var rowCount = table.rows.length;\n"
 				"            if (rowCount > 250) {\n"

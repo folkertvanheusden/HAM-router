@@ -55,6 +55,12 @@ void push_to_websockets(ws_global_context_t *const ws, const message & m)
 	if (meta.find("payload")   != meta.end())
 		json_object_set_new(json_out, "payload",   json_string(meta.at("payload").s_value.c_str()));
 
+	if (meta.find("pkt-crc")   != meta.end())
+		json_object_set_new(json_out, "pkt-crc",   json_string(meta.at("pkt-crc").s_value.c_str()));
+
+	if (meta.find("rssi")      != meta.end())
+		json_object_set_new(json_out, "rssi",      json_string(meta.at("rssi").s_value.c_str()));
+
 	char *json = json_dumps(json_out, 0);
 
 	std::string json_out_str = json;
