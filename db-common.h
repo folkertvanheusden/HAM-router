@@ -33,6 +33,7 @@ struct db_record_data
 	double      d_value { 0 };
 
 	db_record_data() {
+		dt = dt_none;
 	}
 
 	db_record_data(const buffer & b) :

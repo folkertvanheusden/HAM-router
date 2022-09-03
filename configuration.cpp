@@ -257,10 +257,15 @@ void configuration::load_filters(const libconfig::Setting & node_in)
 
 			if (type == "name")
 				name = node.lookup(type).c_str();
-			else if (type == "definition")
+			else if (type == "definition") {
+				if (f)
+					error_exit(false, "Multiple rules definitions found");
+
 				f    = filter::instantiate(node_def);
-			else
+			}
+			else {
 				error_exit(false, "General setting \"%s\" is not known", type.c_str());
+			}
 		}
 
 		if (!f)

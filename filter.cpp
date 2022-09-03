@@ -74,7 +74,7 @@ bool filter_rule::check(const message & m)
 filter_rule *filter_rule::instantiate(const libconfig::Setting & node_in)
 {
 	std::string      field_name;
-	std::string      value_type                { dt_none };
+	std::string      value_type;
 	db_record_data   value;
 	bool             not_                      { false   };
 	bool             ignore_if_missing         { false   };
