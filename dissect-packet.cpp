@@ -77,7 +77,7 @@ std::optional<std::map<std::string, db_record_data> > parse_aprs(const uint8_t *
 	// get nmea position
         std::size_t colon = work.find(':');
 
-	if (colon != std::string::npos && colon < len - 8) {
+	if (colon != std::string::npos && len - colon >= 8) {
 		double latitude = 0, longitude = 0;
 
 		std::string nmea = work.substr(colon + 1);

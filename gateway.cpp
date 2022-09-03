@@ -46,10 +46,10 @@ void push_to_websockets(ws_global_context_t *const ws, const message & m)
 		json_object_set_new(json_out, "to",   json_string(meta.at("to"  ).s_value.c_str()));
 
 	if (meta.find("latitude")  != meta.end())
-		json_object_set_new(json_out, "latitude",  json_string(meta.at("latitude" ).s_value.c_str()));
+		json_object_set_new(json_out, "latitude",  json_real(meta.at("latitude" ).d_value));
 
 	if (meta.find("longitude") != meta.end())
-		json_object_set_new(json_out, "longitude", json_string(meta.at("longitude").s_value.c_str()));
+		json_object_set_new(json_out, "longitude", json_real(meta.at("longitude").d_value));
 
 	if (meta.find("protocol")  != meta.end())
 		json_object_set_new(json_out, "protocol",  json_string(meta.at("protocol").s_value.c_str()));
