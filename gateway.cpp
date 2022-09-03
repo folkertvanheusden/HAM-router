@@ -25,27 +25,35 @@ void signal_handler(int sig)
 
 void push_to_websockets(ws_global_context_t *const ws, const message & m)
 {
-	json_t         *meta = json_object();
+	auto          & m        = m.get_meta();
 
-	json_object_set_new(meta, "timestamp", json_integer(m.get_tv().tv_sec));
+	json_t         *jsom_out = json_object();
 
-	json_object_set_new(meta, "source",    json_string(m.get_source().c_str()));
+	json_object_set_new(jsom_out, "timestamp", json_integer(m.get_tv().tv_sec));
 
-	json_object_set_new(meta, "msg-id",    json_string(m.get_id_short().c_str()));
+	json_object_set_new(jsom_out, "source",    json_string(m.get_source().c_str()));
 
-	json_object_set_new(meta, "air-time",  json_integer(m.get_air_time()));
+	json_object_set_new(jsom_out, "msg-id",    json_string(m.get_id_short().c_str()));
 
-	json_object_set_new(meta, "data",      json_string(dump_replace(m.get_content().first, m.get_content().second).c_str()));
+	json_object_set_new(jsom_out, "air-time",  json_integer(m.get_air_time()));
 
-	char *json = json_dumps(meta, 0);
+	json_object_set_new(jsom_out, "data",      json_string(dump_replace(m.get_content().first, m.get_content().second).c_str()));
 
-	std::string meta_str = json;
+	if (m.find("from") != m.end())
+		json_object_set_new(jsom_out, "from", json_string(m.at("from").c_str()));
+
+	if (m.find("to") != m.end())
+		json_object_set_new(jsom_out, "to",   json_string(m.at("to").c_str()));
+
+	char *json = json_dumps(jsom_out, 0);
+
+	std::string jsom_out_str = json;
 
 	free(json);
 
-	json_decref(meta);
+	json_decref(jsom_out);
 
-	push_to_websockets(ws, meta_str);
+	push_to_websockets(ws, jsom_out_str);
 }
 
 std::thread * process(configuration *const cfg, work_queue_t *const w, snmp *const snmp_)
@@ -80,6 +88,7 @@ std::thread * process(configuration *const cfg, work_queue_t *const w, snmp *con
 				continue;
 			}
 
+			// Put this in a thread vvvv
 			auto content = m.value().get_content();
 
 			log(LL_DEBUG_VERBOSE, "Forwarding message from %s (%s): %s", m.value().get_source().c_str(), m.value().get_id_short().c_str(), dump_replace(content.first, content.second).c_str());
@@ -90,6 +99,7 @@ std::thread * process(configuration *const cfg, work_queue_t *const w, snmp *con
 				log(LL_INFO, "Switchboard indicated error during put_message: %d", rc);
 
 			push_to_websockets(cfg->get_websockets_context(), m.value());
+			// Put this in a thread ^^^^
 		}
 	});
 }

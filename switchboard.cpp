@@ -53,7 +53,6 @@ transmit_error_t switchboard::put_message(tranceiver *const from, const message 
 
 	log(LL_DEBUG, "Forwarding %s to %zu tranceivers", m.get_id_short().c_str(), it->second.first.size());
 
-	// TODO in a thread; copy data then!
 	for(auto t : it->second.first) {
 		log(LL_DEBUG_VERBOSE, "Forwarding %s to: %s", m.get_id_short().c_str(), t->get_id().c_str());
 
