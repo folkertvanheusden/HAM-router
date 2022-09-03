@@ -8,6 +8,7 @@
 #include "error.h"
 #include "log.h"
 #include "time.h"
+#include "utils.h"
 #include "websockets.h"
 
 static std::atomic_bool  ws_terminate { false };
@@ -106,6 +107,8 @@ void start_websocket_thread(const int port, ws_global_context_t *const p, const 
 
 	ws_thread = new std::thread([] {
 			try {
+				set_thread_name("websockets");
+
 				for(;!ws_terminate;) {
 					try {
 						lws_service(context, 100);
