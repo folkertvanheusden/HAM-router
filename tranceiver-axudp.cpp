@@ -157,7 +157,7 @@ void tranceiver_axudp::operator()()
 						false, 
 						0,
 						reinterpret_cast<const uint8_t *>(buffer),
-						len - 2 /* "remove" crc */);
+						n - 2 /* "remove" crc */);
 
 				log(LL_DEBUG_VERBOSE, "tranceiver_axudp::operator(%s): received message from %s", m.get_id_short().c_str(), came_from.c_str());
 
@@ -171,7 +171,7 @@ void tranceiver_axudp::operator()()
 						false, 
 						0,
 						reinterpret_cast<const uint8_t *>(buffer),
-						len);
+						n);
 
 					send_to_other_axudp_targets(m_full, came_from);
 				}
