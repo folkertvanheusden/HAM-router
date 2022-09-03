@@ -1,6 +1,5 @@
 #include <assert.h>
 #include <errno.h>
-#include <exception>
 #include <optional>
 #include <poll.h>
 #include <pty.h>
@@ -123,8 +122,8 @@ void tranceiver_axudp::operator()()
 
 	pollfd fds[] = { { fd, POLLIN, 0 } };
 
-	try {
-		for(;!terminate;) {
+        for(;!terminate;) {
+                try {
 			int rc = poll(fds, 1, END_CHECK_INTERVAL_ms);
 			
 			if (rc == 0)
@@ -179,11 +178,11 @@ void tranceiver_axudp::operator()()
 			}
 
 			free(buffer);
-		}
-	}
-	catch(const std::exception& e) {
-		log(LL_ERROR, "tranceiver_axudp::operator: recvfrom failed: %s", e.what());
-	}
+                }
+                catch(const std::exception& e) {
+                        log(LL_ERROR, "tranceiver_axudp::operator: recvfrom failed: %s", e.what());
+                }
+        }
 }
 
 tranceiver *tranceiver_axudp::instantiate(const libconfig::Setting & node_in, work_queue_t *const w, const position_t & pos)

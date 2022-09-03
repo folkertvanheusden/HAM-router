@@ -1,5 +1,4 @@
 #include <atomic>
-#include <exception>
 #include <libwebsockets.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -106,21 +105,10 @@ void start_websocket_thread(const int port, ws_global_context_t *const p, const 
 		error_exit(false, "libwebsocket init failed");
 
 	ws_thread = new std::thread([] {
-			try {
-				set_thread_name("websockets");
+			set_thread_name("websockets");
 
-				for(;!ws_terminate;) {
-					try {
-						lws_service(context, 100);
-					}
-					catch(const std::exception& e) {
-						log(LL_ERROR, "ws_thread: exception %s", e.what());
-					}
-				}
-			}
-			catch(std::exception & e) {
-				log(LL_ERROR, "Caught exception in websocket-thread: %s", e.what());
-			}
+			for(;!ws_terminate;)
+				lws_service(context, 100);
 		});
 }
 

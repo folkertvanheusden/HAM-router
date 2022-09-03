@@ -1,6 +1,5 @@
 #include <assert.h>
 #include <errno.h>
-#include <exception>
 #include <optional>
 #include <poll.h>
 #include <pty.h>
@@ -254,41 +253,36 @@ void tranceiver_kiss::operator()()
 
 	pollfd fds[] = { { fd, POLLIN, 0 } };
 
-	try {
-		while(!terminate) {
-			int rc = poll(fds, 1, END_CHECK_INTERVAL_ms);
+	while(!terminate) {
+		int rc = poll(fds, 1, END_CHECK_INTERVAL_ms);
 
-			if (rc == 0)
-				continue;
+		if (rc == 0)
+			continue;
 
-			if (rc == -1)
-				break;
+		if (rc == -1)
+			break;
 
-			uint8_t *p   = nullptr;
-			int      len = 0;
-			if (!recv_mkiss(&p, &len, true))
-				continue;
+		uint8_t *p   = nullptr;
+		int      len = 0;
+		if (!recv_mkiss(&p, &len, true))
+			continue;
 
-			timeval tv;
-			gettimeofday(&tv, nullptr);
+		timeval tv;
+		gettimeofday(&tv, nullptr);
 
-			message m(tv,
-					myformat("kiss(%s)", get_id().c_str()),
-					get_random_uint64_t(),
-					false,
-					0,
-					p,
-					len);
+		message m(tv,
+				myformat("kiss(%s)", get_id().c_str()),
+				get_random_uint64_t(),
+				false,
+				0,
+				p,
+				len);
 
-			log(LL_DEBUG_VERBOSE, "KISS received message (%s)", dump_hex(p, len).c_str());
+		log(LL_DEBUG_VERBOSE, "KISS received message (%s)", dump_hex(p, len).c_str());
 
-			free(p);
+		free(p);
 
-			queue_incoming_message(m);
-		}
-	}
-	catch(std::exception & e) {
-		log(LL_ERROR, "Caught exception in tranceiver_kiss::operator: %s", e.what());
+		queue_incoming_message(m);
 	}
 }
 

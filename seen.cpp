@@ -1,10 +1,8 @@
-#include <exception>
 #include <time.h>
 #include <vector>
 
 #include "error.h"
 #include "hashing.h"
-#include "log.h"
 #include "seen.h"
 #include "str.h"
 #include "time.h"
@@ -67,37 +65,32 @@ void seen::operator()()
 {
 	set_thread_name("rl-hash");
 
-	try {
-		while(!terminate) {
-			std::unique_lock<std::mutex> lck(history_lock);
+	while(!terminate) {
+		std::unique_lock<std::mutex> lck(history_lock);
 
-			while(history.size() < size_t(max_n) && terminate == false)
-				history_cv.wait_for(lck, std::chrono::milliseconds(END_CHECK_INTERVAL_ms));
+		while(history.size() < size_t(max_n) && terminate == false)
+			history_cv.wait_for(lck, std::chrono::milliseconds(END_CHECK_INTERVAL_ms));
 
-			std::vector<std::pair<uint32_t, time_t> > map;
+		std::vector<std::pair<uint32_t, time_t> > map;
 
-			for(auto it : history)
-				map.push_back({ it.first, it.second->get_last_ts() });
+		for(auto it : history)
+			map.push_back({ it.first, it.second->get_last_ts() });
 
-			std::sort(map.begin(), map.end(),
-					[](const std::pair<uint32_t, time_t> & a, const std::pair<uint32_t, time_t> & b) -> bool
-					{
-						return a.second > b.second;
-					});
+		std::sort(map.begin(), map.end(),
+				[](const std::pair<uint32_t, time_t> & a, const std::pair<uint32_t, time_t> & b) -> bool
+				{
+					return a.second > b.second;
+				});
 
-			int lower_bound = history.size() - max_n + max_n / 10;
+		int lower_bound = history.size() - max_n + max_n / 10;
 
-			for(int i=0; i<lower_bound; i++) {
-				uint32_t cur_hash = map.at(i).first;
+		for(int i=0; i<lower_bound; i++) {
+			uint32_t cur_hash = map.at(i).first;
 
-				delete history.find(cur_hash)->second;
+			delete history.find(cur_hash)->second;
 
-				history.erase(cur_hash);
-			}
+			history.erase(cur_hash);
 		}
-	}
-	catch(std::exception & e) {
-		log(LL_ERROR, "Caught exception in seen::operator: %s", e.what());
 	}
 }
 
