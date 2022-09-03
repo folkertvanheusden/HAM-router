@@ -38,6 +38,8 @@ public:
 	seen(const seen_t & pars);
 	~seen();
 
+	void stop();
+
 	bool check(const uint8_t *const p, const size_t s);
 
 	static seen *instantiate(const libconfig::Setting & node);

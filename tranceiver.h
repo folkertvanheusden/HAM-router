@@ -54,6 +54,8 @@ public:
 	tranceiver(const std::string & id, seen *const s, work_queue_t *const w, const position_t & local_pos);
 	virtual ~tranceiver();
 
+	void stop();
+
 	std::string get_id() const { return id; }
 	virtual std::string get_type_name() const { return "base class"; }
 

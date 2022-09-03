@@ -19,6 +19,12 @@ seen::seen(const seen_t & pars) :
 
 seen::~seen()
 {
+	for(auto it : history)
+		delete it.second;
+}
+
+void seen::stop()
+{
 	terminate = true;
 
 	{
@@ -26,11 +32,11 @@ seen::~seen()
 		history_cv.notify_one();
 	}
 
-	th->join();
-	delete th;
+	if (th) {
+		th->join();
 
-	for(auto it : history)
-		delete it.second;
+		delete th;
+	}
 }
 
 bool seen::check(const uint8_t *const p, const size_t s)

@@ -64,6 +64,9 @@ configuration::~configuration()
 	delete sb;
 
 	for(auto t : tranceivers)
+		t->stop();
+
+	for(auto t : tranceivers)
 		delete t;
 
 	delete d;

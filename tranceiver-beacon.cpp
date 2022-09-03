@@ -39,10 +39,6 @@ tranceiver_beacon::tranceiver_beacon(const std::string & id, seen *const s, work
 
 tranceiver_beacon::~tranceiver_beacon()
 {
-	terminate = true;
-
-	th->join();
-	delete th;
 }
 
 transmit_error_t tranceiver_beacon::put_message_low(const message & m)

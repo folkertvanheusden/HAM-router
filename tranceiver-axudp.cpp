@@ -81,11 +81,6 @@ tranceiver_axudp::tranceiver_axudp(const std::string & id, seen *const s, work_q
 tranceiver_axudp::~tranceiver_axudp()
 {
 	close(fd);
-
-	terminate = true;
-
-	th->join();
-	delete th;
 }
 
 transmit_error_t tranceiver_axudp::send_to_other_axudp_targets(const message & m, const std::string & came_from)

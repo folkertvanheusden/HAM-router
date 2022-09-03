@@ -239,10 +239,6 @@ tranceiver_kiss::tranceiver_kiss(const std::string & id, seen *const s, work_que
 
 tranceiver_kiss::~tranceiver_kiss()
 {
-	terminate = true;
-
-	th->join();
-	delete th;
 }
 
 void tranceiver_kiss::operator()()

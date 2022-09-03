@@ -28,6 +28,20 @@ tranceiver::~tranceiver()
 	delete s;
 }
 
+void tranceiver::stop()
+{
+	terminate = true;
+
+	if (th) {
+		th->join();
+
+		delete th;
+	}
+
+	if (s)
+		s->stop();
+}
+
 transmit_error_t tranceiver::queue_incoming_message(const message & m)
 {
 	auto content = m.get_content();
