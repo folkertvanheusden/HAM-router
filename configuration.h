@@ -1,5 +1,7 @@
+#include <map>
 #include <vector>
 
+#include "filter.h"
 #include "snmp.h"
 #include "switchboard.h"
 #include "tranceiver.h"
@@ -26,9 +28,13 @@ private:
 
 	std::string                logfile   { "gateway.log" };
 
+	std::map<std::string, filter *> filters;
+
 	snmp_data_type_running_since *running_since { new snmp_data_type_running_since() };
 
 	void load_database   (const libconfig::Setting & node_in);
+
+	void load_filters    (const libconfig::Setting & node_in);
 
 	void load_general    (const libconfig::Setting & node_in);
 

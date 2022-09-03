@@ -166,7 +166,7 @@ tranceiver *tranceiver_lora_sx1278::instantiate(const libconfig::Setting & node_
 		else if (type == "digipeater")
 			digipeater = node_in.lookup(type);
 		else if (type != "type") {
-			error_exit(false, "setting \"%s\" is now known", type.c_str());
+			error_exit(false, "setting \"%s\" is not known", type.c_str());
 		}
         }
 

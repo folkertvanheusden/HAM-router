@@ -158,10 +158,10 @@ tranceiver *tranceiver_beacon::instantiate(const libconfig::Setting & node_in, w
 			else if (mode == "ax25")
 				bm = beacon_mode_ax25;
 			else
-				error_exit(false, "beacon mode \"%s\" is now known", mode.c_str());
+				error_exit(false, "beacon mode \"%s\" is not known", mode.c_str());
 		}
 		else if (type != "type") {
-			error_exit(false, "setting \"%s\" is now known", type.c_str());
+			error_exit(false, "setting \"%s\" is not known", type.c_str());
 		}
         }
 

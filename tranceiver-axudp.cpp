@@ -217,7 +217,7 @@ tranceiver *tranceiver_axudp::instantiate(const libconfig::Setting & node_in, wo
 		else if (type == "distribute")
 			distribute = node_in.lookup(type);
 		else if (type != "type") {
-			error_exit(false, "setting \"%s\" is now known", type.c_str());
+			error_exit(false, "setting \"%s\" is not known", type.c_str());
 		}
         }
 

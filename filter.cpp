@@ -130,7 +130,7 @@ filter_rule *filter_rule::instantiate(const libconfig::Setting & node_in)
 			}
 		}
 		else {
-			error_exit(false, "Filter_rule: \"%s\" is now known", type.c_str());
+			error_exit(false, "Filter_rule: \"%s\" is not known", type.c_str());
 		}
         }
 
@@ -186,8 +186,13 @@ filter *filter::instantiate(const libconfig::Setting & node_in)
 
 		std::string type = node.getName();
 
-		if (type == "rule")
-			rules.push_back(filter_rule::instantiate(node));
+		if (type == "rules") {
+			for(int j=0; j<node.getLength(); j++) {
+				const libconfig::Setting & rule_node = node[j];
+
+				rules.push_back(filter_rule::instantiate(rule_node));
+			}
+		}
 		else if (type == "how-to-compare") {
 			std::string how_to = node_in.lookup(type).c_str();
 
@@ -202,7 +207,7 @@ filter *filter::instantiate(const libconfig::Setting & node_in)
 			}
 		}
 		else {
-			error_exit(false, "Filter: \"%s\" is now known", type.c_str());
+			error_exit(false, "Filter: \"%s\" is not known", type.c_str());
 		}
         }
 

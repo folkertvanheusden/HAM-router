@@ -22,7 +22,10 @@ configuration::configuration(const std::string & file, work_queue_t *const w, sn
 
 			std::string node_name = node.getName();
 
-			if (node_name == "general") {
+			if (node_name == "filters") {
+				load_filters(node);
+			}
+			else if (node_name == "general") {
 				load_general(node);
 			}
 			else if (node_name == "tranceivers") {
@@ -116,9 +119,14 @@ void configuration::load_switchboard(const libconfig::Setting & node_in) {
 		filter *f { nullptr };
 
 		try {
-			const libconfig::Setting & f_node = node.lookup("filter");
+			const std::string filter_name = node.lookup("filter");
 
-			f = filter::instantiate(f_node);
+			auto it_f = filters.find(filter_name);
+
+			if (it_f == filters.end())
+				error_exit(false, "Filter \"%s\" is not defined", filter_name.c_str());
+
+			f = it_f->second;
 		}
 		catch(libconfig::SettingNotFoundException & e) {
 			// perfectly fine
@@ -229,4 +237,32 @@ void configuration::load_general(const libconfig::Setting & node_in)
 
 	if (lat_set != lng_set)
 		error_exit(false, "General settings: either latitude or longitude is not set");
+}
+
+void configuration::load_filters(const libconfig::Setting & node_in)
+{
+        for(int i=0; i<node_in.getLength(); i++) {
+                const libconfig::Setting & node = node_in[i];
+
+		std::string  name;
+		filter      *f { nullptr };
+
+		for(int j=0; j<node.getLength(); j++) {
+			const libconfig::Setting & node_def = node[j];
+
+			std::string type = node_def.getName();
+
+			if (type == "name")
+				name = node.lookup(type).c_str();
+			else if (type == "definition")
+				f    = filter::instantiate(node_def);
+			else
+				error_exit(false, "General setting \"%s\" is not known", type.c_str());
+		}
+
+		if (!f)
+			error_exit(false, "No filter defination set for \"%s\"", name.c_str());
+
+		filters.insert({ name, f });
+        }
 }

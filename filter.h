@@ -1,3 +1,5 @@
+#pragma once
+
 #include <libconfig.h++>
 #include <regex.h>
 #include <string>

@@ -86,7 +86,7 @@ tranceiver *tranceiver_db::instantiate(const libconfig::Setting & node_in, work_
 		else if (type == "collection")
 			db_collection = node_in.lookup(type).c_str();
 		else if (type != "type") {
-			error_exit(false, "Database setting \"%s\" is now known", type.c_str());
+			error_exit(false, "Database setting \"%s\" is not known", type.c_str());
 		}
         }
 
