@@ -23,6 +23,7 @@ add_executable(lora-aprs-gw
 	db-mongodb.cpp
 	dissect-packet.cpp
 	error.cpp
+	filter.cpp
 	gateway.cpp
 	gps.cpp
 	hashing.cpp

@@ -110,8 +110,19 @@ void configuration::load_switchboard(const libconfig::Setting & node_in) {
         for(int i=0; i<node_in.getLength(); i++) {
                 const libconfig::Setting & node = node_in[i];
 
-		std::string from = node.lookup("from").c_str();
-		std::string tos  = node.lookup("to"  ).c_str();
+		std::string from   = node.lookup("from"  ).c_str();
+		std::string tos    = node.lookup("to"    ).c_str();
+
+		filter *f { nullptr };
+
+		try {
+			const libconfig::Setting & f_node = node.lookup("filter");
+
+			f = filter::instantiate(f_node);
+		}
+		catch(libconfig::SettingNotFoundException & e) {
+			// perfectly fine
+		}
 
 		tranceiver *from_t = find_tranceiver(from);
 		if (!from_t)
@@ -126,7 +137,7 @@ void configuration::load_switchboard(const libconfig::Setting & node_in) {
 
 			log(LL_DEBUG_VERBOSE, "%s sends to %s", from.c_str(), to.c_str());
 
-			sb->add_mapping(from_t, to_t);
+			sb->add_mapping(from_t, to_t, f);
 		}
         }
 }

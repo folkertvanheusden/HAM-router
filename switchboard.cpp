@@ -10,7 +10,7 @@ switchboard::~switchboard()
 {
 }
 
-void switchboard::add_mapping(tranceiver *const in, tranceiver *const out)
+void switchboard::add_mapping(tranceiver *const in, tranceiver *const out, filter *const f)
 {
 	if (in == out)
 		return;
@@ -20,10 +20,10 @@ void switchboard::add_mapping(tranceiver *const in, tranceiver *const out)
 	auto it = map.find(in);
 
 	if (it == map.end()) {
-		map.insert({ in, { out } });
+		map.insert({ in, { { out }, f } });
 	}
 	else {
-		it->second.insert(out);
+		it->second.first.insert(out);
 	}
 }
 
@@ -34,7 +34,7 @@ void switchboard::remove_mapping(tranceiver *const in, tranceiver *const out)
 	auto it = map.find(in);
 
 	if (it != map.end())
-		it->second.erase(out);
+		it->second.first.erase(out);
 }
 
 transmit_error_t switchboard::put_message(tranceiver *const from, const message & m, const bool continue_on_error)
@@ -46,10 +46,15 @@ transmit_error_t switchboard::put_message(tranceiver *const from, const message 
 	if (it == map.end())
 		return TE_hardware;
 
-	log(LL_DEBUG, "Forwarding %s to %zu tranceivers", m.get_id_short().c_str(), it->second.size());
+	if (it->second.second) {
+		if (!it->second.second->check(m))
+			log(LL_DEBUG, "NOT forwarding message %s: filtered", m.get_id_short().c_str());
+	}
+
+	log(LL_DEBUG, "Forwarding %s to %zu tranceivers", m.get_id_short().c_str(), it->second.first.size());
 
 	// TODO in a thread; copy data then!
-	for(auto t : it->second) {
+	for(auto t : it->second.first) {
 		log(LL_DEBUG_VERBOSE, "Forwarding %s to: %s", m.get_id_short().c_str(), t->get_id().c_str());
 
 		transmit_error_t rc = t->put_message(m);
