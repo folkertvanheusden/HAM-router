@@ -96,7 +96,7 @@ MHD_Result process_http_request(void *cls,
 		page += html_page_header;
 
 		page += "<table id=\"packets\" width=100%>";
-		page += "<tr><th>time</th><th>source</th><th>from</th><th>to</th><th>msg id</th><th>air time</th><th>data</th><th>latitude</th><th>longitude</th></tr>\n";
+		page += "<tr><th>time</th><th>source</th><th>from</th><th>to</th><th>msg id</th><th>air time</th><th>data</th><th>latitude</th><th>longitude</th><th>protocol</th></tr>\n";
 		page += "</table>";
 
 		page += websocket_receiver;
@@ -154,6 +154,7 @@ void * start_webserver(const int listen_port, const std::string & ws_url_in, con
 				"            var data   = msg['data'];\n"
 				"            var lat    = 'latitude'  in msg ? msg['latitude' ] : '';\n"
 				"            var lng    = 'longitude' in msg ? msg['longitude'] : '';\n"
+				"            var prot   = msg['protocol'];\n"
 				"\n"
 				"            var row = table.insertRow(1);\n"
 				"            var cell0 = row.insertCell(0);\n"
@@ -174,6 +175,8 @@ void * start_webserver(const int listen_port, const std::string & ws_url_in, con
 				"	     cell7.innerHTML = lat;\n"
 				"            var cell8 = row.insertCell(8);\n"
 				"	     cell8.innerHTML = lng;\n"
+				"            var cell9 = row.insertCell(9);\n"
+				"	     cell9.innerHTML = prot;\n"
 				"        }\n"
 				"        catch (error) {\n"
 				"            console.error(error);\n"
