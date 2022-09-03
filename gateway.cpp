@@ -51,6 +51,9 @@ void push_to_websockets(ws_global_context_t *const ws, const message & m)
 	if (meta.find("longitude") != meta.end())
 		json_object_set_new(json_out, "longitude", json_string(meta.at("longitude").s_value.c_str()));
 
+	if (meta.find("protocol")  != meta.end())
+		json_object_set_new(json_out, "protocol",  json_string(meta.at("protocol").s_value.c_str()));
+
 	char *json = json_dumps(json_out, 0);
 
 	std::string json_out_str = json;
