@@ -25,35 +25,41 @@ void signal_handler(int sig)
 
 void push_to_websockets(ws_global_context_t *const ws, const message & m)
 {
-	auto          & m        = m.get_meta();
+	auto            meta     = m.get_meta();
 
-	json_t         *jsom_out = json_object();
+	json_t         *json_out = json_object();
 
-	json_object_set_new(jsom_out, "timestamp", json_integer(m.get_tv().tv_sec));
+	json_object_set_new(json_out, "timestamp", json_integer(m.get_tv().tv_sec));
 
-	json_object_set_new(jsom_out, "source",    json_string(m.get_source().c_str()));
+	json_object_set_new(json_out, "source",    json_string(m.get_source().c_str()));
 
-	json_object_set_new(jsom_out, "msg-id",    json_string(m.get_id_short().c_str()));
+	json_object_set_new(json_out, "msg-id",    json_string(m.get_id_short().c_str()));
 
-	json_object_set_new(jsom_out, "air-time",  json_integer(m.get_air_time()));
+	json_object_set_new(json_out, "air-time",  json_integer(m.get_air_time()));
 
-	json_object_set_new(jsom_out, "data",      json_string(dump_replace(m.get_content().first, m.get_content().second).c_str()));
+	json_object_set_new(json_out, "data",      json_string(dump_replace(m.get_content().first, m.get_content().second).c_str()));
 
-	if (m.find("from") != m.end())
-		json_object_set_new(jsom_out, "from", json_string(m.at("from").c_str()));
+	if (meta.find("from") != meta.end())
+		json_object_set_new(json_out, "from", json_string(meta.at("from").s_value.c_str()));
 
-	if (m.find("to") != m.end())
-		json_object_set_new(jsom_out, "to",   json_string(m.at("to").c_str()));
+	if (meta.find("to")   != meta.end())
+		json_object_set_new(json_out, "to",   json_string(meta.at("to"  ).s_value.c_str()));
 
-	char *json = json_dumps(jsom_out, 0);
+	if (meta.find("latitude")  != meta.end())
+		json_object_set_new(json_out, "latitude",  json_string(meta.at("latitude" ).s_value.c_str()));
 
-	std::string jsom_out_str = json;
+	if (meta.find("longitude") != meta.end())
+		json_object_set_new(json_out, "longitude", json_string(meta.at("longitude").s_value.c_str()));
+
+	char *json = json_dumps(json_out, 0);
+
+	std::string json_out_str = json;
 
 	free(json);
 
-	json_decref(jsom_out);
+	json_decref(json_out);
 
-	push_to_websockets(ws, jsom_out_str);
+	push_to_websockets(ws, json_out_str);
 }
 
 std::thread * process(configuration *const cfg, work_queue_t *const w, snmp *const snmp_)

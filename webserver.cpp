@@ -95,8 +95,9 @@ MHD_Result process_http_request(void *cls,
 	else if (strcmp(url, "/follow.html") == 0) {
 		page += html_page_header;
 
-		page += "<table><tr><th>packets</th></tr>";
-		page += "<tr><td id=\"packets\"></td></tr></table>";
+		page += "<table id=\"packets\" width=100%>";
+		page += "<tr><th>time</th><th>source</th><th>from</th><th>to</th><th>msg id</th><th>air time</th><th>data</th><th>latitude</th><th>longitude</th></tr>\n";
+		page += "</table>";
 
 		page += websocket_receiver;
 
@@ -141,9 +142,38 @@ void * start_webserver(const int listen_port, const std::string & ws_url_in, con
 				"        try {\n"
 				"            var msg = JSON.parse(event.data);\n"
 				"            console.log(msg);\n"
-				"            var target = document.getElementById(\"packets\");\n"
+				"            var table  = document.getElementById(\"packets\");\n"
 				"            var myDate = new Date(msg['timestamp'] * 1000);\n"
-				"            target.innerHTML = myDate.toLocaleString() + \"&gt; source=\" + msg['source'] + \", msg-id=\" + msg['msg-id'] + \", air-time=\" + msg['air-time'] + \": \" + msg['data'] + \"<br>\" + target.innerHTML;\n"
+				"\n"
+				"            var time   = myDate.toLocaleTimeString();\n"
+				"            var source = msg['source'];\n"
+				"            var from   = 'from' in msg ? msg['from'] : '';\n"
+				"            var to     = 'to'   in msg ? msg['to'  ] : '';\n"
+				"            var msg_id = msg['msg-id'];\n"
+				"            var air_t  = 'air-time' in msg ? msg['air-time' ] : '';\n"
+				"            var data   = msg['data'];\n"
+				"            var lat    = 'latitude'  in msg ? msg['latitude' ] : '';\n"
+				"            var lng    = 'longitude' in msg ? msg['longitude'] : '';\n"
+				"\n"
+				"            var row = table.insertRow(1);\n"
+				"            var cell0 = row.insertCell(0);\n"
+				"	     cell0.innerHTML = time;\n"
+				"            var cell1 = row.insertCell(1);\n"
+				"	     cell1.innerHTML = source;\n"
+				"            var cell2 = row.insertCell(2);\n"
+				"	     cell2.innerHTML = from;\n"
+				"            var cell3 = row.insertCell(3);\n"
+				"	     cell3.innerHTML = to;\n"
+				"            var cell4 = row.insertCell(4);\n"
+				"	     cell4.innerHTML = msg_id;\n"
+				"            var cell5 = row.insertCell(5);\n"
+				"	     cell5.innerHTML = air_t;\n"
+				"            var cell6 = row.insertCell(6);\n"
+				"	     cell6.innerHTML = data;\n"
+				"            var cell7 = row.insertCell(7);\n"
+				"	     cell7.innerHTML = lat;\n"
+				"            var cell8 = row.insertCell(8);\n"
+				"	     cell8.innerHTML = lng;\n"
 				"        }\n"
 				"        catch (error) {\n"
 				"            console.error(error);\n"
