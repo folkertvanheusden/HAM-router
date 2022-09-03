@@ -67,6 +67,9 @@ configuration::~configuration()
 		delete t;
 
 	delete d;
+
+	for(auto f : filters)
+		delete f.second;
 }
 
 void configuration::load_tranceivers(const libconfig::Setting & node_in, work_queue_t *const w, snmp_data *const sd, stats *const st) {
