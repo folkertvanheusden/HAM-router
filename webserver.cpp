@@ -205,6 +205,7 @@ void * start_webserver(const int listen_port, const std::string & ws_url_in, con
 				"	     col = 1 - col;\n"
 				"    };\n"
 				"};\n"
+				"start();\n"
 				"</script>\n", ws_ssl_url.c_str(), ws_url.c_str());
 
 		d_proc = MHD_start_daemon(MHD_USE_THREAD_PER_CONNECTION,
