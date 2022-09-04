@@ -26,7 +26,7 @@
 
 #define MAX_PACKET_LEN 256  // TODO: make dynamic size
 
-bool tranceiver_kiss::recv_mkiss(uint8_t **p, int *len, bool verbose)
+bool tranceiver_kiss::recv_mkiss(uint8_t **const p, int *const len)
 {
 	bool ok     = false;
 	bool escape = false;
@@ -34,7 +34,7 @@ bool tranceiver_kiss::recv_mkiss(uint8_t **p, int *len, bool verbose)
 	*p   = reinterpret_cast<uint8_t *>(malloc(MAX_PACKET_SIZE));
 	*len = 0;
 
-	for(;;)
+	for(;!terminate;)
 	{
 		uint8_t buffer = 0;
 
@@ -42,7 +42,7 @@ bool tranceiver_kiss::recv_mkiss(uint8_t **p, int *len, bool verbose)
 			if (errno == EINTR)
 				continue;
 
-			log(LL_ERROR, "failed reading from mkiss device");
+			log(LL_ERROR, "kiss(%s): failed reading from device", get_id().c_str());
 
 			free(*p);
 
@@ -58,8 +58,8 @@ bool tranceiver_kiss::recv_mkiss(uint8_t **p, int *len, bool verbose)
 				(*p)[(*len)++] = FEND;
 			else if (buffer == TFESC)
 				(*p)[(*len)++] = FESC;
-			else if (verbose)
-				log(LL_ERROR, "unexpected mkiss escape %02x", buffer);
+			else
+				log(LL_WARNING, "kiss(%s) unexpected escape %02x", get_id().c_str(), buffer);
 
 			escape = false;
 		}
@@ -90,44 +90,48 @@ bool tranceiver_kiss::recv_mkiss(uint8_t **p, int *len, bool verbose)
 	{
 		int cmd = (*p)[0] & 0x0f;
 
-		if (verbose)
-			log(LL_DEBUG, "port: %d", ((*p)[0] >> 4) & 0x0f);
+		log(LL_DEBUG, "kiss(%s): port: %d, cmd: %d, len: %d", get_id().c_str(), ((*p)[0] >> 4) & 0x0f, cmd, *len);
 
-		if (cmd == 0x00) // data frame
-		{
-			(*len)--;
+		(*len)--;
+
+		if (*len)
 			memcpy(&(*p)[0], &(*p)[1], *len);
-		}
-		else
-		{
-			if (verbose)
-			{
-				if (cmd == 1)
-					log(LL_DEBUG, "TX delay: %d\n", (*p)[1] * 10);
-				else if (cmd == 2)
-					log(LL_DEBUG, "persistance: %d\n", (*p)[1] * 256 - 1);
-				else if (cmd == 3)
-					log(LL_DEBUG, "slot time: %dms\n", (*p)[1] * 10);
-				else if (cmd == 4)
-					log(LL_DEBUG, "txtail: %dms\n", (*p)[1] * 10);
-				else if (cmd == 5)
-					log(LL_DEBUG, "full duplex: %d\n", (*p)[1]);
-				else if (cmd == 6) {
-					log(LL_DEBUG, "set hardware: %s", dump_hex(&(*p)[1], *len - 1).c_str());
-				}
-				else if (cmd == 15) {
-					log(LL_INFO, "kernel asked for shutdown");
-				}
-			}
 
-			ok = false; // it is ok, we just ignore it
-		}
+		if (cmd == 1)
+			log(LL_DEBUG, "kiss(%s): TX delay: %d\n", get_id().c_str(), (*p)[1] * 10);
+		else if (cmd == 2)
+			log(LL_DEBUG, "kiss(%s): persistance: %d\n", get_id().c_str(), (*p)[1] * 256 - 1);
+		else if (cmd == 3)
+			log(LL_DEBUG, "kiss(%s): slot time: %dms\n", get_id().c_str(), (*p)[1] * 10);
+		else if (cmd == 4)
+			log(LL_DEBUG, "kiss(%s): txtail: %dms\n", get_id().c_str(), (*p)[1] * 10);
+		else if (cmd == 5)
+			log(LL_DEBUG, "kiss(%s): full duplex: %d\n", get_id().c_str(), (*p)[1]);
+		else if (cmd == 6)
+			log(LL_DEBUG, "kiss(%s): set hardware: %s", get_id().c_str(), dump_hex(&(*p)[1], *len - 1).c_str());
+		else if (cmd == 15)
+			log(LL_INFO, "kiss(%s): kernel asked for shutdown", get_id().c_str());
 	}
 
 	if (!ok)
 		free(*p);
 
 	return ok;
+}
+
+void escape_put(uint8_t **p, int *len, uint8_t c)
+{
+	if (c == FEND) {
+		(*p)[(*len)++] = FESC;
+		(*p)[(*len)++] = TFEND;
+	}
+	else if (c == FESC) {
+		(*p)[(*len)++] = FESC;
+		(*p)[(*len)++] = TFESC;
+	}
+	else {
+		(*p)[(*len)++] = c;
+	}
 }
 
 bool tranceiver_kiss::send_mkiss(const uint8_t cmd, const uint8_t channel, const uint8_t *const p, const int len)
@@ -140,27 +144,16 @@ bool tranceiver_kiss::send_mkiss(const uint8_t cmd, const uint8_t channel, const
 	assert(channel < 16);
 
 	out[offset++] = FEND;
-	out[offset++] = (channel << 4) | cmd;
 
-	for(int i=0; i<len; i++) {
-		if (p[i] == FEND)
-		{
-			out[offset++] = FESC;
-			out[offset++] = TFEND;
-		}
-		else if (p[i] == FESC) {
-			out[offset++] = FESC;
-			out[offset++] = TFESC;
-		}
-		else {
-			out[offset++] = p[i];
-		}
-	}
+	escape_put(&out, &offset, (channel << 4) | cmd);
+
+	for(int i=0; i<len; i++)
+		escape_put(&out, &offset, p[i]);
 
 	out[offset++] = FEND;
 
 	if (WRITE(fd, out, offset) != offset) {
-		log(LL_ERROR, "failed writing to mkiss device");
+		log(LL_ERROR, "kiss(%s): failed writing to mkiss device", get_id().c_str());
 
 		free(out);
 
@@ -174,7 +167,7 @@ bool tranceiver_kiss::send_mkiss(const uint8_t cmd, const uint8_t channel, const
 
 transmit_error_t tranceiver_kiss::put_message_low(const message & m)
 {
-	log(LL_DEBUG, "kiss: send %s", m.get_id_short().c_str());
+	log(LL_DEBUG, "kiss(%s): send", m.get_id_short().c_str());
 
 	std::unique_lock<std::mutex> lck(lock);
 
@@ -199,7 +192,7 @@ void tranceiver_kiss::operator()()
 {
 	set_thread_name("t-kiss");
 
-	log(LL_INFO, "KISS: started thread");
+	log(LL_INFO, "kiss(%s): started thread", get_id().c_str());
 
 	pollfd fds[] = { { fd, POLLIN, 0 } };
 
@@ -214,7 +207,7 @@ void tranceiver_kiss::operator()()
 
 		uint8_t *p   = nullptr;
 		int      len = 0;
-		if (!recv_mkiss(&p, &len, true))
+		if (!recv_mkiss(&p, &len))
 			continue;
 
 		timeval tv;
@@ -226,7 +219,7 @@ void tranceiver_kiss::operator()()
 				p,
 				len);
 
-		log(LL_DEBUG_VERBOSE, "KISS received message (%s)", dump_hex(p, len).c_str());
+		log(LL_DEBUG_VERBOSE, "kiss(%s): received message (%s)", get_id().c_str(), dump_hex(p, len).c_str());
 
 		free(p);
 
