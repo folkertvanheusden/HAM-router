@@ -161,7 +161,7 @@ tranceiver *tranceiver_lora_sx1278::instantiate(const libconfig::Setting & node_
 
 		if (type == "id")
 			id = node_in.lookup(type).c_str();
-		else if (type == "incoming-rate-limiting") {
+		else if (type == "repetition-rate-limiting") {
 			assert(s == nullptr);
 			s = seen::instantiate(node);
 		}

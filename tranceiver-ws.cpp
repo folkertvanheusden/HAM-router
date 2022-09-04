@@ -63,7 +63,7 @@ tranceiver *tranceiver_ws::instantiate(const libconfig::Setting & node_in, work_
 
 		if (type == "id")
 			id = node_in.lookup(type).c_str();
-		else if (type == "incoming-rate-limiting") {
+		else if (type == "repetition-rate-limiting") {
 			assert(s == nullptr);
 			s = seen::instantiate(node);
 		}

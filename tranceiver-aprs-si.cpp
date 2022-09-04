@@ -185,7 +185,7 @@ tranceiver *tranceiver_aprs_si::instantiate(const libconfig::Setting & node_in, 
 			aprs_user = node_in.lookup(type).c_str();
 		else if (type == "aprs-pass")
 			aprs_pass = node_in.lookup(type).c_str();
-		else if (type == "incoming-rate-limiting") {
+		else if (type == "repetition-rate-limiting") {
 			assert(s == nullptr);
 			s = seen::instantiate(node);
 		}
