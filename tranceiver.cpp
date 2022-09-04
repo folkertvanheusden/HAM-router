@@ -162,7 +162,7 @@ tranceiver *tranceiver::instantiate(const libconfig::Setting & node, work_queue_
 		t = tranceiver_kiss_tty::instantiate(node, w, pos);
 	}
 	else if (type == "lora-sx1278") {
-		t = tranceiver_lora_sx1278::instantiate(node, w, pos);
+		t = tranceiver_lora_sx1278::instantiate(node, w, pos, st, device_nr);
 	}
 	else if (type == "axudp") {
 		t = tranceiver_axudp::instantiate(node, w, pos);

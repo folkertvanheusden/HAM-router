@@ -17,14 +17,18 @@
 void * rx_f(void *in)
 {
 	rxData *rx = reinterpret_cast<rxData *>(in);
+
+	tranceiver_lora_sx1278 *const t = reinterpret_cast<tranceiver_lora_sx1278 *>(rx->userPtr);
+
 	if (rx->size == 0 || rx->CRC) {
-		// TODO count these failures
+		t->count_packets(false);
+
 		free(rx);
 
 		return nullptr;
 	}
 
-	tranceiver *const t = reinterpret_cast<tranceiver_lora_sx1278 *>(rx->userPtr);
+	t->count_packets(true);
 
 	uint64_t msg_id = get_random_uint64_t();
 
@@ -100,13 +104,17 @@ transmit_error_t tranceiver_lora_sx1278::put_message_low(const message & m)
 #endif
 }
 
-tranceiver_lora_sx1278::tranceiver_lora_sx1278(const std::string & id, seen *const s, work_queue_t *const w, const position_t & pos, const int dio0_pin, const int reset_pin, const bool digipeater) :
+tranceiver_lora_sx1278::tranceiver_lora_sx1278(const std::string & id, seen *const s, work_queue_t *const w, const position_t & pos, const int dio0_pin, const int reset_pin, const bool digipeater, stats *const st, const int dev_nr) :
 	tranceiver(id, s, w, pos),
 	digipeater(digipeater)
 {
 	log(LL_INFO, "Instantiated LoRa SX1278 (%s)", id.c_str());
 
 	memset(&modem, 0x00, sizeof modem);
+
+	valid_pkts   = st->register_stat(myformat("%s-valid-packets",   get_id().c_str()), myformat("1.3.6.1.2.1.4.57850.2.5.%zu.1", dev_nr), snmp_integer::si_counter64);
+
+	invalid_pkts = st->register_stat(myformat("%s-invalid-packets", get_id().c_str()), myformat("1.3.6.1.2.1.4.57850.2.5.%zu.2", dev_nr), snmp_integer::si_counter64);
 
 	// these settings are specific for APRS over LoRa
 
@@ -146,7 +154,15 @@ void tranceiver_lora_sx1278::operator()()
 {
 }
 
-tranceiver *tranceiver_lora_sx1278::instantiate(const libconfig::Setting & node_in, work_queue_t *const w, const position_t & pos)
+void tranceiver_lora_sx1278::count_packets(const bool valid)
+{
+	if (valid)
+		stats_inc_counter(valid_pkts);
+	else
+		stats_inc_counter(invalid_pkts);
+}
+
+tranceiver *tranceiver_lora_sx1278::instantiate(const libconfig::Setting & node_in, work_queue_t *const w, const position_t & pos, stats *const st, const int dev_nr)
 {
 	std::string  id;
 	seen        *s          = nullptr;
@@ -176,5 +192,5 @@ tranceiver *tranceiver_lora_sx1278::instantiate(const libconfig::Setting & node_
 		}
         }
 
-	return new tranceiver_lora_sx1278(id, s, w, pos, dio0_pin, reset_pin, digipeater);
+	return new tranceiver_lora_sx1278(id, s, w, pos, dio0_pin, reset_pin, digipeater, st, dev_nr);
 }
