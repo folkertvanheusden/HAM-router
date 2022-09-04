@@ -131,7 +131,7 @@ void * start_webserver(const int listen_port, const std::string & ws_url_in, con
 			ws_url     = "'ws"  + ws_url_in + "'";
 		}
 
-		websocket_receiver = myformat("<script>\n"
+		websocket_receiver = myformat("<script defer>\n"
 				"col = 0;\n"
 				"function start() {\n"
 				"    if (location.protocol == 'https:')\n"
@@ -141,7 +141,6 @@ void * start_webserver(const int listen_port, const std::string & ws_url_in, con
 				"    s.onclose = function() { console.log('Websocket closed'); setTimeout(function(){ start(); }, 500); };\n"
 				"    s.onopen = function() { console.log('Websocket connected'); };\n"
 				"    s.onmessage = function (event) {\n"
-				"        try {\n"
 				"            var msg = JSON.parse(event.data);\n"
 				"            console.log(msg);\n"
 				"            var table   = document.getElementById(\"packets\");\n"
@@ -204,13 +203,8 @@ void * start_webserver(const int listen_port, const std::string & ws_url_in, con
 				"            }\n"
 				"\n"
 				"	     col = 1 - col;\n"
-				"        }\n"
-				"        catch (error) {\n"
-				"            console.error(error);\n"
-				"        }\n"
 				"    };\n"
 				"};\n"
-				"document.addEventListener('DOMContentLoaded', function() { start(); });\n"
 				"</script>\n", ws_ssl_url.c_str(), ws_url.c_str());
 
 		d_proc = MHD_start_daemon(MHD_USE_THREAD_PER_CONNECTION,
