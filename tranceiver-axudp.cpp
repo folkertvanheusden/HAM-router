@@ -168,7 +168,7 @@ void tranceiver_axudp::operator()()
 				}
 			}
 			else if (n == -1) {
-				dolog(LL_WARNING, "axudp(%s): recvfrom returned %s", get_id().c_str(), strerror(errno));
+				log(LL_WARNING, "axudp(%s): recvfrom returned %s", get_id().c_str(), strerror(errno));
 			}
 
 			free(buffer);
