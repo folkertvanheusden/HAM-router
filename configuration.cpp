@@ -71,7 +71,11 @@ configuration::~configuration()
 	for(auto f : filters)
 		delete f.second;
 
-	delete global_repetition_filter;
+	if (global_repetition_filter) {
+		global_repetition_filter->stop();
+
+		delete global_repetition_filter;
+	}
 }
 
 void configuration::load_tranceivers(const libconfig::Setting & node_in, work_queue_t *const w, snmp_data *const sd, stats *const st, ws_global_context_t *const ws) {
