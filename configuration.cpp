@@ -37,9 +37,6 @@ configuration::configuration(const std::string & file, work_queue_t *const w, sn
 			else if (node_name == "snmp") {
 				load_snmp(node, sd);
 			}
-			else if (node_name == "webserver") {
-				load_webserver(node, st);
-			}
 			else {
 				error_exit(false, "Setting \"%s\" is not known", node_name.c_str());
 			}
@@ -179,46 +176,6 @@ void configuration::load_snmp(const libconfig::Setting & node_in, snmp_data *con
 		sd->register_oid("1.3.6.1.2.1.1.7.0", snmp_integer::si_integer, 254 /* everything but the physical layer */);
 		sd->register_oid("1.3.6.1.2.1.1.8.0", snmp_integer::si_integer, 0);  // The value of sysUpTime at the time of the most recent change in state or value of any instance of sysORID.
 	}
-}
-
-void configuration::load_webserver(const libconfig::Setting & node_in, stats *const st)
-{
-	int         http_port       = -1;
-	int         ws_port         = -1;
-	std::string ws_url;
-	bool        ws_ssl_enabled  = false;
-	std::string ws_ssl_cert;
-	std::string ws_ssl_priv_key;
-	std::string ws_ssl_ca;
-
-        for(int i=0; i<node_in.getLength(); i++) {
-                const libconfig::Setting & node = node_in[i];
-
-		std::string type = node.getName();
-
-		if (type == "http-port")
-			http_port = node_in.lookup(type);
-		else if (type == "websockets-port")
-			ws_port = node_in.lookup(type);
-		else if (type == "websockets-url")
-			ws_url = node_in.lookup(type).c_str();
-		else if (type == "websockets-ssl-enabled")
-			ws_ssl_enabled = node_in.lookup(type);
-		else if (type == "websockets-ssl-certificate")
-			ws_ssl_cert = node_in.lookup(type).c_str();
-		else if (type == "websockets-ssl-private-key")
-			ws_ssl_priv_key = node_in.lookup(type).c_str();
-		else if (type == "websockets-ssl-ca")
-			ws_ssl_ca = node_in.lookup(type).c_str();
-		else
-			error_exit(false, "Webserver setting \"%s\" is not known", type.c_str());
-        }
-
-	if (ws_port != -1)
-                start_websocket_thread(ws_port, &ws, ws_ssl_enabled, ws_ssl_cert, ws_ssl_priv_key, ws_ssl_ca);
-
-	if (http_port != -1)
-		webserver = start_webserver(http_port, ws_url, ws_port, st, nullptr /* TODO */);
 }
 
 void configuration::load_general(const libconfig::Setting & node_in)

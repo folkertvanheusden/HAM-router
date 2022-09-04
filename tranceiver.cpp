@@ -172,8 +172,8 @@ tranceiver *tranceiver::instantiate(const libconfig::Setting & node, work_queue_
 	else if (type == "mqtt") {
 		t = tranceiver_mqtt::instantiate(node, w, pos);
 	}
-	else if (type == "websockets") {
-		t = tranceiver_ws::instantiate(node, w, pos, ws);
+	else if (type == "http-ws") {
+		t = tranceiver_ws::instantiate(node, w, pos, st);
 	}
 	else {
 		error_exit(false, "\"%s\" is an unknown tranceiver type", type.c_str());
