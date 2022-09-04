@@ -44,3 +44,5 @@ public:
 
 	auto         & get_meta()       const { return meta;    }
 };
+
+std::string message_to_json(const message & m);

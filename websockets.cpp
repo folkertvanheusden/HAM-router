@@ -1,5 +1,4 @@
 #include <atomic>
-#include <jansson.h>
 #include <libwebsockets.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -131,54 +130,4 @@ void push_to_websockets(ws_global_context_t *const ws, const std::string & json_
 	ws->json_data = json_data;
 	ws->ts        = get_us();
 	ws->lock.unlock();
-}
-
-void push_to_websockets(ws_global_context_t *const ws, const message & m)
-{
-	auto          & meta     = m.get_meta();
-
-	json_t         *json_out = json_object();
-
-	json_object_set_new(json_out, "timestamp", json_integer(m.get_tv().tv_sec));
-
-	json_object_set_new(json_out, "source",    json_string(m.get_source().c_str()));
-
-	json_object_set_new(json_out, "msg-id",    json_string(m.get_id_short().c_str()));
-
-	if (meta.find("air-time") != meta.end())
-		json_object_set_new(json_out, "air-time", json_real(meta.at("air-time").d_value));
-
-	if (meta.find("from") != meta.end())
-		json_object_set_new(json_out, "from", json_string(meta.at("from").s_value.c_str()));
-
-	if (meta.find("to")   != meta.end())
-		json_object_set_new(json_out, "to",   json_string(meta.at("to"  ).s_value.c_str()));
-
-	if (meta.find("latitude")  != meta.end())
-		json_object_set_new(json_out, "latitude",  json_real(meta.at("latitude" ).d_value));
-
-	if (meta.find("longitude") != meta.end())
-		json_object_set_new(json_out, "longitude", json_real(meta.at("longitude").d_value));
-
-	if (meta.find("protocol")  != meta.end())
-		json_object_set_new(json_out, "protocol",  json_string(meta.at("protocol").s_value.c_str()));
-
-	if (meta.find("payload")   != meta.end())
-		json_object_set_new(json_out, "payload",   json_string(meta.at("payload").s_value.c_str()));
-
-	if (meta.find("pkt-crc")   != meta.end())
-		json_object_set_new(json_out, "pkt-crc",   json_string(meta.at("pkt-crc").s_value.c_str()));
-
-	if (meta.find("rssi")      != meta.end())
-		json_object_set_new(json_out, "rssi",      json_string(meta.at("rssi").s_value.c_str()));
-
-	char *json = json_dumps(json_out, 0);
-
-	std::string json_out_str = json;
-
-	free(json);
-
-	json_decref(json_out);
-
-	push_to_websockets(ws, json_out_str);
 }

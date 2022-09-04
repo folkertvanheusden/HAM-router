@@ -14,6 +14,7 @@ add_compile_options(-Wall -pedantic)
 
 add_executable(lora-aprs-gw
 	ax25.cpp
+	base64.cpp
 	buffer.cpp
 	configuration.cpp
 	crc_32.c

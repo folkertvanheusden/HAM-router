@@ -75,8 +75,6 @@ std::thread * process(configuration *const cfg, work_queue_t *const w, snmp *con
 
 			if (rc != TE_ok)
 				log(LL_INFO, "Switchboard indicated error during put_message: %d", rc);
-
-			push_to_websockets(cfg->get_websockets_context(), m.value());
 			// Put this in a thread ^^^^
 		}
 	});

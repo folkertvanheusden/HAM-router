@@ -71,12 +71,20 @@ transmit_error_t tranceiver_mqtt::put_message_low(const message & m)
 		return TE_hardware;
 	}
 
+	std::string json = message_to_json(m);
+
+	if ((err = mosquitto_publish(mi, nullptr, topic_out_json.c_str(), json.size(), json.c_str(), 0, false)) != MOSQ_ERR_SUCCESS) {
+		log(LL_WARNING, "mqtt failed to publish (json) %s: %s", m.get_id_short().c_str(), mosquitto_strerror(err));
+
+		return TE_hardware;
+	}
+
 	return TE_ok;
 }
 
-tranceiver_mqtt::tranceiver_mqtt(const std::string & id, seen *const s, work_queue_t *const w, const position_t & pos, const std::string & mqtt_host, const int mqtt_port, const std::string & topic_in, const std::string & topic_out) :
+tranceiver_mqtt::tranceiver_mqtt(const std::string & id, seen *const s, work_queue_t *const w, const position_t & pos, const std::string & mqtt_host, const int mqtt_port, const std::string & topic_in, const std::string & topic_out, const std::string & topic_out_json) :
 	tranceiver(id, s, w, pos),
-	topic_in(topic_in), topic_out(topic_out)
+	topic_in(topic_in), topic_out(topic_out), topic_out_json(topic_out_json)
 {
 	log(LL_INFO, "Instantiated MQTT (%s)", id.c_str());
 
@@ -99,6 +107,7 @@ tranceiver *tranceiver_mqtt::instantiate(const libconfig::Setting & node_in, wor
 	std::string  mqtt_host;
 	std::string  topic_in;
 	std::string  topic_out;
+	std::string  topic_out_json;
 	int          mqtt_port { 1883 };
 
         for(int i=0; i<node_in.getLength(); i++) {
@@ -120,6 +129,8 @@ tranceiver *tranceiver_mqtt::instantiate(const libconfig::Setting & node_in, wor
 			topic_in = node_in.lookup(type).c_str();
 		else if (type == "topic-out")
 			topic_out = node_in.lookup(type).c_str();
+		else if (type == "topic-out-json")
+			topic_out_json = node_in.lookup(type).c_str();
 		else if (type != "type") {
 			error_exit(false, "MQTT setting \"%s\" is not known", type.c_str());
 		}
@@ -128,5 +139,5 @@ tranceiver *tranceiver_mqtt::instantiate(const libconfig::Setting & node_in, wor
 	if (mqtt_host.empty())
 		error_exit(true, "No MQTT server selected");
 
-	return new tranceiver_mqtt(id, s, w, pos, mqtt_host, mqtt_port, topic_in, topic_out);
+	return new tranceiver_mqtt(id, s, w, pos, mqtt_host, mqtt_port, topic_in, topic_out, topic_out_json);
 }

@@ -17,4 +17,3 @@ void start_websocket_thread(const int port, ws_global_context_t *const p, const 
 void stop_websockets();
 
 void push_to_websockets(ws_global_context_t *const ws, const std::string & json_data);
-void push_to_websockets(ws_global_context_t *const ws, const message & m);

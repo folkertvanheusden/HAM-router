@@ -17,7 +17,9 @@
 
 transmit_error_t tranceiver_ws::put_message_low(const message & m)
 {
-	push_to_websockets(&ws, m);
+	std::string json = message_to_json(m);
+
+	push_to_websockets(&ws, json);
 
 	return TE_ok;
 }
