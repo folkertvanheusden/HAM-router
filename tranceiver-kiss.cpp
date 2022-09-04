@@ -26,16 +26,17 @@
 
 #define MAX_PACKET_LEN 256  // TODO: make dynamic size
 
-bool tranceiver_kiss::recv_mkiss(unsigned char **p, int *len, bool verbose)
+bool tranceiver_kiss::recv_mkiss(uint8_t **p, int *len, bool verbose)
 {
-	bool first = true, ok = false, escape = false;
+	bool ok     = false;
+	bool escape = false;
 
-	*p = (unsigned char *)malloc(MAX_PACKET_SIZE);
+	*p   = reinterpret_cast<uint8_t *>(malloc(MAX_PACKET_SIZE));
 	*len = 0;
 
 	for(;;)
 	{
-		unsigned char buffer = 0;
+		uint8_t buffer = 0;
 
 		if (read(fd, &buffer, 1) == -1) {
 			if (errno == EINTR)
@@ -64,13 +65,12 @@ bool tranceiver_kiss::recv_mkiss(unsigned char **p, int *len, bool verbose)
 		}
 		else if (buffer == FEND)
 		{
-			if (first)
-				first = false;
-			else
-			{
+			if (*len) {
 				ok = true;
 				break;
 			}
+
+			// otherwise: first FEND, ignore
 		}
 		else if (buffer == FESC)
 			escape = true;
@@ -130,54 +130,41 @@ bool tranceiver_kiss::recv_mkiss(unsigned char **p, int *len, bool verbose)
 	return ok;
 }
 
-bool tranceiver_kiss::send_mkiss(int channel, const unsigned char *p, const int len)
+bool tranceiver_kiss::send_mkiss(const uint8_t cmd, const uint8_t channel, const uint8_t *const p, const int len)
 {
-	int max_len = len * 2 + 1;
-	unsigned char *out = (unsigned char *)malloc(max_len);
-	int offset = 0;
+	int      max_len = len * 2 + 1;
+	uint8_t *out     = reinterpret_cast<uint8_t *>(malloc(max_len));
+	int      offset  = 0;
+
+	assert(cmd < 16);
+	assert(channel < 16);
 
 	out[offset++] = FEND;
-	out[offset++] = (channel << 4) | 0x00; // [channel 0][data]
+	out[offset++] = (channel << 4) | cmd;
 
-	for(int i=0; i<len; i++)
-	{
+	for(int i=0; i<len; i++) {
 		if (p[i] == FEND)
 		{
 			out[offset++] = FESC;
 			out[offset++] = TFEND;
 		}
-		else if (p[i] == FESC)
-		{
+		else if (p[i] == FESC) {
 			out[offset++] = FESC;
 			out[offset++] = TFESC;
 		}
-		else
-		{
+		else {
 			out[offset++] = p[i];
 		}
 	}
 
 	out[offset++] = FEND;
 
-	const unsigned char *tmp = out;
-	int out_len = offset;
-	while(out_len)
-	{
-		int rc = write(fd, tmp, out_len);
+	if (WRITE(fd, out, offset) != offset) {
+		log(LL_ERROR, "failed writing to mkiss device");
 
-		if (rc == -1 || rc == 0) {
-			if (rc == -1 && errno == EINTR)
-				continue;
+		free(out);
 
-			log(LL_ERROR, "failed writing to mkiss device");
-
-			free(out);
-
-			return false;
-		}
-
-		tmp += rc;
-		out_len -= rc;
+		return false;
 	}
 
 	free(out);
@@ -193,7 +180,7 @@ transmit_error_t tranceiver_kiss::put_message_low(const message & m)
 
 	auto content = m.get_content();
 
-	if (send_mkiss(0, content.first, content.second))
+	if (send_mkiss(0, 0, content.first, content.second))
 		return TE_ok;
 
 	return TE_hardware;

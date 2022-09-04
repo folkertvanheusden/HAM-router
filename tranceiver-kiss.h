@@ -9,9 +9,9 @@ protected:
 	std::mutex lock;
 	int        fd   { -1 };
 
-	bool recv_mkiss(unsigned char **p, int *len, bool verbose);
+	bool recv_mkiss(uint8_t **const p, int *const len, const bool verbose);
 
-	bool send_mkiss(int channel, const unsigned char *p, const int len);
+	bool send_mkiss(const uint8_t cmd, const uint8_t channel, const uint8_t *const p, const int len);
 
 	transmit_error_t put_message_low(const message & m) override;
 
