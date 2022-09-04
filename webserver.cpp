@@ -132,6 +132,7 @@ void * start_webserver(const int listen_port, const std::string & ws_url_in, con
 		}
 
 		websocket_receiver = myformat("<script>\n"
+				"col = 0;\n"
 				"function start() {\n"
 				"    if (location.protocol == 'https:')\n"
 				"        s = new WebSocket(%s);\n"
@@ -161,6 +162,7 @@ void * start_webserver(const int listen_port, const std::string & ws_url_in, con
 				"            var rssi    = 'rssi' in msg ? msg['rssi'] : '';\n"
 				"\n"
 				"            var row = table.insertRow(2);\n"
+				"            if (col == 0) { row.style.background = \"#ff4040\"; } else { row.style.background = \"#40ff40\"; }\n"
 				"            var cell0 = row.insertCell(0);\n"
 				"	     cell0.innerHTML = date;\n"
 				"            var cell1 = row.insertCell(1);\n"
@@ -175,6 +177,7 @@ void * start_webserver(const int listen_port, const std::string & ws_url_in, con
 				"	     cell5.innerHTML = rssi;\n"
 				"\n"
 				"            var row = table.insertRow(2);\n"
+				"            if (col == 0) { row.style.background = \"#ff8080\"; } else { row.style.background = \"#80ff80\"; }\n"
 				"            var cell0 = row.insertCell(0);\n"
 				"	     cell0.innerHTML = time;\n"
 				"            var cell1 = row.insertCell(1);\n"
@@ -195,6 +198,7 @@ void * start_webserver(const int listen_port, const std::string & ws_url_in, con
 				"		    table.deleteRow(rowCount -1);\n"
 				"		    table.deleteRow(rowCount -1);\n"
 				"            }\n"
+				"	     col = 1 - col;\n"
 				"        }\n"
 				"        catch (error) {\n"
 				"            console.error(error);\n"
