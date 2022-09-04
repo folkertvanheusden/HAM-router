@@ -13,6 +13,7 @@
 #include "tranceiver-kiss.h"
 #include "tranceiver-lora-sx1278.h"
 #include "tranceiver-mqtt.h"
+#include "tranceiver-ws.h"
 
 
 tranceiver::tranceiver(const std::string & id, seen *const s, work_queue_t *const w, const position_t & local_pos) :
@@ -144,7 +145,7 @@ transmit_error_t tranceiver::put_message(const message & m)
 	return put_message_low(m);
 }
 
-tranceiver *tranceiver::instantiate(const libconfig::Setting & node, work_queue_t *const w, const position_t & pos, stats *const st, int device_nr)
+tranceiver *tranceiver::instantiate(const libconfig::Setting & node, work_queue_t *const w, const position_t & pos, stats *const st, int device_nr, ws_global_context_t *const ws)
 {
 	std::string type = node.lookup("type").c_str();
 
@@ -170,6 +171,9 @@ tranceiver *tranceiver::instantiate(const libconfig::Setting & node, work_queue_
 	}
 	else if (type == "mqtt") {
 		t = tranceiver_mqtt::instantiate(node, w, pos);
+	}
+	else if (type == "websockets") {
+		t = tranceiver_ws::instantiate(node, w, pos, ws);
 	}
 	else {
 		error_exit(false, "\"%s\" is an unknown tranceiver type", type.c_str());

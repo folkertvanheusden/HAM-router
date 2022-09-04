@@ -42,7 +42,7 @@ private:
 
 	void load_switchboard(const libconfig::Setting & node);
 
-	void load_tranceivers(const libconfig::Setting & node, work_queue_t *const w, snmp_data *const sd, stats *const st);
+	void load_tranceivers(const libconfig::Setting & node, work_queue_t *const w, snmp_data *const sd, stats *const st, ws_global_context_t *const ws);
 
 	void load_webserver  (const libconfig::Setting & node, stats *const st);
 

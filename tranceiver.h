@@ -15,6 +15,7 @@
 #include "message.h"
 #include "seen.h"
 #include "stats.h"
+#include "websockets.h"
 #include "work.h"
 
 
@@ -69,7 +70,7 @@ public:
 
 	transmit_error_t       put_message(const message & m);
 
-	static tranceiver *instantiate(const libconfig::Setting & node, work_queue_t *const w, const position_t & pos, stats *const st, const int device_nr);
+	static tranceiver *instantiate(const libconfig::Setting & node, work_queue_t *const w, const position_t & pos, stats *const st, const int device_nr, ws_global_context_t *const ws);
 
 	virtual void operator()() = 0;
 };

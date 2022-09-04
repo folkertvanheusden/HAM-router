@@ -49,6 +49,7 @@ add_executable(lora-aprs-gw
 	tranceiver-kiss.cpp
 	tranceiver-lora-sx1278.cpp
 	tranceiver-mqtt.cpp
+	tranceiver-ws.cpp
 	utils.cpp
 	webserver.cpp
 	websockets.cpp

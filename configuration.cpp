@@ -29,7 +29,7 @@ configuration::configuration(const std::string & file, work_queue_t *const w, sn
 				load_general(node);
 			}
 			else if (node_name == "tranceivers") {
-				load_tranceivers(node, w, sd, st);
+				load_tranceivers(node, w, sd, st, &ws);
 			}
 			else if (node_name == "connections") {
 				load_switchboard(node);
@@ -75,11 +75,11 @@ configuration::~configuration()
 		delete f.second;
 }
 
-void configuration::load_tranceivers(const libconfig::Setting & node_in, work_queue_t *const w, snmp_data *const sd, stats *const st) {
+void configuration::load_tranceivers(const libconfig::Setting & node_in, work_queue_t *const w, snmp_data *const sd, stats *const st, ws_global_context_t *const ws) {
 	for(int i=0; i<node_in.getLength(); i++) {
 		const libconfig::Setting & node = node_in[i];
 
-		tranceiver *t = tranceiver::instantiate(node, w, local_pos, st, i + 1);
+		tranceiver *t = tranceiver::instantiate(node, w, local_pos, st, i + 1, ws);
 
 		tranceivers.push_back(t);
 	}
