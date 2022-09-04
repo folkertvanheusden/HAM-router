@@ -48,6 +48,8 @@ add_executable(lora-aprs-gw
 	tranceiver-beacon.cpp
 	tranceiver-db.cpp
 	tranceiver-kiss.cpp
+	tranceiver-kiss-kernel.cpp
+	tranceiver-kiss-tty.cpp
 	tranceiver-lora-sx1278.cpp
 	tranceiver-mqtt.cpp
 	tranceiver-ws.cpp

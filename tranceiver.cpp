@@ -10,7 +10,8 @@
 #include "tranceiver-axudp.h"
 #include "tranceiver-beacon.h"
 #include "tranceiver-db.h"
-#include "tranceiver-kiss.h"
+#include "tranceiver-kiss-kernel.h"
+#include "tranceiver-kiss-tty.h"
 #include "tranceiver-lora-sx1278.h"
 #include "tranceiver-mqtt.h"
 #include "tranceiver-ws.h"
@@ -154,8 +155,11 @@ tranceiver *tranceiver::instantiate(const libconfig::Setting & node, work_queue_
 	if (type == "aprs-si") {
 		t = tranceiver_aprs_si::instantiate(node, w, pos, st, device_nr);
 	}
-	else if (type == "kiss") {
-		t = tranceiver_kiss::instantiate(node, w, pos);
+	else if (type == "kiss-kernel") {
+		t = tranceiver_kiss_kernel::instantiate(node, w, pos);
+	}
+	else if (type == "kiss-tty") {
+		t = tranceiver_kiss_tty::instantiate(node, w, pos);
 	}
 	else if (type == "lora-sx1278") {
 		t = tranceiver_lora_sx1278::instantiate(node, w, pos);
