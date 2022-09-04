@@ -70,6 +70,8 @@ configuration::~configuration()
 
 	for(auto f : filters)
 		delete f.second;
+
+	delete global_repetition_filter;
 }
 
 void configuration::load_tranceivers(const libconfig::Setting & node_in, work_queue_t *const w, snmp_data *const sd, stats *const st, ws_global_context_t *const ws) {
@@ -194,8 +196,15 @@ void configuration::load_general(const libconfig::Setting & node_in)
 			local_pos.longitude = node_in.lookup(type), lng_set = true;
 		else if (type == "logfile")
 			logfile = node_in.lookup(type).c_str();
-		else
+                else if (type == "repetition-rate-limiting") {
+			if (global_repetition_filter)
+				error_exit(false, "repetition-rate-limiting is already defined");
+
+                        global_repetition_filter = seen::instantiate(node);
+                }
+		else {
 			error_exit(false, "General setting \"%s\" is not known", type.c_str());
+		}
         }
 
 	if (lat_set != lng_set)

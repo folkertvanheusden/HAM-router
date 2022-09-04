@@ -60,7 +60,7 @@ transmit_error_t tranceiver::queue_incoming_message(const message & m)
 		auto ratelimit_rc = s->check(content.first, content.second);
 
 		if (ratelimit_rc.first == false) {
-			log(LL_DEBUG, "tranceiver::queue_incoming_message(%s: %s): dropped because of rate limiting", id.c_str(), m.get_id_short().c_str());
+			log(LL_DEBUG, "tranceiver::queue_incoming_message(%s: %s): dropped because of duplicates rate limiting", id.c_str(), m.get_id_short().c_str());
 
 			return TE_ratelimiting;
 		}

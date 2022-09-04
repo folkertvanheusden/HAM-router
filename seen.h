@@ -1,3 +1,5 @@
+#pragma once
+
 #include <atomic>
 #include <condition_variable>
 #include <libconfig.h++>
@@ -9,6 +11,7 @@
 
 #include "rate-limiter.h"
 #include "stats.h"
+
 
 typedef struct {
 	int    max_per_dt;

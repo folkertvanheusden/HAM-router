@@ -2,6 +2,7 @@
 #include <vector>
 
 #include "filter.h"
+#include "seen.h"
 #include "snmp.h"
 #include "switchboard.h"
 #include "tranceiver.h"
@@ -29,6 +30,8 @@ private:
 	std::string                logfile   { "gateway.log" };
 
 	std::map<std::string, filter *> filters;
+
+	seen                      *global_repetition_filter { nullptr };
 
 	snmp_data_type_running_since *running_since { new snmp_data_type_running_since() };
 
@@ -63,4 +66,6 @@ public:
 	position_t    get_local_pos() const   { return local_pos; }
 
 	std::string   get_logfile() const     { return logfile;   }
+
+	seen        * get_global_repetition_filter() { return global_repetition_filter; }
 };

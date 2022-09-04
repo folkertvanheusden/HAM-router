@@ -27,6 +27,8 @@ std::thread * process(configuration *const cfg, work_queue_t *const w, snmp *con
 	return new std::thread([cfg, w, snmp_] {
 		set_thread_name("main");
 
+		seen *s = cfg->get_global_repetition_filter();
+
 		for(;;) {
 			tranceiver *t_has_work { nullptr };
 
@@ -56,6 +58,16 @@ std::thread * process(configuration *const cfg, work_queue_t *const w, snmp *con
 
 			// Put this in a thread vvvv
 			auto content = m.value().get_content();
+
+			if (s) {
+				auto ratelimit_rc = s->check(content.first, content.second);
+
+				if (ratelimit_rc.first == false) {
+					log(LL_DEBUG, "main(%s): dropped because of duplicates rate limiting", m.value().get_id_short().c_str());
+
+					continue;
+				}
+			}
 
 			log(LL_DEBUG_VERBOSE, "Forwarding message from %s (%s): %s", m.value().get_source().c_str(), m.value().get_id_short().c_str(), dump_replace(content.first, content.second).c_str());
 
