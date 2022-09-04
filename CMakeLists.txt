@@ -24,11 +24,11 @@ add_executable(lora-aprs-gw
 	dissect-packet.cpp
 	error.cpp
 	filter.cpp
-	gateway.cpp
 	gps.cpp
 	hashing.cpp
 	log.cpp
 	LoRa.c
+	main.cpp
 	message.cpp
 	net.cpp
 	random.cpp
