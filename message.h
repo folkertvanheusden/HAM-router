@@ -17,15 +17,12 @@ private:
 
 	const uint64_t    msg_id;
 
-	const bool        from_rf;   // did it come from electromagnetic waves?
-	const int         air_time;  // in milliseconds
-
 	const buffer      b;
 
 	std::map<std::string, db_record_data> meta;
 
 public:
-	message(const timeval & tv, const std::string & source, const uint64_t msg_id, const bool from_rf, const int air_time, const uint8_t *const data, const size_t size);
+	message(const timeval & tv, const std::string & source, const uint64_t msg_id, const uint8_t *const data, const size_t size);
 
 	message(const message & m);
 
@@ -36,10 +33,6 @@ public:
 	std::string    get_source()     const { return source;   }
 
 	uint64_t       get_msg_id()     const { return msg_id;   }
-
-	bool           get_is_from_rf() const { return from_rf;  }
-
-	int            get_air_time()   const { return air_time; }
 
 	const buffer & get_buffer()     const { return b;               }
 

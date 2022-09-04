@@ -149,8 +149,6 @@ void tranceiver_axudp::operator()()
 				message m(tv,
 						source,
 						msg_id,
-						false, 
-						0,
 						reinterpret_cast<const uint8_t *>(buffer),
 						n - 2 /* "remove" crc */);
 
@@ -163,8 +161,6 @@ void tranceiver_axudp::operator()()
 					message m_full(tv,
 						source,
 						msg_id,
-						false, 
-						0,
 						reinterpret_cast<const uint8_t *>(buffer),
 						n);
 

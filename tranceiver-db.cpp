@@ -26,9 +26,6 @@ void insert_into_database(db *const d, const message & m)
 
 	db_record_insert(&record, "msg-id", db_record_gen(int64_t(m.get_msg_id())));
 
-	if (m.get_is_from_rf())
-		db_record_insert(&record, "air-time", db_record_gen(double(m.get_air_time())));
-
 	for(auto r : m.get_meta())
 		db_record_insert(&record, r.first, r.second);
 

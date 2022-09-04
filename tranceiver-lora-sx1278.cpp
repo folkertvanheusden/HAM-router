@@ -31,14 +31,14 @@ void * rx_f(void *in)
 	message m(rx->last_time,
 			myformat("LoRa-sx1278(%s)", t->get_id().c_str()),
 			msg_id,
-			true,
-			rx->Tpkt,  // TODO: move to meta
 			reinterpret_cast<uint8_t *>(rx->buf),
 			rx->size);
 
 	std::map<std::string, db_record_data> meta;
 
 	meta.insert({ "rssi", db_record_gen(myformat("%ddBm", rx->RSSI)) });
+
+	meta.insert({ "air-time", db_record_gen(double(rx->Tpkt)) });
 
 	m.set_meta(meta);
 

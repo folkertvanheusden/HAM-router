@@ -71,8 +71,6 @@ void tranceiver_beacon::operator()()
 			m = new message(tv,
 					source,
 					msg_id,
-					false,
-					0,
 					reinterpret_cast<const uint8_t *>(output.c_str()),
 					output.size());
 		}
@@ -100,8 +98,6 @@ void tranceiver_beacon::operator()()
 			m = new message(tv,
 					source,
 					msg_id,
-					false,
-					0,
 					packet_binary.first,
 					packet_binary.second);
 

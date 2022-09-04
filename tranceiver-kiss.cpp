@@ -269,8 +269,6 @@ void tranceiver_kiss::operator()()
 		message m(tv,
 				myformat("kiss(%s)", get_id().c_str()),
 				get_random_uint64_t(),
-				false,
-				0,
 				p,
 				len);
 

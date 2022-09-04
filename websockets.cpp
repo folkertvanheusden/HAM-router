@@ -145,7 +145,8 @@ void push_to_websockets(ws_global_context_t *const ws, const message & m)
 
 	json_object_set_new(json_out, "msg-id",    json_string(m.get_id_short().c_str()));
 
-	json_object_set_new(json_out, "air-time",  json_integer(m.get_air_time()));
+	if (meta.find("air-time") != meta.end())
+		json_object_set_new(json_out, "air-time", json_real(meta.at("air-time").d_value));
 
 	if (meta.find("from") != meta.end())
 		json_object_set_new(json_out, "from", json_string(meta.at("from").s_value.c_str()));
