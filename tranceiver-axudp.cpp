@@ -137,7 +137,7 @@ void tranceiver_axudp::operator()()
 
                         int n = recvfrom(fd, buffer, max_pkt_len, 0, (sockaddr *)&clientaddr, &len);
 
-                        if (n) {
+                        if (n > 2) {
 				std::string came_from = inet_ntoa(clientaddr.sin_addr) + myformat(":%d", clientaddr.sin_port);
 
 				timeval tv { 0 };
@@ -166,6 +166,9 @@ void tranceiver_axudp::operator()()
 
 					send_to_other_axudp_targets(m_full, came_from);
 				}
+			}
+			else if (n == -1) {
+				dolog(LL_WARNING, "axudp(%s): recvfrom returned %s", get_id().c_str(), strerror(errno));
 			}
 
 			free(buffer);
