@@ -47,8 +47,11 @@ transmit_error_t switchboard::put_message(tranceiver *const from, const message 
 		return TE_hardware;
 
 	if (it->second.second) {
-		if (!it->second.second->check(m))
+		if (!it->second.second->check(m)) {
 			log(LL_DEBUG, "NOT forwarding message %s: filtered", m.get_id_short().c_str());
+
+			return TE_filter;
+		}
 	}
 
 	log(LL_DEBUG, "Forwarding %s to %zu tranceivers", m.get_id_short().c_str(), it->second.first.size());

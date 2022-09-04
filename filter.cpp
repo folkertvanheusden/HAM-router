@@ -66,6 +66,8 @@ bool filter_rule::check(const message & m)
 		error_exit(false, "Internal error: unknown data type");
 	}
 
+	// TODO i_value and f_value
+
 	log(LL_ERROR, "This should not be reached.");
 
 	return false;

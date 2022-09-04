@@ -19,7 +19,7 @@
 #include "work.h"
 
 
-typedef enum { TE_ok, TE_hardware, TE_ratelimiting } transmit_error_t;
+typedef enum { TE_ok, TE_hardware, TE_ratelimiting, TE_filter } transmit_error_t;
 
 class tranceiver
 {
