@@ -142,7 +142,7 @@ filter_rule *filter_rule::instantiate(const libconfig::Setting & node_in)
 	if (fc == FC_invalid)
 		error_exit(false, "How to compare not set");
 
-	return new filter_rule(field_name, value_type, fc, not_, ignore_if_missing, ignore_data_type_mismatch, ignore_action_not_applicable_to_data_type);
+	return new filter_rule(field_name, value, fc, not_, ignore_if_missing, ignore_data_type_mismatch, ignore_action_not_applicable_to_data_type);
 
 }
 
