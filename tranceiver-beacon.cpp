@@ -150,15 +150,15 @@ tranceiver *tranceiver_beacon::instantiate(const libconfig::Setting & node_in, w
 			else if (mode == "ax25")
 				bm = beacon_mode_ax25;
 			else
-				error_exit(false, "beacon mode \"%s\" is not known", mode.c_str());
+				error_exit(false, "beacon(line %d): beacon mode \"%s\" is not known", node.getSourceLine(), mode.c_str());
 		}
 		else if (type != "type") {
-			error_exit(false, "setting \"%s\" is not known", type.c_str());
+			error_exit(false, "beacon(line %d): setting \"%s\" is not known", node.getSourceLine(), type.c_str());
 		}
         }
 
 	if (callsign.empty())
-		error_exit(false, "beacons need a source-callsign configured");
+		error_exit(false, "beacon(line %d): beacons need a source-callsign configured", node_in.getSourceLine());
 
 	return new tranceiver_beacon(id, s, w, pos, beacon_text, beacon_interval, bm, callsign);
 }

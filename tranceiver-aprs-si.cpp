@@ -192,15 +192,15 @@ tranceiver *tranceiver_aprs_si::instantiate(const libconfig::Setting & node_in, 
 		else if (type == "local-callsign")
 			local_callsign = node_in.lookup(type).c_str();
 		else if (type != "type") {
-			error_exit(false, "setting \"%s\" is not known", type.c_str());
+			error_exit(false, "aprs_si(line %d): setting \"%s\" is not known", node.getSourceLine(), type.c_str());
 		}
         }
 
 	if (aprs_user.empty())
-		error_exit(false, "No aprs-user selected");
+		error_exit(false, "aprs_si(line %d): No aprs-user selected", node_in.getSourceLine());
 
 	if (local_callsign.empty())
-		error_exit(false, "No local callsign selected");
+		error_exit(false, "aprs_si(line %d): No local callsign selected", node_in.getSourceLine());
 
 	return new tranceiver_aprs_si(id, s, w, pos, aprs_user, aprs_pass, local_callsign, st, device_nr);
 }

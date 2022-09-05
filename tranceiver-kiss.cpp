@@ -24,8 +24,6 @@
 #define TFEND	0xdc
 #define TFESC	0xdd
 
-#define MAX_PACKET_LEN 256  // TODO: make dynamic size
-
 bool tranceiver_kiss::recv_mkiss(uint8_t **const p, int *const len)
 {
 	bool ok     = false;

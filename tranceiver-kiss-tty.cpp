@@ -87,7 +87,9 @@ tranceiver *tranceiver_kiss_tty::instantiate(const libconfig::Setting & node_in,
 		if (type == "id")
 			id = node_in.lookup(type).c_str();
 		else if (type == "repetition-rate-limiting") {
-			assert(s == nullptr);
+			if (s)
+				error_exit(false, "(line %d): Duplicate repetition-rate-limiting in tranceiver-kiss-tty (%s)", node.getSourceLine(), id.c_str());
+
 			s = seen::instantiate(node);
 		}
 		else if (type == "tty-device")
@@ -95,7 +97,7 @@ tranceiver *tranceiver_kiss_tty::instantiate(const libconfig::Setting & node_in,
 		else if (type == "tty-baudrate")
 			tty_baudrate = node_in.lookup(type);
 		else if (type != "type") {
-			error_exit(false, "setting \"%s\" is not known", type.c_str());
+			error_exit(false, "(line %d): setting \"%s\" is not known", node.getSourceLine(), type.c_str());
 		}
         }
 

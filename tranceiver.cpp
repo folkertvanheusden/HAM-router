@@ -180,7 +180,7 @@ tranceiver *tranceiver::instantiate(const libconfig::Setting & node, work_queue_
 		t = tranceiver_ws::instantiate(node, w, pos, st);
 	}
 	else {
-		error_exit(false, "\"%s\" is an unknown tranceiver type", type.c_str());
+		error_exit(false, "(line %d): \"%s\" is an unknown tranceiver type", node.getSourceLine(), type.c_str());
 	}
 
 	return t;

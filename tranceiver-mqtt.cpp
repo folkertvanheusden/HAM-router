@@ -118,7 +118,9 @@ tranceiver *tranceiver_mqtt::instantiate(const libconfig::Setting & node_in, wor
 		if (type == "id")
 			id = node_in.lookup(type).c_str();
 		else if (type == "repetition-rate-limiting") {
-			assert(s == nullptr);
+			if (s)
+				error_exit(false, "(line %d): repetition-rate-limiting already defined", node.getSourceLine());
+
 			s = seen::instantiate(node);
 		}
 		else if (type == "host")
@@ -132,12 +134,12 @@ tranceiver *tranceiver_mqtt::instantiate(const libconfig::Setting & node_in, wor
 		else if (type == "topic-out-json")
 			topic_out_json = node_in.lookup(type).c_str();
 		else if (type != "type") {
-			error_exit(false, "MQTT setting \"%s\" is not known", type.c_str());
+			error_exit(false, "(line %d): MQTT setting \"%s\" is not known", node.getSourceLine(), type.c_str());
 		}
         }
 
 	if (mqtt_host.empty())
-		error_exit(true, "No MQTT server selected");
+		error_exit(true, "(line %d): No MQTT server selected", node_in.getSourceLine());
 
 	return new tranceiver_mqtt(id, s, w, pos, mqtt_host, mqtt_port, topic_in, topic_out, topic_out_json);
 }

@@ -42,7 +42,7 @@ transmit_error_t tranceiver_axudp::put_message_low(const message & m)
 		log(LL_DEBUG_VERBOSE, "tranceiver_axudp::put_message_low(%s): transmit to %s (%s)", m.get_id_short().c_str(), d.c_str(), dump_replace(temp, temp_len).c_str());
 
 		if (transmit_udp(d, temp, temp_len) == false && continue_on_error == false) {
-			log(LL_WARNING, "Problem sending %s", m.get_id_short().c_str());
+			log(LL_WARNING, "axudp(%s): problem sending", m.get_id_short().c_str());
 
 			free(temp);
 
@@ -62,7 +62,7 @@ tranceiver_axudp::tranceiver_axudp(const std::string & id, seen *const s, work_q
 	continue_on_error(continue_on_error),
 	distribute(distribute)
 {
-	log(LL_INFO, "Instantiated AXUDP (%s)", id.c_str());
+	log(LL_INFO, "Instantiated AXUDP (%s)", get_id().c_str());
 
 	fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
@@ -73,7 +73,7 @@ tranceiver_axudp::tranceiver_axudp(const std::string & id, seen *const s, work_q
         servaddr.sin_port        = htons(listen_port);
 
         if (bind(fd, (const struct sockaddr *)&servaddr, sizeof(servaddr)) == -1)
-                error_exit(true, "bind to port %d failed", listen_port);
+                error_exit(true, "axudp(%s) bind to port %d failed", get_id().c_str(), listen_port);
 
 	th = new std::thread(std::ref(*this));
 }
@@ -87,17 +87,17 @@ transmit_error_t tranceiver_axudp::send_to_other_axudp_targets(const message & m
 {
 	for(auto d : destinations) {
 		if (d == came_from) {
-			log(LL_DEBUG_VERBOSE, "tranceiver_axudp::send_to_other_axudp_targets(%s): not (re-)sending to %s", m.get_id_short().c_str(), d.c_str());
+			log(LL_DEBUG_VERBOSE, "send_to_other_axudp_targets(%s/%s): not (re-)sending to %s", get_id().c_str(), m.get_id_short().c_str(), d.c_str());
 
 			continue;
 		}
 
-		log(LL_DEBUG_VERBOSE, "tranceiver_axudp::send_to_other_axudp_targets(%s): transmit to %s", m.get_id_short().c_str(), d.c_str());
+		log(LL_DEBUG_VERBOSE, "send_to_other_axudp_targets(%s/%s): transmit to %s", get_id().c_str(), m.get_id_short().c_str(), d.c_str());
 
 		auto content = m.get_content();
 
 		if (transmit_udp(d, content.first, content.second) == false && continue_on_error == false) {
-			log(LL_WARNING, "Problem sending %s", m.get_id_short().c_str());
+			log(LL_WARNING, "send_to_other_axudp_targets(%s/%s): problem sending", get_id().c_str(), m.get_id_short().c_str());
 
 			return TE_hardware;
 		}
@@ -113,7 +113,7 @@ void tranceiver_axudp::operator()()
 	if (listen_port == -1)
 		return;
 
-	log(LL_INFO, "APRS-SI: started thread");
+	log(LL_INFO, "APRS-SI(%s): started thread", get_id().c_str());
 
 	pollfd fds[] = { { fd, POLLIN, 0 } };
 
@@ -125,7 +125,7 @@ void tranceiver_axudp::operator()()
 				continue;
 
 			if (rc == -1) {
-				log(LL_ERROR, "tranceiver_axudp::operator: poll returned %s", strerror(errno));
+				log(LL_ERROR, "tranceiver_axudp(%s): poll returned %s", get_id().c_str(), strerror(errno));
 
 				break;
 			}
@@ -152,7 +152,7 @@ void tranceiver_axudp::operator()()
 						reinterpret_cast<const uint8_t *>(buffer),
 						n - 2 /* "remove" crc */);
 
-				log(LL_DEBUG_VERBOSE, "tranceiver_axudp::operator(%s): received message from %s", m.get_id_short().c_str(), came_from.c_str());
+				log(LL_DEBUG_VERBOSE, "tranceiver_axudp(%s/%s): received message from %s", get_id().c_str(), m.get_id_short().c_str(), came_from.c_str());
 
 				// if an error occured, do not pass on to
 				transmit_error_t rc = queue_incoming_message(m);
@@ -174,7 +174,7 @@ void tranceiver_axudp::operator()()
 			free(buffer);
                 }
                 catch(const std::exception& e) {
-                        log(LL_ERROR, "tranceiver_axudp::operator: recvfrom failed: %s", e.what());
+                        log(LL_ERROR, "tranceiver_axudp(%s): recvfrom failed: %s", get_id().c_str(), e.what());
                 }
         }
 }
@@ -196,7 +196,9 @@ tranceiver *tranceiver_axudp::instantiate(const libconfig::Setting & node_in, wo
 		if (type == "id")
 			id = node_in.lookup(type).c_str();
 		else if (type == "repetition-rate-limiting") {
-			assert(s == nullptr);
+			if (s)
+				error_exit(false, "axudp(line %d): repetition-rate-limiting already defined", node.getSourceLine());
+
 			s = seen::instantiate(node);
 		}
 		else if (type == "destinations") {
@@ -211,7 +213,7 @@ tranceiver *tranceiver_axudp::instantiate(const libconfig::Setting & node_in, wo
 		else if (type == "distribute")
 			distribute = node_in.lookup(type);
 		else if (type != "type") {
-			error_exit(false, "setting \"%s\" is not known", type.c_str());
+			error_exit(false, "axudp(line %d): setting \"%s\" is not known", node.getSourceLine(), type.c_str());
 		}
         }
 

@@ -66,7 +66,9 @@ tranceiver *tranceiver_ws::instantiate(const libconfig::Setting & node_in, work_
 		if (type == "id")
 			id = node_in.lookup(type).c_str();
 		else if (type == "repetition-rate-limiting") {
-			assert(s == nullptr);
+			if (s)
+				error_exit(false, "ws(line %d): repetition-rate-limiting already set", node.getSourceLine());
+
 			s = seen::instantiate(node);
 		}
 		else if (type == "http-port")
@@ -84,7 +86,7 @@ tranceiver *tranceiver_ws::instantiate(const libconfig::Setting & node_in, work_
 		else if (type == "websockets-ssl-ca")
 			ws_ssl_ca = node_in.lookup(type).c_str();
 		else if (type != "type") {
-			error_exit(false, "Websocket setting \"%s\" is not known", type.c_str());
+			error_exit(false, "(line %d): Websocket setting \"%s\" is not known", node.getSourceLine(), type.c_str());
 		}
         }
 

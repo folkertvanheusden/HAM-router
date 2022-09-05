@@ -73,7 +73,9 @@ tranceiver *tranceiver_db::instantiate(const libconfig::Setting & node_in, work_
 		if (type == "id")
 			id = node_in.lookup(type).c_str();
 		else if (type == "repetition-rate-limiting") {
-			assert(s == nullptr);
+			if (s)
+				error_exit(false, "db(line %d): repetition-rate-limiting already set", node.getSourceLine());
+
 			s = seen::instantiate(node);
 		}
 		else if (type == "uri")
@@ -83,13 +85,13 @@ tranceiver *tranceiver_db::instantiate(const libconfig::Setting & node_in, work_
 		else if (type == "collection")
 			db_collection = node_in.lookup(type).c_str();
 		else if (type != "type") {
-			error_exit(false, "Database setting \"%s\" is not known", type.c_str());
+			error_exit(false, "(line %d): Database setting \"%s\" is not known", node.getSourceLine(), type.c_str());
 		}
         }
 
 	if (db_uri.empty() == false) {
 		if (db_database.empty() == true || db_collection.empty() == true)
-			error_exit(false, "MongoDB is missing settings");
+			error_exit(false, "(line %d): MongoDB is missing settings", node_in.getSourceLine());
 
 		d = new db_mongodb(db_uri, db_database, db_collection);
 
@@ -98,7 +100,7 @@ tranceiver *tranceiver_db::instantiate(const libconfig::Setting & node_in, work_
 
 	return new tranceiver_db(id, s, w, pos, d);
 #else
-	log(LL_ERROR, "No MongoDB support compiled in!");
+	log(LL_ERROR, "(line %d): No MongoDB support compiled in!", node_in.getSourceLine());
 
 	error_exit(false, "No MongoDB support compiled in!");
 

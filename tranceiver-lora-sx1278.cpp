@@ -178,7 +178,9 @@ tranceiver *tranceiver_lora_sx1278::instantiate(const libconfig::Setting & node_
 		if (type == "id")
 			id = node_in.lookup(type).c_str();
 		else if (type == "repetition-rate-limiting") {
-			assert(s == nullptr);
+			if (s)
+				error_exit(true, "(line %d): repetition-rate-limiting already defined", node.getSourceLine());
+
 			s = seen::instantiate(node);
 		}
 		else if (type == "dio0-pin")
@@ -188,7 +190,7 @@ tranceiver *tranceiver_lora_sx1278::instantiate(const libconfig::Setting & node_
 		else if (type == "digipeater")
 			digipeater = node_in.lookup(type);
 		else if (type != "type") {
-			error_exit(false, "setting \"%s\" is not known", type.c_str());
+			error_exit(false, "(line %d): setting \"%s\" is not known", node.getSourceLine(), type.c_str());
 		}
         }
 
