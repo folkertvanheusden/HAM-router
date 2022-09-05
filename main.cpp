@@ -82,7 +82,7 @@ std::thread * process(configuration *const cfg, work_queue_t *const w, snmp *con
 
 int main(int argc, char *argv[])
 {
-	setlogfile("gateway.log", LL_DEBUG_VERBOSE);
+	setlogfile("ham-router.log", LL_DEBUG_VERBOSE);
 
 	signal(SIGINT, signal_handler);
 
@@ -92,7 +92,7 @@ int main(int argc, char *argv[])
 
 	stats         st(8192, &sd);
 
-	configuration cfg(argc == 2 ? argv[1] : "gateway.cfg", &w, &sd, &st);
+	configuration cfg(argc == 2 ? argv[1] : "ham-router.cfg", &w, &sd, &st);
 
 	setlogfile(cfg.get_logfile().c_str(), LL_DEBUG_VERBOSE);
 
