@@ -1,6 +1,6 @@
-This gateway software can function as a gateway, router and digipeater
-for AX.25 and APRS over LoRa, axudp, local ax.25 network interfaces and
-TNC devices (KISS over serial).
+This software can function as a gateway, router and digipeater for e.g.
+AX.25 and APRS over LoRa, axudp, local ax.25 network interfaces and TNC
+devices (KISS over serial).
 
 Packets can be stored in a MongoDB, viewed via a web-interface (using
 web-sockets). The program has a built-in SNMP server (for statistics).
@@ -31,24 +31,13 @@ compiling program:
 * make
 * cd ..
 
-The result is: build/lora-aprs-gw
+The result is: build/ham-router
 
 
-(optional) database schema:
-
-```
-  CREATE TABLE traffic (
-    ts DATETIME NOT NULL,
-    raw BLOB NOT NULL,
-    other JSON NOT NULL,
-    PRIMARY KEY(ts)
-  );
-```
-
-Configuration: gateway.cfg 
+Configuration: ham-router.cfg 
 
 
-This gateway software is using the LoRa SX1278 library
+This software is using the LoRa SX1278 library
 written by Yandiev Ruslan <yandievruslan@gmail.com>.
 The original files are in the history of this git repository.
 
