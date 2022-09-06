@@ -80,7 +80,7 @@ MHD_Result process_http_request(void *cls,
 			page += "<table><tr><th>callsign</th><th>date</th><th>sum</th></tr>\n";
 
 			for(auto record : at_records)
-				page += "<tr><td>" + record.first.first + "</td><td>" + record.first.second + "</td><td>" + std::to_string(record.second) + "</td></tr>\n";
+				page += "<tr><td>" + record.first.first + "</td><td>" + record.first.second + "</td><td>" + myformat("%.2f", record.second) + "s</td></tr>\n";
 
 			page += "</table>";
 		}
