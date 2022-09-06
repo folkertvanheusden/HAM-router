@@ -107,7 +107,7 @@ uint64_t * stats::register_stat(const std::string & name, const std::string & oi
 
 	auto lut_it = lut.find(name);
 	if (lut_it != lut.end())
-		error_exit(false, "stats: stat \"%s\" already exists?", name.c_str());
+		error_exit(false, "stats: stat \"%s\" already exists", name.c_str());
 
 	uint8_t *p_out = (uint8_t *)&p[len];
 

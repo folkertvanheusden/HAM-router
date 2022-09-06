@@ -16,6 +16,8 @@ public:
 
 	std::string get_type_name() const override { return "MongoDB"; }
 
+	db *get_db() const { return d; }
+
 	static tranceiver *instantiate(const libconfig::Setting & node, work_queue_t *const w, const position_t & pos);
 
 	void operator()() override;

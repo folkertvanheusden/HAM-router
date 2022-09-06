@@ -1,5 +1,6 @@
 #include "config.h"
 #if LIBMONGOCXX_FOUND == 1
+#include <bsoncxx/json.hpp>
 #include <bsoncxx/builder/stream/document.hpp>
 #include <chrono>
 #include <mongocxx/client.hpp>
@@ -125,5 +126,61 @@ bool db_mongodb::insert(const db_record & dr)
 	}
 
 	return true;
+}
+
+std::vector<std::pair<std::string, uint32_t> > db_mongodb::get_heard_counts()
+{
+	std::vector<std::pair<std::string, uint32_t> > out;
+
+        mongocxx::database   db              = (*m_c)[database];
+
+        mongocxx::collection work_collection = db[collection];
+
+	mongocxx::pipeline   p { };
+
+	p.group(bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("_id", "$data.from"), bsoncxx::builder::basic::kvp("count", bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("$sum", 1)))));
+
+	p.sort(bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("count", -1)));
+
+	auto cursor = work_collection.aggregate(p, mongocxx::options::aggregate{});
+
+	for(auto doc : cursor) {
+		auto value = doc["_id"].get_value();
+
+		if (value.type() == bsoncxx::type::k_null)
+			out.push_back({ "-", doc["count"].get_int32().value });
+		else
+			out.push_back({ value.get_utf8().value.to_string(), doc["count"].get_int32().value });
+	}
+
+	return out;
+}
+
+std::vector<std::pair<std::string, double> > db_mongodb::get_air_time()
+{
+	std::vector<std::pair<std::string, double> > out;
+
+        mongocxx::database   db              = (*m_c)[database];
+
+        mongocxx::collection work_collection = db[collection];
+
+	mongocxx::pipeline   p { };
+
+	p.group(bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("_id", "$data.from"), bsoncxx::builder::basic::kvp("air-time", bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("$sum", "$data.air-time")))));
+
+	p.sort(bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("data_from", 1)));
+
+	auto cursor = work_collection.aggregate(p, mongocxx::options::aggregate{});
+
+	for(auto doc : cursor) {
+		auto value = doc["_id"].get_value();
+
+		if (value.type() == bsoncxx::type::k_null)
+			out.push_back({ "-", doc["air-time"].get_int32().value / 1000. });
+		else
+			out.push_back({ value.get_utf8().value.to_string(), doc["air-time"].get_int32().value / 1000. });
+	}
+
+	return out;
 }
 #endif

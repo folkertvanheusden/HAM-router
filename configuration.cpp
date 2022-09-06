@@ -82,27 +82,26 @@ void configuration::load_tranceivers(const libconfig::Setting & node_in, work_qu
 	for(int i=0; i<node_in.getLength(); i++) {
 		const libconfig::Setting & node = node_in[i];
 
-		tranceiver *t = tranceiver::instantiate(node, w, local_pos, st, i + 1, ws);
+		tranceiver *t = tranceiver::instantiate(node, w, local_pos, st, i + 1, ws, tranceivers);
 
 		tranceivers.push_back(t);
 	}
 
-	if (snmp_port != -1) {
-		sd->register_oid("1.3.6.1.2.1.2.1.0", snmp_integer::si_integer, tranceivers.size());  // number of network interfaces
+	// visible in the web-interface as well
+	sd->register_oid("1.3.6.1.2.1.2.1.0", snmp_integer::si_integer, tranceivers.size());  // number of network interfaces
 
-		int interface_nr = 1;
+	int interface_nr = 1;
 
-		for(auto t : tranceivers) {
-			// register interface 1
-			sd->register_oid(myformat("1.3.6.1.2.1.2.2.1.1.%zu",    interface_nr), snmp_integer::si_integer, interface_nr);
-			sd->register_oid(myformat("1.3.6.1.2.1.31.1.1.1.1.%zu", interface_nr), t->get_id());  // name
-			sd->register_oid(myformat("1.3.6.1.2.1.2.2.1.2.1.%zu",  interface_nr), t->get_type_name());  // description
-			sd->register_oid(myformat("1.3.6.1.2.1.17.1.4.1.%zu",   interface_nr), snmp_integer::si_integer, 1);  // device is up (1)
+	for(auto t : tranceivers) {
+		// register interface 1
+		sd->register_oid(myformat("1.3.6.1.2.1.2.2.1.1.%zu",    interface_nr), snmp_integer::si_integer, interface_nr);
+		sd->register_oid(myformat("1.3.6.1.2.1.31.1.1.1.1.%zu", interface_nr), t->get_id());  // name
+		sd->register_oid(myformat("1.3.6.1.2.1.2.2.1.2.1.%zu",  interface_nr), t->get_type_name());  // description
+		sd->register_oid(myformat("1.3.6.1.2.1.17.1.4.1.%zu",   interface_nr), snmp_integer::si_integer, 1);  // device is up (1)
 
-			t->register_snmp_counters(st, interface_nr);
+		t->register_snmp_counters(st, interface_nr);
 
-			interface_nr++;
-		}
+		interface_nr++;
 	}
 }
 

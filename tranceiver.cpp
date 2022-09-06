@@ -146,7 +146,7 @@ transmit_error_t tranceiver::put_message(const message & m)
 	return put_message_low(m);
 }
 
-tranceiver *tranceiver::instantiate(const libconfig::Setting & node, work_queue_t *const w, const position_t & pos, stats *const st, int device_nr, ws_global_context_t *const ws)
+tranceiver *tranceiver::instantiate(const libconfig::Setting & node, work_queue_t *const w, const position_t & pos, stats *const st, int device_nr, ws_global_context_t *const ws, const std::vector<tranceiver *> & tranceivers)
 {
 	std::string type = node.lookup("type").c_str();
 
@@ -177,7 +177,7 @@ tranceiver *tranceiver::instantiate(const libconfig::Setting & node, work_queue_
 		t = tranceiver_mqtt::instantiate(node, w, pos);
 	}
 	else if (type == "http-ws") {
-		t = tranceiver_ws::instantiate(node, w, pos, st);
+		t = tranceiver_ws::instantiate(node, w, pos, st, tranceivers);
 	}
 	else {
 		error_exit(false, "(line %d): \"%s\" is an unknown tranceiver type", node.getSourceLine(), type.c_str());

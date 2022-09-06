@@ -70,7 +70,7 @@ public:
 
 	transmit_error_t       put_message(const message & m);
 
-	static tranceiver *instantiate(const libconfig::Setting & node, work_queue_t *const w, const position_t & pos, stats *const st, const int device_nr, ws_global_context_t *const ws);
+	static tranceiver *instantiate(const libconfig::Setting & node, work_queue_t *const w, const position_t & pos, stats *const st, int device_nr, ws_global_context_t *const ws, const std::vector<tranceiver *> &tranceivers);
 
 	virtual void operator()() = 0;
 };

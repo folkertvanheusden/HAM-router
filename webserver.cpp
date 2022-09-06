@@ -57,39 +57,50 @@ MHD_Result process_http_request(void *cls,
 
 		page += "<p><a href=\"follow.html\">follow packets as they arrive</a></p>\n";
 
-		auto stats_snapshot = parameters.s->snapshot();
+		page += "<p><a href=\"counters.html\">counters</a></p>\n";
 
-		page += "<h2>statistics</h2>\n";
+		if (parameters.d) {
+			parameters.d->get_heard_counts();
+
+			page += "<h3>mheard</h3>\n";
+
+			auto counts = parameters.d->get_heard_counts();
+
+			page += "<table><tr><th>callsign</th><th>count</th></tr>\n";
+
+			for(auto row : counts)
+				page += "<tr><td>" + row.first + "</td><td>" + std::to_string(row.second) + "</td></tr>\n";
+
+			page += "</table>";
+
+			page += "<h3>air time</h3>\n";
+
+			auto at_records = parameters.d->get_air_time();
+
+			page += "<table><tr><th>callsign</th><th>sum</th></tr>\n";
+
+			for(auto record : at_records)
+				page += "<tr><td>" + record.first + "</td><td>" + std::to_string(record.second) + "</td></tr>\n";
+
+			page += "</table>";
+		}
+
+		page += html_page_footer;
+	}
+	else if (strcmp(url, "/counters.html") == 0) {
+		page += html_page_header;
+
+		page += "<h2>counters</h2>\n";
 
 		page += "<table><tr><th>name</th><th>value</th></tr>\n";
+
+		auto stats_snapshot = parameters.s->snapshot();
 
 		for(auto pair : stats_snapshot)
 			page += "<tr><td>" + pair.first + "</td><td>" + pair.second + "</td></tr>\n";
 
 		page += "</table>";
-#if 0
-		if (parameters.d) {
-			page += "<h3>air time</h3>\n";
 
-			auto at_records = parameters.d->get_airtime_per_callsign();
-
-			page += "<table><tr>";
-			for(auto t : at_records.first)
-				page += "<th>" + t + "</th>";
-			page += "</tr>\n";
-
-			for(auto record : at_records.second) {
-				page += "<tr>";
-
-				for(auto col : record)
-					page += "<td>" + col + "</td>";
-
-				page += "</tr>\n";
-			}
-
-			page += "</table>";
-		}
-#endif
 		page += html_page_footer;
 	}
 	else if (strcmp(url, "/follow.html") == 0) {

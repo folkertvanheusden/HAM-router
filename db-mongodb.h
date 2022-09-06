@@ -19,5 +19,9 @@ public:
 	void init_database() override;
 
 	bool insert(const db_record & dr) override;
+
+	std::vector<std::pair<std::string, uint32_t> > get_heard_counts() override;
+
+	std::vector<std::pair<std::string, double  > > get_air_time()     override;
 };
 #endif
