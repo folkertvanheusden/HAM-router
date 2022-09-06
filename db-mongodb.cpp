@@ -176,15 +176,15 @@ std::vector<std::pair<std::string, double> > db_mongodb::get_air_time()
 		auto        value    = doc["_id"].get_value();
 
 		std::string name;
-		uint32_t    air_time = 0;
+		double      air_time = 0;
 
 		if (value.type() == bsoncxx::type::k_null)
 			name = "-";
 		else
 			name = value.get_utf8().value.to_string();
 
-		if (doc["air-time"].type() == bsoncxx::type::k_int32)
-			air_time = doc["air-time"].get_int32().value;
+		if (doc["air-time"].type() == bsoncxx::type::k_double)
+			air_time = doc["air-time"].get_double().value / 1000.;
 
 		out.push_back({ name, air_time });
 	}
