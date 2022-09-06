@@ -1,3 +1,4 @@
+#include <optional>
 #include <stdint.h>
 #include <string>
 #include <vector>
@@ -41,12 +42,13 @@ public:
 class ax25
 {
 private:
-	bool                      valid    { false   };
+	bool                      valid    { false };
 	ax25_address              from;
 	ax25_address              to;
 	std::vector<ax25_address> seen_by;
-	uint8_t                   control  { 0       };
-	uint8_t                   pid      { 0       };
+	uint8_t                   control  { 0     };
+	std::optional<uint8_t>    msg_nr   {       };
+	std::optional<uint8_t>    pid      {       };
 	buffer                    data;
 
 public:
