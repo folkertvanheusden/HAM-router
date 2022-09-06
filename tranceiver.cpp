@@ -1,5 +1,6 @@
 #include "dissect-packet.h"
 #include "error.h"
+#include "hashing.h"
 #include "log.h"
 #include "log.h"
 #include "str.h"
@@ -54,8 +55,7 @@ transmit_error_t tranceiver::queue_incoming_message(const message & m)
 
 	// check if s was allocated because e.g. the beacon module does
 	// not allocate a seen object
-	uint32_t hash       = 0;
-	bool     hash_valid = false;
+	uint32_t hash = 0;
 
 	if (s) {
 		auto ratelimit_rc = s->check(content.first, content.second);
@@ -66,8 +66,10 @@ transmit_error_t tranceiver::queue_incoming_message(const message & m)
 			return TE_ratelimiting;
 		}
 
-		hash       = ratelimit_rc.second;
-		hash_valid = true;
+		hash = ratelimit_rc.second;
+	}
+	else {
+		hash = calc_crc32(content.first, content.second);
 	}
 
 	// push to incoming queue of this tranceiver (TODO: empty when not consuming (eg beacon))
@@ -86,8 +88,7 @@ transmit_error_t tranceiver::queue_incoming_message(const message & m)
 				meta.value().insert({ "distance", myformat("%.2f", distance) });
 			}
 
-			if (hash_valid)
-				meta.value().insert({ "pkt-crc", myformat("%08x", hash) });
+			meta.value().insert({ "pkt-crc", myformat("%08x", hash) });
 
 			copy.set_meta(meta.value());
 		}
