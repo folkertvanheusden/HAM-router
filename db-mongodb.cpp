@@ -173,12 +173,20 @@ std::vector<std::pair<std::string, double> > db_mongodb::get_air_time()
 	auto cursor = work_collection.aggregate(p, mongocxx::options::aggregate{});
 
 	for(auto doc : cursor) {
-		auto value = doc["_id"].get_value();
+		auto        value    = doc["_id"].get_value();
+
+		std::string name;
+		uint32_t    air_time = 0;
 
 		if (value.type() == bsoncxx::type::k_null)
-			out.push_back({ "-", doc["air-time"].get_int32().value / 1000. });
+			name = "-";
 		else
-			out.push_back({ value.get_utf8().value.to_string(), doc["air-time"].get_int32().value / 1000. });
+			name = value.get_utf8().value.to_string();
+
+		if (doc["air-time"].type() == bsoncxx::type::k_int32)
+			air_time = doc["air-time"].get_int32().value;
+
+		out.push_back({ name, air_time });
 	}
 
 	return out;
