@@ -18,42 +18,59 @@ typedef struct {
 	uint64_t ts;
 } ws_session_data;
 
+static void send_records(lws *wsi, void *user)
+{
+	ws_global_context_t *wg = reinterpret_cast<ws_global_context_t *>(lws_context_user(lws_get_context(wsi)));
+
+	ws_session_data     *ws = reinterpret_cast<ws_session_data *>(user);
+
+	wg->lock.lock();				
+
+	if (wg->json_data.empty() == false) {
+		size_t offset = wg->json_data.size() - 1;
+
+		while(ws->ts < wg->json_data[offset].first && offset > 0)
+			offset--;
+
+		if (ws->ts >= wg->json_data[offset].first)
+			offset++;
+
+		while(offset < wg->json_data.size()) {
+			auto   & item     = wg->json_data[offset];
+			size_t   data_len = item.second.size();
+
+			uint8_t *buffer = reinterpret_cast<uint8_t *>(malloc(LWS_SEND_BUFFER_PRE_PADDING + data_len + LWS_SEND_BUFFER_POST_PADDING));
+
+			memcpy(&buffer[LWS_SEND_BUFFER_PRE_PADDING], item.second.c_str(), data_len);
+
+			lws_write(wsi, &buffer[LWS_SEND_BUFFER_PRE_PADDING], data_len, LWS_WRITE_TEXT);
+
+			free(buffer);
+
+			ws->ts = item.first;
+
+			offset++;
+		}
+	}
+
+	wg->lock.unlock();
+
+}
+
 static int callback_ws(struct lws *wsi, lws_callback_reasons reason, void *user, void *in, size_t len)
 {
 	ws_session_data     *ws = reinterpret_cast<ws_session_data *>(user);
-
-	ws_global_context_t *wg = reinterpret_cast<ws_global_context_t *>(lws_context_user(lws_get_context(wsi)));
 
 	switch (reason) {
 		case LWS_CALLBACK_ESTABLISHED: // just log message that someone is connecting
 			log(LL_DEBUG, "websocket connection established");
 			lws_callback_on_writable(wsi);
 			ws->ts = 0;
+			send_records(wsi, user);
 			break;
 
 		case LWS_CALLBACK_SERVER_WRITEABLE: {
-			std::string data;
-
-			wg->lock.lock();				
-
-			if (wg->ts > ws->ts) {
-				ws->ts = wg->ts;
-				data = wg->json_data;
-			}
-
-			wg->lock.unlock();
-
-			if (data.empty() == false) {
-				size_t data_len = data.size();
-
-				uint8_t *buf = reinterpret_cast<uint8_t *>(malloc(LWS_SEND_BUFFER_PRE_PADDING + data_len + LWS_SEND_BUFFER_POST_PADDING));
-
-				memcpy(&buf[LWS_SEND_BUFFER_PRE_PADDING], data.c_str(), data_len);
-
-				lws_write(wsi, &buf[LWS_SEND_BUFFER_PRE_PADDING], data_len, LWS_WRITE_TEXT);
-
-				free(buf);
-			}
+			send_records(wsi, user);
 
 			usleep(END_CHECK_INTERVAL_us);
 
@@ -127,7 +144,11 @@ void stop_websockets()
 void push_to_websockets(ws_global_context_t *const ws, const std::string & json_data)
 {
 	ws->lock.lock();
-	ws->json_data = json_data;
-	ws->ts        = get_us();
+
+	ws->json_data.push_back({ get_us(), json_data });
+
+	while(ws->json_data.size() > 250)
+		ws->json_data.erase(ws->json_data.begin());
+
 	ws->lock.unlock();
 }
