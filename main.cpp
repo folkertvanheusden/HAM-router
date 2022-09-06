@@ -8,7 +8,6 @@
 #include "stats.h"
 #include "str.h"
 #include "utils.h"
-#include "websockets.h"
 
 
 std::atomic_bool terminate { false };
@@ -24,7 +23,7 @@ void signal_handler(int sig)
 
 std::thread * process(configuration *const cfg, work_queue_t *const w, snmp *const snmp_)
 {
-	return new std::thread([cfg, w, snmp_] {
+	return new std::thread([cfg, w] {
 		set_thread_name("main");
 
 		seen *s = cfg->get_global_repetition_filter();
