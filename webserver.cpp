@@ -62,25 +62,47 @@ MHD_Result process_http_request(void *cls,
 		if (parameters.d) {
 			parameters.d->get_heard_counts();
 
-			page += "<h3>mheard</h3>\n";
+			page += "<h3>\"mheard\" (from)</h3>\n";
 
-			auto counts = parameters.d->get_heard_counts();
+			auto hc_rows = parameters.d->get_heard_counts();
 
 			page += "<table><tr><th>callsign</th><th>count</th></tr>\n";
 
-			for(auto row : counts)
+			for(auto row : hc_rows)
 				page += "<tr><td>" + row.first + "</td><td>" + std::to_string(row.second) + "</td></tr>\n";
 
 			page += "</table>";
 
 			page += "<h3>air time</h3>\n";
 
-			auto at_records = parameters.d->get_air_time();
+			auto at_rowss = parameters.d->get_air_time();
 
 			page += "<table><tr><th>callsign</th><th>date</th><th>sum</th></tr>\n";
 
-			for(auto record : at_records)
-				page += "<tr><td>" + record.first.first + "</td><td>" + record.first.second + "</td><td>" + myformat("%.2f", record.second) + "s</td></tr>\n";
+			for(auto row : at_rowss)
+				page += "<tr><td>" + row.first.first + "</td><td>" + row.first.second + "</td><td>" + myformat("%.2f", row.second) + "</td></tr>\n";
+
+			page += "</table>";
+
+			page += "<h3>destiny</h3>\n";
+
+			auto d_rows = parameters.d->get_to_counts();
+
+			page += "<table><tr><th>callsign</th><th>count</th></tr>\n";
+
+			for(auto row : d_rows)
+				page += "<tr><td>" + row.first + "</td><td>" + std::to_string(row.second) + "</td></tr>\n";
+
+			page += "</table>";
+
+			page += "<h3>protocol counts</h3>\n";
+
+			auto pc_rows = parameters.d->get_protocol_counts();
+
+			page += "<table><tr><th>callsign</th><th>count</th></tr>\n";
+
+			for(auto row : pc_rows)
+				page += "<tr><td>" + row.first + "</td><td>" + std::to_string(row.second) + "</td></tr>\n";
 
 			page += "</table>";
 		}
