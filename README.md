@@ -1,5 +1,6 @@
-This gateway software can function as a gateway and digipeater for AX.25
-and APRS over LoRa, axudp, local ax.25 network interface.
+This gateway software can function as a gateway, router and digipeater
+for AX.25 and APRS over LoRa, axudp, local ax.25 network interfaces and
+TNC devices (KISS over serial).
 
 Packets can be stored in a MongoDB, viewed via a web-interface (using
 web-sockets). The program has a built-in SNMP server (for statistics).
