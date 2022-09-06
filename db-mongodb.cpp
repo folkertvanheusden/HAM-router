@@ -1,9 +1,10 @@
 #include "config.h"
 #if LIBMONGOCXX_FOUND == 1
-#include <bsoncxx/json.hpp>
-#include <bsoncxx/builder/stream/document.hpp>
 #include <chrono>
+#include <bsoncxx/builder/stream/document.hpp>
+#include <bsoncxx/json.hpp>
 #include <mongocxx/client.hpp>
+#include <mongocxx/instance.hpp>
 #include <mongocxx/instance.hpp>
 
 #include "db-mongodb.h"
@@ -156,9 +157,9 @@ std::vector<std::pair<std::string, uint32_t> > db_mongodb::get_heard_counts()
 	return out;
 }
 
-std::vector<std::pair<std::string, double> > db_mongodb::get_air_time()
+std::vector<std::pair<std::pair<std::string, std::string>, double> > db_mongodb::get_air_time()
 {
-	std::vector<std::pair<std::string, double> > out;
+	std::vector<std::pair<std::pair<std::string, std::string>, double> > out;
 
         mongocxx::database   db              = (*m_c)[database];
 
@@ -166,27 +167,35 @@ std::vector<std::pair<std::string, double> > db_mongodb::get_air_time()
 
 	mongocxx::pipeline   p { };
 
-	p.group(bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("_id", "$data.from"), bsoncxx::builder::basic::kvp("air-time", bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("$sum", "$data.air-time")))));
+	using bsoncxx::builder::basic::kvp;
+	using bsoncxx::builder::basic::make_document;
 
-	p.sort(bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("data_from", 1)));
+	p.group(make_document(kvp("_id", make_document(kvp("id", "$data.from"), kvp("date", make_document(kvp("$dateToString", make_document(kvp("format", "%Y-%m-%d"), kvp("date", "$receive-time"))))))), kvp("air-time", make_document(kvp("$sum", "$data.air-time")))));
+
+	p.sort(make_document(kvp("_id", 1)));
 
 	auto cursor = work_collection.aggregate(p, mongocxx::options::aggregate{});
 
 	for(auto doc : cursor) {
-		auto        value    = doc["_id"].get_value();
+		double      air_time  = 0;
 
-		std::string name;
-		double      air_time = 0;
+		auto        name_doc  = doc["_id"];
+		auto        name_id   = name_doc["id"];
+		auto        name_date = name_doc["date"];
 
-		if (value.type() == bsoncxx::type::k_null)
-			name = "-";
-		else
-			name = value.get_utf8().value.to_string();
+		std::string name_id_str;
+		std::string name_date_str;
+
+		if (name_id && name_id.type() != bsoncxx::type::k_null)
+			name_id_str = name_id.get_utf8().value.to_string();
+
+		if (name_date && name_date.type() != bsoncxx::type::k_null)
+			name_date_str = name_date.get_utf8().value.to_string();
 
 		if (doc["air-time"].type() == bsoncxx::type::k_double)
 			air_time = doc["air-time"].get_double().value / 1000.;
 
-		out.push_back({ name, air_time });
+		out.push_back({ { name_id_str, name_date_str }, air_time });
 	}
 
 	return out;

@@ -22,6 +22,6 @@ public:
 
 	std::vector<std::pair<std::string, uint32_t> > get_heard_counts() override;
 
-	std::vector<std::pair<std::string, double  > > get_air_time()     override;
+	std::vector<std::pair<std::pair<std::string, std::string>, double> > get_air_time() override;
 };
 #endif

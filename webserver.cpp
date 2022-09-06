@@ -77,10 +77,10 @@ MHD_Result process_http_request(void *cls,
 
 			auto at_records = parameters.d->get_air_time();
 
-			page += "<table><tr><th>callsign</th><th>sum</th></tr>\n";
+			page += "<table><tr><th>callsign</th><th>date</th><th>sum</th></tr>\n";
 
 			for(auto record : at_records)
-				page += "<tr><td>" + record.first + "</td><td>" + std::to_string(record.second) + "</td></tr>\n";
+				page += "<tr><td>" + record.first.first + "</td><td>" + record.first.second + "</td><td>" + std::to_string(record.second) + "</td></tr>\n";
 
 			page += "</table>";
 		}
