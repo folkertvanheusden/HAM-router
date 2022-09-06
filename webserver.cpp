@@ -62,6 +62,17 @@ MHD_Result process_http_request(void *cls,
 		if (parameters.d) {
 			parameters.d->get_heard_counts();
 
+			page += "<h3>global counts</h3>\n";
+
+			auto global_counts = parameters.d->get_misc_counts();
+
+			page += "<table><tr><th>what</th><th>count</th></tr>\n";
+
+			for(auto row : global_counts)
+				page += "<tr><td>" + row.first + "</td><td>" + std::to_string(row.second) + "</td></tr>\n";
+
+			page += "</table>";
+
 			page += "<h3>\"mheard\" (from)</h3>\n";
 
 			auto hc_rows = parameters.d->get_heard_counts();

@@ -11,6 +11,8 @@
 #include "log.h"
 #include "time.h"
 
+using bsoncxx::builder::basic::kvp;
+using bsoncxx::builder::basic::make_document;
 
 mongocxx::instance instance { };
 
@@ -39,7 +41,7 @@ bool db_mongodb::insert(const db_record & dr)
 
 	bsoncxx::builder::basic::document doc;
 
-	doc.append(bsoncxx::builder::basic::kvp("receive-time", bsoncxx::types::b_date(to_time_point(dr.tv))));
+	doc.append(kvp("receive-time", bsoncxx::types::b_date(to_time_point(dr.tv))));
 
 	bsoncxx::builder::basic::document sub_doc;
 
@@ -57,48 +59,48 @@ bool db_mongodb::insert(const db_record & dr)
 					binary_data.size  = len;
 					binary_data.bytes = bytes;
 
-					sub_doc.append(bsoncxx::builder::basic::kvp(key_name, binary_data));
+					sub_doc.append(kvp(key_name, binary_data));
 				}
 				break;
 
 			case dt_unsigned8:
-				sub_doc.append(bsoncxx::builder::basic::kvp(key_name, uint8_t(element_data.i_value)));
+				sub_doc.append(kvp(key_name, uint8_t(element_data.i_value)));
 				break;
 
 			case dt_unsigned16:
-				sub_doc.append(bsoncxx::builder::basic::kvp(key_name, uint16_t(element_data.i_value)));
+				sub_doc.append(kvp(key_name, uint16_t(element_data.i_value)));
 				break;
 
 			case dt_unsigned32:
-				sub_doc.append(bsoncxx::builder::basic::kvp(key_name, int64_t(uint32_t(element_data.i_value))));
+				sub_doc.append(kvp(key_name, int64_t(uint32_t(element_data.i_value))));
 				break;
 
 			case dt_signed8:
-				sub_doc.append(bsoncxx::builder::basic::kvp(key_name, int8_t(element_data.i_value)));
+				sub_doc.append(kvp(key_name, int8_t(element_data.i_value)));
 				break;
 
 			case dt_signed16:
-				sub_doc.append(bsoncxx::builder::basic::kvp(key_name, int16_t(element_data.i_value)));
+				sub_doc.append(kvp(key_name, int16_t(element_data.i_value)));
 				break;
 
 			case dt_signed32:
-				sub_doc.append(bsoncxx::builder::basic::kvp(key_name, int64_t(element_data.i_value)));
+				sub_doc.append(kvp(key_name, int64_t(element_data.i_value)));
 				break;
 
 			case dt_signed64:
-				sub_doc.append(bsoncxx::builder::basic::kvp(key_name, int64_t(element_data.i_value)));
+				sub_doc.append(kvp(key_name, int64_t(element_data.i_value)));
 				break;
 
 			case dt_float64:
-				sub_doc.append(bsoncxx::builder::basic::kvp(key_name, double(element_data.d_value)));
+				sub_doc.append(kvp(key_name, double(element_data.d_value)));
 				break;
 
 			case dt_boolean:
-				sub_doc.append(bsoncxx::builder::basic::kvp(key_name, !!element_data.i_value));
+				sub_doc.append(kvp(key_name, !!element_data.i_value));
 				break;
 
 			case dt_string:
-				sub_doc.append(bsoncxx::builder::basic::kvp(key_name, element_data.s_value));
+				sub_doc.append(kvp(key_name, element_data.s_value));
 				break;
 
 			default:
@@ -108,7 +110,7 @@ bool db_mongodb::insert(const db_record & dr)
 		}
 	}
 
-	doc.append(bsoncxx::builder::basic::kvp("data", sub_doc));
+	doc.append(kvp("data", sub_doc));
 
 	bsoncxx::stdx::optional<mongocxx::result::insert_one> result = work_collection.insert_one(doc.view());
 
@@ -139,9 +141,9 @@ std::vector<std::pair<std::string, uint32_t> > db_mongodb::get_simple_groupby(co
 
 	mongocxx::pipeline   p { };
 
-	p.group(bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("_id", "$data." + field), bsoncxx::builder::basic::kvp("count", bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("$sum", 1)))));
+	p.group(make_document(kvp("_id", "$data." + field), kvp("count", make_document(kvp("$sum", 1)))));
 
-	p.sort(bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("count", -1)));
+	p.sort(make_document(kvp("count", -1)));
 
 	auto cursor = work_collection.aggregate(p, mongocxx::options::aggregate{});
 
@@ -182,9 +184,6 @@ std::vector<std::pair<std::pair<std::string, std::string>, double> > db_mongodb:
 
 	mongocxx::pipeline   p { };
 
-	using bsoncxx::builder::basic::kvp;
-	using bsoncxx::builder::basic::make_document;
-
 	p.group(make_document(kvp("_id", make_document(kvp("id", "$data.from"), kvp("date", make_document(kvp("$dateToString", make_document(kvp("format", "%Y-%m-%d"), kvp("date", "$receive-time"))))))), kvp("air-time", make_document(kvp("$sum", "$data.air-time")))));
 
 	p.sort(make_document(kvp("_id", 1)));
@@ -211,6 +210,43 @@ std::vector<std::pair<std::pair<std::string, std::string>, double> > db_mongodb:
 			air_time = doc["air-time"].get_double().value / 1000.;
 
 		out.push_back({ { name_id_str, name_date_str }, air_time });
+	}
+
+	return out;
+}
+
+std::map<std::string, uint32_t> db_mongodb::get_misc_counts()
+{
+	std::map<std::string, uint32_t > out;
+
+        mongocxx::database   db              = (*m_c)[database];
+
+        mongocxx::collection work_collection = db[collection];
+
+	{
+		mongocxx::pipeline p { };
+
+		p.group(make_document(kvp("_id", "$data.payload")));
+
+		auto cursor = work_collection.aggregate(p, mongocxx::options::aggregate{});
+
+		out.insert({ "number of unique payloads", cursor.begin() == cursor.end() ? 0 : std::distance(cursor.begin(), cursor.end()) });
+	}
+
+	{
+		mongocxx::pipeline p { };
+
+		p.group(make_document(kvp("_id", "$data.raw-data")));
+
+		auto cursor = work_collection.aggregate(p, mongocxx::options::aggregate{});
+
+		out.insert({ "number of unique packets", cursor.begin() == cursor.end() ? 0 : std::distance(cursor.begin(), cursor.end()) });
+	}
+
+	{
+		auto val = db.run_command(make_document(kvp("count", collection)));
+
+		out.insert({ "total number of records", val.view()["n"].get_int32().value });
 	}
 
 	return out;
