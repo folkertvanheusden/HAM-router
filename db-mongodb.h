@@ -12,6 +12,8 @@ private:
 	const std::string  collection;
 	mongocxx::client  *m_c  { nullptr };
 
+	std::vector<std::pair<std::string, uint32_t> > get_simple_groupby(const std::string & field);
+
 public:
 	db_mongodb(const std::string & uri, const std::string & database, const std::string & collection);
 	virtual ~db_mongodb();
@@ -21,6 +23,10 @@ public:
 	bool insert(const db_record & dr) override;
 
 	std::vector<std::pair<std::string, uint32_t> > get_heard_counts() override;
+
+	std::vector<std::pair<std::string, uint32_t> > get_protocol_counts() override;
+
+	std::vector<std::pair<std::string, uint32_t> > get_to_counts() override;
 
 	std::vector<std::pair<std::pair<std::string, std::string>, double> > get_air_time() override;
 };

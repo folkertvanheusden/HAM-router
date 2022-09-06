@@ -21,5 +21,9 @@ public:
 
 	virtual std::vector<std::pair<std::string, uint32_t> > get_heard_counts() = 0;
 
+	virtual std::vector<std::pair<std::string, uint32_t> > get_protocol_counts() = 0;
+
+	virtual std::vector<std::pair<std::string, uint32_t> > get_to_counts() = 0;
+
 	virtual std::vector<std::pair<std::pair<std::string, std::string>, double> > get_air_time() = 0;
 };

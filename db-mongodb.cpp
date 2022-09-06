@@ -129,7 +129,7 @@ bool db_mongodb::insert(const db_record & dr)
 	return true;
 }
 
-std::vector<std::pair<std::string, uint32_t> > db_mongodb::get_heard_counts()
+std::vector<std::pair<std::string, uint32_t> > db_mongodb::get_simple_groupby(const std::string & field)
 {
 	std::vector<std::pair<std::string, uint32_t> > out;
 
@@ -139,7 +139,7 @@ std::vector<std::pair<std::string, uint32_t> > db_mongodb::get_heard_counts()
 
 	mongocxx::pipeline   p { };
 
-	p.group(bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("_id", "$data.from"), bsoncxx::builder::basic::kvp("count", bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("$sum", 1)))));
+	p.group(bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("_id", "$data." + field), bsoncxx::builder::basic::kvp("count", bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("$sum", 1)))));
 
 	p.sort(bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("count", -1)));
 
@@ -155,6 +155,21 @@ std::vector<std::pair<std::string, uint32_t> > db_mongodb::get_heard_counts()
 	}
 
 	return out;
+}
+
+std::vector<std::pair<std::string, uint32_t> > db_mongodb::get_heard_counts()
+{
+	return get_simple_groupby("from");
+}
+
+std::vector<std::pair<std::string, uint32_t> > db_mongodb::get_protocol_counts()
+{
+	return get_simple_groupby("protocol");
+}
+
+std::vector<std::pair<std::string, uint32_t> > db_mongodb::get_to_counts()
+{
+	return get_simple_groupby("to");
 }
 
 std::vector<std::pair<std::pair<std::string, std::string>, double> > db_mongodb::get_air_time()
