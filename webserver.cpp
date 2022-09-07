@@ -95,19 +95,19 @@ MHD_Result process_http_request(void *cls,
 
 			auto at_rows = parameters.d->get_air_time();
 
-			page += "<table><tr><th>callsign</th><th>date</th><th>sum</th></tr>\n";
+			page += "<table><tr><th>callsign</th><th>date</th><th>sum</th><th># records</th></tr>\n";
 
 			page += "<p>Click on a date to jump to show packets of that date for that callsign</p>\n";
 
 			for(auto row : at_rows) {
 				std::string current_callsign = row.first.first;
 
-				std::string time             = row.second > 0 ? myformat("%.2f", row.second) + "s" : "-";
+				std::string time             = row.second.second > 0 ? myformat("%.2f", row.second.first) + "s" : "-";
 
 				if (current_callsign.empty())
 					current_callsign = "[unknown]";
 
-				page += "<tr><td>" + current_callsign + "</a></td><td><a href=\"history.html?callsign=" + row.first.first + "&date=" + row.first.second + "\">" + row.first.second + "</a></td><td>" + time + "</td></tr>\n";
+				page += "<tr><td>" + current_callsign + "</a></td><td><a href=\"history.html?callsign=" + row.first.first + "&date=" + row.first.second + "\">" + row.first.second + "</a></td><td>" + time + "</td><td>" + myformat("%d", row.second.second) + "</td></tr>\n";
 			}
 
 			page += "</table>";

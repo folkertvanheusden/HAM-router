@@ -179,9 +179,9 @@ std::vector<std::pair<std::string, uint32_t> > db_mongodb::get_to_counts()
 	return get_simple_groupby("to");
 }
 
-std::vector<std::pair<std::pair<std::string, std::string>, double> > db_mongodb::get_air_time()
+std::vector<std::pair<std::pair<std::string, std::string>, std::pair<double, int> > > db_mongodb::get_air_time()
 {
-	std::vector<std::pair<std::pair<std::string, std::string>, double> > out;
+	std::vector<std::pair<std::pair<std::string, std::string>, std::pair<double, int> > > out;
 
         mongocxx::database   db              = (*m_c)[database];
 
@@ -189,18 +189,21 @@ std::vector<std::pair<std::pair<std::string, std::string>, double> > db_mongodb:
 
 	mongocxx::pipeline   p { };
 
-	p.group(make_document(kvp("_id", make_document(kvp("id", "$data.from"), kvp("date", make_document(kvp("$dateToString", make_document(kvp("format", "%Y-%m-%d"), kvp("date", "$receive-time"))))))), kvp("air-time", make_document(kvp("$sum", "$data.air-time")))));
+	p.group(make_document(kvp("_id", make_document(kvp("id", "$data.from"), kvp("date", make_document(kvp("$dateToString", make_document(kvp("format", "%Y-%m-%d"), kvp("date", "$receive-time"))))))), kvp("air-time", make_document(kvp("$sum", "$data.air-time"))), kvp("count", make_document(kvp("$sum", 1)))));
 
 	p.sort(make_document(kvp("_id", 1)));
 
 	auto cursor = work_collection.aggregate(p, mongocxx::options::aggregate{});
 
 	for(auto doc : cursor) {
-		double      air_time  = 0;
+		double      air_time   = 0;
 
-		auto        name_doc  = doc["_id"];
-		auto        name_id   = name_doc["id"];
-		auto        name_date = name_doc["date"];
+		int         count_n    = 0;
+		auto        count_doc  = doc["count"];
+
+		auto        name_doc   = doc["_id"];
+		auto        name_id    = name_doc["id"];
+		auto        name_date  = name_doc["date"];
 
 		std::string name_id_str;
 		std::string name_date_str;
@@ -214,7 +217,10 @@ std::vector<std::pair<std::pair<std::string, std::string>, double> > db_mongodb:
 		if (doc["air-time"].type() == bsoncxx::type::k_double)
 			air_time = doc["air-time"].get_double().value / 1000.;
 
-		out.push_back({ { name_id_str, name_date_str }, air_time });
+		if (count_doc && count_doc.type() == bsoncxx::type::k_int32)
+			count_n = count_doc.get_int32().value;
+
+		out.push_back({ { name_id_str, name_date_str }, { air_time, count_n } });
 	}
 
 	return out;
