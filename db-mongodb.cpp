@@ -8,6 +8,8 @@
 #include <mongocxx/instance.hpp>
 
 #include "db-mongodb.h"
+#include "dissect-packet.h"
+#include "gps.h"
 #include "log.h"
 #include "time.h"
 
@@ -247,6 +249,50 @@ std::map<std::string, uint32_t> db_mongodb::get_misc_counts()
 		auto val = db.run_command(make_document(kvp("count", collection)));
 
 		out.insert({ "total number of records", val.view()["n"].get_int32().value });
+	}
+
+	return out;
+}
+
+std::vector<message> db_mongodb::get_history(const std::string & callsign, const int n)
+{
+	std::vector<message> out;
+
+        mongocxx::database   db              = (*m_c)[database];
+
+        mongocxx::collection work_collection = db[collection];
+
+	mongocxx::options::find opts;
+	opts.limit(n);
+	opts.sort(make_document(kvp("receive-time", -1)));
+
+	auto cursor = work_collection.find(make_document(kvp("data.from", callsign)), opts);
+
+	for(auto doc : cursor) {
+		auto data = doc["data"];
+
+		if (data) {
+			timeval     tv      = to_timeval(doc["receive-time"].get_date().value);
+
+			std::string source  = data["source"] ? data["source"].get_utf8().value.to_string() : "?";
+
+			uint64_t    msg_id  = data["msg-id"] ? data["msg-id"].get_int64().value : 0;
+
+			auto        pkt     = data["raw-data"];
+
+			const uint8_t *bin_p    = pkt ? pkt.get_binary().bytes : reinterpret_cast<const uint8_t *>("");
+			int            bin_size = pkt ? pkt.get_binary().size : 1;
+
+			message m(tv, source, msg_id, bin_p, bin_size);
+
+			// TODO: move this into a function of some sort, see also tranceiver.cpp
+			auto        meta    = dissect_packet(bin_p, bin_size);
+
+			if (meta.has_value())
+				m.set_meta(meta.value());
+
+			out.push_back(m);
+		}
 	}
 
 	return out;

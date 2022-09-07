@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "db-common.h"
+#include "message.h"
 
 
 class db
@@ -28,4 +29,6 @@ public:
 	virtual std::vector<std::pair<std::pair<std::string, std::string>, double> > get_air_time() = 0;
 
 	virtual std::map<std::string, uint32_t> get_misc_counts() = 0;
+
+	virtual std::vector<message> get_history(const std::string & callsign, const int n) = 0;
 };

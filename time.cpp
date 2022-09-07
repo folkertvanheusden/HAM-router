@@ -46,3 +46,13 @@ std::chrono::system_clock::time_point to_time_point(const timeval & tv)
 {
     return std::chrono::system_clock::time_point{std::chrono::seconds{tv.tv_sec} + std::chrono::microseconds{tv.tv_usec}};
 }
+
+timeval to_timeval(const std::chrono::milliseconds & ms)
+{
+    timeval tv { 0 };
+
+    tv.tv_sec  = ms.count() / 1000;
+    tv.tv_usec = ms.count() % 1000 * 1000;
+
+    return tv;
+}

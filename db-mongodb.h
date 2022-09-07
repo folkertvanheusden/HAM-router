@@ -31,5 +31,7 @@ public:
 	std::vector<std::pair<std::pair<std::string, std::string>, double> > get_air_time() override;
 
 	std::map<std::string, uint32_t> get_misc_counts() override;
+
+	std::vector<message> get_history(const std::string & callsign, const int n) override;
 };
 #endif

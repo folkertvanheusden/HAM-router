@@ -1,6 +1,7 @@
 #include <atomic>
 #include <chrono>
 #include <stdint.h>
+#include <time.h>
 
 
 #define END_CHECK_INTERVAL_us (100000)  // in microseconds
@@ -12,3 +13,5 @@ double   get_us_float();
 bool     myusleep(uint64_t duration, std::atomic_bool *const terminate);
 
 std::chrono::system_clock::time_point to_time_point(const timeval & tv);
+
+timeval  to_timeval(const std::chrono::milliseconds & tp);

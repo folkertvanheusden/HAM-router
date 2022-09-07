@@ -54,9 +54,11 @@ MHD_Result process_http_request(void *cls,
 
 	log(LL_DEBUG_VERBOSE, "webserver: %s %s", method, url);
 
+	std::string work_url = url;
+
 	std::string page;
 
-	if (strcmp(url, "/") == 0) {
+	if (work_url == "/") {
 		page += get_html_page_header(false);
 
 		page += "<p><a href=\"follow.html\">follow packets as they arrive</a></p>\n";
@@ -90,12 +92,28 @@ MHD_Result process_http_request(void *cls,
 
 			page += "<h3>air time</h3>\n";
 
-			auto at_rowss = parameters.d->get_air_time();
+			auto at_rows = parameters.d->get_air_time();
 
 			page += "<table><tr><th>callsign</th><th>date</th><th>sum</th></tr>\n";
 
-			for(auto row : at_rowss)
-				page += "<tr><td>" + row.first.first + "</td><td>" + row.first.second + "</td><td>" + myformat("%.2f", row.second) + "</td></tr>\n";
+			std::string last_callsign;
+
+			for(auto row : at_rows) {
+				std::string current_callsign = row.first.first;
+				bool        unknown          = false;
+
+				if (current_callsign.empty())
+					current_callsign = "[unknown]", unknown = true;
+
+				if (unknown)
+					page += "<tr><td>" + current_callsign +"</td><td>" + row.first.second + "</td><td>" + myformat("%.2f", row.second) + "</td></tr>\n";
+				else if (current_callsign != last_callsign)
+					page += "<tr><td><a href=\"/history.html?callsign=" + current_callsign + "\">" + current_callsign +"</a></td><td>" + row.first.second + "</td><td>" + myformat("%.2f", row.second) + "</td></tr>\n";
+				else
+					page += "<tr><td></td><td>" + row.first.second + "</td><td>" + myformat("%.2f", row.second) + "</td></tr>\n";
+
+				last_callsign = current_callsign;
+			}
 
 			page += "</table>";
 
@@ -124,7 +142,7 @@ MHD_Result process_http_request(void *cls,
 
 		page += html_page_footer;
 	}
-	else if (strcmp(url, "/counters.html") == 0) {
+	else if (work_url == "/counters.html") {
 		page += get_html_page_header(false);
 
 		page += "<h2>counters</h2>\n";
@@ -140,7 +158,7 @@ MHD_Result process_http_request(void *cls,
 
 		page += html_page_footer;
 	}
-	else if (strcmp(url, "/follow.html") == 0) {
+	else if (work_url == "/follow.html") {
 		page += get_html_page_header(true);
 
 		page += "<table id=\"packets\" width=100%>";
@@ -152,10 +170,53 @@ MHD_Result process_http_request(void *cls,
 
 		page += html_page_footer;
 	}
-	else if (strcmp(url, "/stylesheet.css") == 0 || strcmp(url, "/stylesheet-w.css") == 0) {
-		bool wide = strcmp(url, "/stylesheet-w.css") == 0;
+	else if (work_url == "/stylesheet.css" || work_url == "/stylesheet-w.css") {
+		bool wide = work_url == "/stylesheet-w.css";
 
 		page = myformat(":root{--sans-font:-apple-system,BlinkMacSystemFont,\"Avenir Next\",Avenir,\"Nimbus Sans L\",Roboto,Noto,\"Segoe UI\",Arial,Helvetica,\"Helvetica Neue\",sans-serif;--mono-font:Consolas,Menlo,Monaco,\"Andale Mono\",\"Ubuntu Mono\",monospace;--base-fontsize:1.15rem;--header-scale:1.25;--line-height:1.618;--bg:#FFF;--accent-bg:#F5F7FF;--text:#212121;--text-light:#585858;--border:#D8DAE1;--accent:#0D47A1;--accent-light:#90CAF9;--code:#D81B60;--preformatted:#444;--marked:#FFDD33;--disabled:#EFEFEF}@media (prefers-color-scheme:dark){:root{--bg:#212121;--accent-bg:#2B2B2B;--text:#DCDCDC;--text-light:#ABABAB;--border:#666;--accent:#FFB300;--accent-light:#FFECB3;--code:#F06292;--preformatted:#CCC;--disabled:#111}img,video{opacity:.6}}html{font-family:var(--sans-font)}body{color:var(--text);background:var(--bg);font-size:var(--base-fontsize);line-height:var(--line-height);min-height:100vh;margin:0 auto;max-width:%drem;padding:0 .5rem;overflow-x:hidden;word-break:break-word;overflow-wrap:break-word}header{background:var(--accent-bg);border-bottom:1px solid var(--border);text-align:center;padding:2rem .5rem;width:100vw;position:relative;box-sizing:border-box;left:50%;right:50%;margin-left:-50vw;margin-right:-50vw}header h1,header p{margin:0}h1,h2,h3{line-height:1.1}nav{font-size:1rem;line-height:2;padding:1rem 0}nav a{margin:1rem 1rem 0 0;border:1px solid var(--border);border-radius:5px;color:var(--text)!important;display:inline-block;padding:.1rem 1rem;text-decoration:none;transition:.4s}nav a:hover{color:var(--accent)!important;border-color:var(--accent)}nav a.current:hover{text-decoration:none}footer{margin-top:4rem;padding:2rem 1rem 1.5rem 1rem;color:var(--text-light);font-size:.9rem;text-align:center;border-top:1px solid var(--border)}h1{font-size:calc(var(--base-fontsize) * var(--header-scale) * var(--header-scale) * var(--header-scale) * var(--header-scale));margin-top:calc(var(--line-height) * 1.5rem)}h2{font-size:calc(var(--base-fontsize) * var(--header-scale) * var(--header-scale) * var(--header-scale));margin-top:calc(var(--line-height) * 1.5rem)}h3{font-size:calc(var(--base-fontsize) * var(--header-scale) * var(--header-scale));margin-top:calc(var(--line-height) * 1.5rem)}h4{font-size:calc(var(--base-fontsize) * var(--header-scale));margin-top:calc(var(--line-height) * 1.5rem)}h5{font-size:var(--base-fontsize);margin-top:calc(var(--line-height) * 1.5rem)}h6{font-size:calc(var(--base-fontsize)/ var(--header-scale));margin-top:calc(var(--line-height) * 1.5rem)}a,a:visited{color:var(--accent)}a:hover{text-decoration:none}[role=button],a button,button,input[type=button],input[type=reset],input[type=submit]{border:none;border-radius:5px;background:var(--accent);font-size:1rem;color:var(--bg);padding:.7rem .9rem;margin:.5rem 0;transition:.4s}[role=button][aria-disabled=true],a button[disabled],button[disabled],input[type=button][disabled],input[type=checkbox][disabled],input[type=radio][disabled],input[type=reset][disabled],input[type=submit][disabled],select[disabled]{cursor:default;opacity:.5;cursor:not-allowed}input:disabled,select:disabled,textarea:disabled{cursor:not-allowed;background-color:var(--disabled)}input[type=range]{padding:0}abbr{cursor:help}[role=button]:focus,[role=button]:not([aria-disabled=true]):hover,button:enabled:hover,button:focus,input[type=button]:enabled:hover,input[type=button]:focus,input[type=checkbox]:enabled:hover,input[type=checkbox]:focus,input[type=radio]:enabled:hover,input[type=radio]:focus,input[type=reset]:enabled:hover,input[type=reset]:focus,input[type=submit]:enabled:hover,input[type=submit]:focus{opacity:.8;cursor:pointer}details{background:var(--accent-bg);border:1px solid var(--border);border-radius:5px;margin-bottom:1rem}summary{cursor:pointer;font-weight:700;padding:.6rem 1rem}details[open]{padding:.6rem 1rem .75rem 1rem}details[open] summary{margin-bottom:.5rem;padding:0}details[open]>:last-child{margin-bottom:0}table{border-collapse:collapse;width:100%;margin:1.5rem 0}td,th{border:1px solid var(--border);text-align:left;padding:.5rem}th{background:var(--accent-bg);font-weight:700}tr:nth-child(even){background:var(--accent-bg)}table caption{font-weight:700;margin-bottom:.5rem}ol,ul{padding-left:3rem}input,select,textarea{font-size:inherit;font-family:inherit;padding:.5rem;margin-bottom:.5rem;color:var(--text);background:var(--bg);border:1px solid var(--border);border-radius:5px;box-shadow:none;box-sizing:border-box;width:60%;-moz-appearance:none;-webkit-appearance:none;appearance:none}select{background-image:linear-gradient(45deg,transparent 49%,var(--text) 51%),linear-gradient(135deg,var(--text) 51%,transparent 49%);background-position:calc(100% - 20px),calc(100% - 15px);background-size:5px 5px,5px 5px;background-repeat:no-repeat}select[multiple]{background-image:none!important}input[type=checkbox],input[type=radio]{vertical-align:bottom;position:relative}input[type=radio]{border-radius:100%}input[type=checkbox]:checked,input[type=radio]:checked{background:var(--accent)}input[type=checkbox]:checked::after{content:' ';width:.1em;height:.25em;border-radius:0;position:absolute;top:.05em;left:.18em;background:0 0;border-right:solid var(--bg) .08em;border-bottom:solid var(--bg) .08em;font-size:1.8em;transform:rotate(45deg)}input[type=radio]:checked::after{content:' ';width:.25em;height:.25em;border-radius:100%;position:absolute;top:.125em;background:var(--bg);left:.125em;font-size:32px}textarea{width:80%}@media only screen and (max-width:720px){input,select,textarea{width:100%}}input[type=checkbox],input[type=radio]{width:auto}input[type=file]{border:0}fieldset{border:0;padding:0;margin:0}hr{color:var(--border);border-top:1px;margin:1rem auto}mark{padding:2px 5px;border-radius:4px;background:var(--marked)}main img,main video{max-width:100%;height:auto;border-radius:5px}figure{margin:0}figcaption{font-size:.9rem;color:var(--text-light);text-align:center;margin-bottom:1rem}blockquote{margin:2rem 0 2rem 2rem;padding:.4rem .8rem;border-left:.35rem solid var(--accent);opacity:.8;font-style:italic}cite{font-size:.9rem;color:var(--text-light);font-style:normal}code,kbd,pre,pre span,samp{font-size:1.075rem;font-family:var(--mono-font);color:var(--code)}kbd{color:var(--preformatted);border:1px solid var(--preformatted);border-bottom:3px solid var(--preformatted);border-radius:5px;padding:.1rem}pre{padding:1rem 1.4rem;max-width:100%;overflow:auto;overflow-x:auto;color:var(--preformatted);background:var(--accent-bg);border:1px solid var(--border);border-radius:5px}pre code{color:var(--preformatted);background:0 0;margin:0;padding:0}", wide ? 125 : 70);
+	}
+	else if (work_url == "/history.html") {
+		page += get_html_page_header(true);
+
+		if (parameters.d == nullptr)
+			page = "Not available: no traffic database configured";
+		else {
+			const char  *p_callsign = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "callsign");
+			std::string  callsign = p_callsign ? p_callsign : "";
+
+			const char  *p_history = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "history");
+			int          history_n = p_history ? atoi(p_history) : 100;
+
+			auto history = parameters.d->get_history(callsign, history_n);
+
+			page += "<h2>History for " + callsign + "</h2>";
+
+			page += "<table id=\"packets\" width=100%>";
+			page += "<tr><th>ts</th><th>source</th><th>from</th><th>to</th><th>msg id</th><th>payload</th><th>protocol</th></tr>\n";
+
+			for(auto & record : history) {
+				std::string from  = record.get_meta().find("from"    )->second.s_value;
+				std::string to    = record.get_meta().find("to"      )->second.s_value;
+				std::string proto = record.get_meta().find("protocol")->second.s_value;
+
+				time_t      t     = record.get_tv().tv_sec;
+				tm        * tm    = localtime(&t);
+
+				char ts_buffer[64] { 0 };
+
+				strftime(ts_buffer, sizeof(ts_buffer), "%Y-%m-%d<br>%H:%M:%S", tm);
+
+				auto        payload_it = record.get_meta().find("payload");
+
+				std::string payload    = payload_it != record.get_meta().end() ? payload_it->second.s_value : "";
+
+				page += "<tr><td>" + std::string(ts_buffer) + "</td><td>" + record.get_source() + "</td><td>" + from + "</td><td>" + to + "</td><td>" + record.get_id_short() + "</td><td>" + payload + "</td><td>" + proto + "</td></tr>\n";
+			}
+
+			page += "</table>";
+		}
+
+		page += html_page_footer;
 	}
 
 	if (page.empty())
