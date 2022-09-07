@@ -185,7 +185,7 @@ MHD_Result process_http_request(void *cls,
 
 			std::string  date   = p_date;
 
-			auto history = parameters.d->get_history(callsign, date);
+			auto history = parameters.d->get_history(callsign, date, false);
 
 			page += "<h2>History for " + callsign + "</h2>";
 

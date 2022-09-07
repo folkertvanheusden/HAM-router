@@ -32,7 +32,7 @@ tranceiver_ws::tranceiver_ws(const std::string & id, seen *const s, work_queue_t
 	log(LL_INFO, "Instantiated websockets (%s)", id.c_str());
 
 	if (ws_port != -1)
-                start_websocket_thread(ws_port, &ws, ws_ssl_enabled, ws_ssl_cert, ws_ssl_priv_key, ws_ssl_ca);
+                start_websocket_thread(ws_port, &ws, ws_ssl_enabled, ws_ssl_cert, ws_ssl_priv_key, ws_ssl_ca, d);
 
 	if (http_port != -1)
 		webserver = start_webserver(http_port, ws_url, ws_port, st, d);

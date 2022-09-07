@@ -6,6 +6,7 @@
 
 #include "error.h"
 #include "log.h"
+#include "str.h"
 #include "time.h"
 #include "utils.h"
 #include "websockets.h"
@@ -20,6 +21,18 @@ static lws_context      *context      { nullptr };
 typedef struct {
 	uint64_t ts;
 } ws_session_data;
+
+void push_to_websockets(ws_global_context_t *const ws, const std::string & json_data)
+{
+	ws->lock.lock();
+
+	ws->json_data.push_back({ get_us(), json_data });
+
+	while(ws->json_data.size() > MAX_HISTORY_SIZE)
+		ws->json_data.erase(ws->json_data.begin());
+
+	ws->lock.unlock();
+}
 
 static void send_records(lws *wsi, void *user)
 {
@@ -104,7 +117,7 @@ static struct lws_protocols protocols[] = {
 	}
 };
 
-void start_websocket_thread(const int port, ws_global_context_t *const p, const bool ws_ssl_enable, const std::string & ws_ssl_cert, const std::string & ws_ssl_priv_key, const std::string & ws_ssl_ca)
+void start_websocket_thread(const int port, ws_global_context_t *const p, const bool ws_ssl_enable, const std::string & ws_ssl_cert, const std::string & ws_ssl_priv_key, const std::string & ws_ssl_ca, db *const d)
 {
 	log(LL_INFO, "Starting websocket server");
 
@@ -130,6 +143,17 @@ void start_websocket_thread(const int port, ws_global_context_t *const p, const 
 			for(;!ws_terminate;)
 				lws_service(context, 100);
 		});
+
+	if (d) {
+		time_t now = time(nullptr);
+		tm *tm = localtime(&now);
+		std::string today = myformat("%04d-%02d-%02d", tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday);
+
+		auto data = d->get_history("", today, true);
+
+		for(auto & record : data)
+			push_to_websockets(p, message_to_json(record));
+	}
 }
 
 void stop_websockets()
@@ -142,16 +166,4 @@ void stop_websockets()
 
 		lws_context_destroy(context);
 	}
-}
-
-void push_to_websockets(ws_global_context_t *const ws, const std::string & json_data)
-{
-	ws->lock.lock();
-
-	ws->json_data.push_back({ get_us(), json_data });
-
-	while(ws->json_data.size() > MAX_HISTORY_SIZE)
-		ws->json_data.erase(ws->json_data.begin());
-
-	ws->lock.unlock();
 }

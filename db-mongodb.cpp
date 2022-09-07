@@ -257,7 +257,7 @@ std::map<std::string, uint32_t> db_mongodb::get_misc_counts()
 	return out;
 }
 
-std::vector<message> db_mongodb::get_history(const std::string & callsign, const std::string & date)
+std::vector<message> db_mongodb::get_history(const std::string & callsign, const std::string & date, const bool ignore_callsign)
 {
 	std::vector<message> out;
 
@@ -278,10 +278,12 @@ std::vector<message> db_mongodb::get_history(const std::string & callsign, const
 	auto date_end   = bsoncxx::types::b_date { std::chrono::system_clock::from_time_t(std::mktime(&tm) + 86400) };
 
 	auto cursor     = work_collection.find(
-			callsign.empty() ?
-				make_document(kvp("data.from", make_document(kvp("$exists", false))), kvp("receive-time", make_document(kvp("$gte", date_start), kvp("$lte", date_end)))) :
-				make_document(kvp("data.from", callsign),          kvp("receive-time", make_document(kvp("$gte", date_start), kvp("$lte", date_end))))
-				, opts);
+			ignore_callsign ? make_document(kvp("receive-time", make_document(kvp("$gte", date_start), kvp("$lt", date_end)))) : (
+						callsign.empty() ?
+							make_document(kvp("data.from", make_document(kvp("$exists", false))), kvp("receive-time", make_document(kvp("$gte", date_start), kvp("$lte", date_end)))) :
+							make_document(kvp("data.from", callsign),                             kvp("receive-time", make_document(kvp("$gte", date_start), kvp("$lte", date_end))))
+				)
+			, opts);
 
 	for(auto doc : cursor) {
 		auto data = doc["data"];
