@@ -28,7 +28,7 @@ const std::string html_page_header = "<!DOCTYPE html>"
 	"<meta charset=\"utf-8\">"
 	"</head>"
 	"<body>"
-	"<h1>LoRa APRS gateway</h1>\n";
+	"<h1>HAM router</h1>\n";
 
 std::string websocket_receiver;
 
