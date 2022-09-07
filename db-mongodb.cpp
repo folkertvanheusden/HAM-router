@@ -1,6 +1,8 @@
 #include "config.h"
 #if LIBMONGOCXX_FOUND == 1
 #include <chrono>
+#include <iomanip>
+#include <sstream>
 #include <bsoncxx/builder/stream/document.hpp>
 #include <bsoncxx/json.hpp>
 #include <mongocxx/client.hpp>
@@ -12,6 +14,7 @@
 #include "gps.h"
 #include "log.h"
 #include "time.h"
+
 
 using bsoncxx::builder::basic::kvp;
 using bsoncxx::builder::basic::make_document;
@@ -254,7 +257,7 @@ std::map<std::string, uint32_t> db_mongodb::get_misc_counts()
 	return out;
 }
 
-std::vector<message> db_mongodb::get_history(const std::string & callsign, const int n)
+std::vector<message> db_mongodb::get_history(const std::string & callsign, const std::string & date)
 {
 	std::vector<message> out;
 
@@ -263,10 +266,18 @@ std::vector<message> db_mongodb::get_history(const std::string & callsign, const
         mongocxx::collection work_collection = db[collection];
 
 	mongocxx::options::find opts;
-	opts.limit(n);
+	opts.limit(1000);  // TODO is hardcoded
 	opts.sort(make_document(kvp("receive-time", -1)));
 
-	auto cursor = work_collection.find(make_document(kvp("data.from", callsign)), opts);
+	std::tm tm = { };
+	std::stringstream ss(date + " 00:00:00");
+	ss >> std::get_time(&tm, "%Y-%m-%d %H:%M:%S");
+
+	auto date_start = bsoncxx::types::b_date { std::chrono::system_clock::from_time_t(std::mktime(&tm)) };
+
+	auto date_end   = bsoncxx::types::b_date { std::chrono::system_clock::from_time_t(std::mktime(&tm) + 86400) };
+
+	auto cursor = work_collection.find(make_document(kvp("data.from", callsign), kvp("receive-time", make_document(kvp("$gte", date_start), kvp("$lte", date_end)))), opts);
 
 	for(auto doc : cursor) {
 		auto data = doc["data"];

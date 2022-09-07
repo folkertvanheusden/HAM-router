@@ -30,5 +30,5 @@ public:
 
 	virtual std::map<std::string, uint32_t> get_misc_counts() = 0;
 
-	virtual std::vector<message> get_history(const std::string & callsign, const int n) = 0;
+	virtual std::vector<message> get_history(const std::string & callsign, const std::string & date) = 0;
 };

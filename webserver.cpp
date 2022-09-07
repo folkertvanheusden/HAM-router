@@ -80,6 +80,7 @@ MHD_Result process_http_request(void *cls,
 			page += "</table>";
 
 			page += "<h3>\"mheard\" (from)</h3>\n";
+			page += "<p>Click on a callsign to jump to APRS-SI</p>\n";
 
 			auto hc_rows = parameters.d->get_heard_counts();
 
@@ -96,25 +97,17 @@ MHD_Result process_http_request(void *cls,
 
 			page += "<table><tr><th>callsign</th><th>date</th><th>sum</th></tr>\n";
 
-			std::string last_callsign;
+			page += "<p>Click on a date to jump to show packets of that date for that callsign</p>\n";
 
 			for(auto row : at_rows) {
 				std::string current_callsign = row.first.first;
-				bool        unknown          = false;
 
-				std::string time             = row.second > 0 ? myformat("%.2f", row.second) : "-";
+				std::string time             = row.second > 0 ? myformat("%.2f", row.second) + "s" : "-";
 
 				if (current_callsign.empty())
-					current_callsign = "[unknown]", unknown = true;
+					current_callsign = "[unknown]";
 
-				if (unknown)
-					page += "<tr><td>" + current_callsign +"</td><td>" + row.first.second + "</td><td>" + time + "s</td></tr>\n";
-				else if (current_callsign != last_callsign)
-					page += "<tr><td><a href=\"history.html?callsign=" + current_callsign + "\">" + current_callsign +"</a></td><td>" + row.first.second + "</td><td>" + time + "s</td></tr>\n";
-				else
-					page += "<tr><td></td><td>" + row.first.second + "</td><td>" + time + "s</td></tr>\n";
-
-				last_callsign = current_callsign;
+				page += "<tr><td>" + current_callsign + "</a></td><td><a href=\"history.html?callsign=" + current_callsign + "&date=" + row.first.second + "\">" + row.first.second + "</a></td><td>" + time + "</td></tr>\n";
 			}
 
 			page += "</table>";
@@ -186,10 +179,13 @@ MHD_Result process_http_request(void *cls,
 			const char  *p_callsign = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "callsign");
 			std::string  callsign = p_callsign ? p_callsign : "";
 
-			const char  *p_history = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "history");
-			int          history_n = p_history ? atoi(p_history) : 100;
+			const char  *p_date = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "date");
+			if (!p_date)
+				return MHD_NO;
 
-			auto history = parameters.d->get_history(callsign, history_n);
+			std::string  date   = p_date;
+
+			auto history = parameters.d->get_history(callsign, date);
 
 			page += "<h2>History for " + callsign + "</h2>";
 
