@@ -84,7 +84,7 @@ MHD_Result process_http_request(void *cls,
 			page += "<table><tr><th>callsign</th><th>count</th></tr>\n";
 
 			for(auto row : hc_rows)
-				page += "<tr><td>" + row.first + "</td><td>" + std::to_string(row.second) + "</td></tr>\n";
+				page += "<tr><td><a href=\"https://aprs.fi/#!mt=roadmap&z=11&call=a%2F" + row.first + "&timerange=3600&tail=3600\">" + row.first + "</a></td><td>" + std::to_string(row.second) + "s</td></tr>\n";
 
 			page += "</table>";
 
