@@ -192,25 +192,40 @@ MHD_Result process_http_request(void *cls,
 			page += "<h2>History for " + callsign + "</h2>";
 
 			page += "<table id=\"packets\" width=100%>";
-			page += "<tr><th>ts</th><th>source</th><th>from</th><th>to</th><th>msg id</th><th>payload</th><th>protocol</th></tr>\n";
+			page += "<tr><th>date/time</th><th>source</th><th>from</th><th>to</th><th>msg id</th><th>payload</th></tr>\n";
+			page += "<tr><th></th><th>latitude</th><th>longitude</th><th>air time</th><th>rssi</th><th>protocol</th><th</tr>\n";
 
 			for(auto & record : history) {
-				std::string from  = record.get_meta().find("from"    )->second.s_value;
-				std::string to    = record.get_meta().find("to"      )->second.s_value;
-				std::string proto = record.get_meta().find("protocol")->second.s_value;
+				auto        meta  = record.get_meta();
+
+				std::string from  = meta.find("from"    )->second.s_value;
+				std::string to    = meta.find("to"      )->second.s_value;
+				std::string proto = meta.find("protocol")->second.s_value;
 
 				time_t      t     = record.get_tv().tv_sec;
 				tm        * tm    = localtime(&t);
 
-				char ts_buffer[64] { 0 };
+				char ts_buffer_date[64] { 0 };
+				char ts_buffer_time[64] { 0 };
 
-				strftime(ts_buffer, sizeof(ts_buffer), "%Y-%m-%d<br>%H:%M:%S", tm);
+				strftime(ts_buffer_date, sizeof(ts_buffer_date), "%Y-%m-%d", tm);
+				strftime(ts_buffer_time, sizeof(ts_buffer_time), "%H:%M:%S", tm);
 
 				auto        payload_it = record.get_meta().find("payload");
 
 				std::string payload    = payload_it != record.get_meta().end() ? payload_it->second.s_value : "";
 
-				page += "<tr><td>" + std::string(ts_buffer) + "</td><td>" + record.get_source() + "</td><td>" + from + "</td><td>" + to + "</td><td>" + record.get_id_short() + "</td><td>" + payload + "</td><td>" + proto + "</td></tr>\n";
+				std::string latitude   = myformat("%.8f", meta.find("latitude")  != meta.end() ? meta.at("latitude" ).d_value : 0.);
+
+				std::string longitude  = myformat("%.8f", meta.find("longitude") != meta.end() ? meta.at("longitude").d_value : 0.);
+
+				std::string rssi       = meta.find("rssi") != meta.end() ? meta.at("rssi").s_value : "";
+
+				std::string air_time   = myformat("%.2f", meta.find("air-time")  != meta.end() ? meta.at("air-time" ).d_value : 0.);
+
+				page += "<tr><td>" + std::string(ts_buffer_date) + "</td><td>" + record.get_source() + "</td><td>" + from + "</td><td>" + to + "</td><td>" + record.get_id_short() + "</td><td>" + payload + "</td></tr>";
+
+				page += "<tr><td>" + std::string(ts_buffer_time) + "</td><td>" + latitude + "</td><td> " + longitude + "</td><td>" + air_time + "</td><td> " + rssi + "</td><td>" + proto + "</td></tr>\n";
 			}
 
 			page += "</table>";

@@ -272,13 +272,15 @@ std::vector<message> db_mongodb::get_history(const std::string & callsign, const
 		auto data = doc["data"];
 
 		if (data) {
-			timeval     tv      = to_timeval(doc["receive-time"].get_date().value);
+			timeval     tv       = to_timeval(doc["receive-time"].get_date().value);
 
-			std::string source  = data["source"] ? data["source"].get_utf8().value.to_string() : "?";
+			std::string source   = data["source"] ? data["source"].get_utf8().value.to_string() : "?";
 
-			uint64_t    msg_id  = data["msg-id"] ? data["msg-id"].get_int64().value : 0;
+			uint64_t    msg_id   = data["msg-id"] ? data["msg-id"].get_int64().value : 0;
 
-			auto        pkt     = data["raw-data"];
+			double      air_time = data["air-time"] ? data["air-time"].get_double().value : 0;
+
+			auto        pkt      = data["raw-data"];
 
 			const uint8_t *bin_p    = pkt ? pkt.get_binary().bytes : reinterpret_cast<const uint8_t *>("");
 			int            bin_size = pkt ? pkt.get_binary().size : 1;
@@ -288,8 +290,11 @@ std::vector<message> db_mongodb::get_history(const std::string & callsign, const
 			// TODO: move this into a function of some sort, see also tranceiver.cpp
 			auto        meta    = dissect_packet(bin_p, bin_size);
 
-			if (meta.has_value())
+			if (meta.has_value()) {
+				meta.value().insert({ "air-time", db_record_gen(double(air_time)) });
+
 				m.set_meta(meta.value());
+			}
 
 			out.push_back(m);
 		}
