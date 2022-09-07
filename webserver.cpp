@@ -86,7 +86,7 @@ MHD_Result process_http_request(void *cls,
 			page += "<table><tr><th>callsign</th><th>count</th></tr>\n";
 
 			for(auto row : hc_rows)
-				page += "<tr><td><a href=\"https://aprs.fi/#!mt=roadmap&z=11&call=a%2F" + row.first + "&timerange=3600&tail=3600\">" + row.first + "</a></td><td>" + std::to_string(row.second) + "s</td></tr>\n";
+				page += "<tr><td><a href=\"https://aprs.fi/#!mt=roadmap&z=11&call=a%2F" + row.first + "&timerange=3600&tail=3600\">" + row.first + "</a></td><td>" + std::to_string(row.second) + "</td></tr>\n";
 
 			page += "</table>";
 
@@ -102,15 +102,17 @@ MHD_Result process_http_request(void *cls,
 				std::string current_callsign = row.first.first;
 				bool        unknown          = false;
 
+				std::string time             = row.second > 0 ? myformat("%.2f", row.second) : "-";
+
 				if (current_callsign.empty())
 					current_callsign = "[unknown]", unknown = true;
 
 				if (unknown)
-					page += "<tr><td>" + current_callsign +"</td><td>" + row.first.second + "</td><td>" + myformat("%.2f", row.second) + "</td></tr>\n";
+					page += "<tr><td>" + current_callsign +"</td><td>" + row.first.second + "</td><td>" + time + "s</td></tr>\n";
 				else if (current_callsign != last_callsign)
-					page += "<tr><td><a href=\"history.html?callsign=" + current_callsign + "\">" + current_callsign +"</a></td><td>" + row.first.second + "</td><td>" + myformat("%.2f", row.second) + "</td></tr>\n";
+					page += "<tr><td><a href=\"history.html?callsign=" + current_callsign + "\">" + current_callsign +"</a></td><td>" + row.first.second + "</td><td>" + time + "s</td></tr>\n";
 				else
-					page += "<tr><td></td><td>" + row.first.second + "</td><td>" + myformat("%.2f", row.second) + "</td></tr>\n";
+					page += "<tr><td></td><td>" + row.first.second + "</td><td>" + time + "s</td></tr>\n";
 
 				last_callsign = current_callsign;
 			}
