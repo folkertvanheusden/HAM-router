@@ -277,7 +277,11 @@ std::vector<message> db_mongodb::get_history(const std::string & callsign, const
 
 	auto date_end   = bsoncxx::types::b_date { std::chrono::system_clock::from_time_t(std::mktime(&tm) + 86400) };
 
-	auto cursor = work_collection.find(make_document(kvp("data.from", callsign), kvp("receive-time", make_document(kvp("$gte", date_start), kvp("$lte", date_end)))), opts);
+	auto cursor     = work_collection.find(
+			callsign.empty() ?
+				make_document(kvp("data.from", make_document(kvp("$exists", false))), kvp("receive-time", make_document(kvp("$gte", date_start), kvp("$lte", date_end)))) :
+				make_document(kvp("data.from", callsign),          kvp("receive-time", make_document(kvp("$gte", date_start), kvp("$lte", date_end))))
+				, opts);
 
 	for(auto doc : cursor) {
 		auto data = doc["data"];
@@ -285,9 +289,9 @@ std::vector<message> db_mongodb::get_history(const std::string & callsign, const
 		if (data) {
 			timeval     tv       = to_timeval(doc["receive-time"].get_date().value);
 
-			std::string source   = data["source"] ? data["source"].get_utf8().value.to_string() : "?";
+			std::string source   = data["source"  ] ? data["source"  ].get_utf8().value.to_string() : "?";
 
-			uint64_t    msg_id   = data["msg-id"] ? data["msg-id"].get_int64().value : 0;
+			uint64_t    msg_id   = data["msg-id"  ] ? data["msg-id"  ].get_int64().value : 0;
 
 			double      air_time = data["air-time"] ? data["air-time"].get_double().value : 0;
 

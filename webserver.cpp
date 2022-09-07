@@ -107,7 +107,7 @@ MHD_Result process_http_request(void *cls,
 				if (current_callsign.empty())
 					current_callsign = "[unknown]";
 
-				page += "<tr><td>" + current_callsign + "</a></td><td><a href=\"history.html?callsign=" + current_callsign + "&date=" + row.first.second + "\">" + row.first.second + "</a></td><td>" + time + "</td></tr>\n";
+				page += "<tr><td>" + current_callsign + "</a></td><td><a href=\"history.html?callsign=" + row.first.first + "&date=" + row.first.second + "\">" + row.first.second + "</a></td><td>" + time + "</td></tr>\n";
 			}
 
 			page += "</table>";
@@ -196,9 +196,14 @@ MHD_Result process_http_request(void *cls,
 			for(auto & record : history) {
 				auto        meta  = record.get_meta();
 
-				std::string from  = meta.find("from"    )->second.s_value;
-				std::string to    = meta.find("to"      )->second.s_value;
-				std::string proto = meta.find("protocol")->second.s_value;
+				auto        from_it  = meta.find("from"    );
+				std::string from  = from_it != meta.end() ? from_it ->second.s_value : "";
+
+				auto        to_it    = meta.find("to"      );
+				std::string to    = to_it   != meta.end() ? to_it   ->second.s_value : "";
+
+				auto        proto_it = meta.find("protocol");
+				std::string proto = proto_it!= meta.end() ? proto_it->second.s_value : "";
 
 				time_t      t     = record.get_tv().tv_sec;
 				tm        * tm    = localtime(&t);
