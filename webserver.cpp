@@ -108,7 +108,7 @@ MHD_Result process_http_request(void *cls,
 				if (unknown)
 					page += "<tr><td>" + current_callsign +"</td><td>" + row.first.second + "</td><td>" + myformat("%.2f", row.second) + "</td></tr>\n";
 				else if (current_callsign != last_callsign)
-					page += "<tr><td><a href=\"/history.html?callsign=" + current_callsign + "\">" + current_callsign +"</a></td><td>" + row.first.second + "</td><td>" + myformat("%.2f", row.second) + "</td></tr>\n";
+					page += "<tr><td><a href=\"history.html?callsign=" + current_callsign + "\">" + current_callsign +"</a></td><td>" + row.first.second + "</td><td>" + myformat("%.2f", row.second) + "</td></tr>\n";
 				else
 					page += "<tr><td></td><td>" + row.first.second + "</td><td>" + myformat("%.2f", row.second) + "</td></tr>\n";
 
