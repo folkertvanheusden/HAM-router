@@ -20,21 +20,18 @@ void switchboard::add_mapping(tranceiver *const in, tranceiver *const out, filte
 	auto it = map.find(in);
 
 	if (it == map.end()) {
-		map.insert({ in, { { out }, f } });
+		sb_mapping_t mapping { f, { out } };
+
+		map.insert({ in, { mapping } });
 	}
 	else {
-		it->second.first.insert(out);
+		for(auto & mapping : it->second) {
+			if (mapping.f == f) {
+				mapping.t.push_back(out);
+				return;
+			}
+		}
 	}
-}
-
-void switchboard::remove_mapping(tranceiver *const in, tranceiver *const out)
-{
-	std::unique_lock<std::mutex> lck(lock);
-
-	auto it = map.find(in);
-
-	if (it != map.end())
-		it->second.first.erase(out);
 }
 
 transmit_error_t switchboard::put_message(tranceiver *const from, const message & m, const bool continue_on_error)
@@ -46,26 +43,30 @@ transmit_error_t switchboard::put_message(tranceiver *const from, const message 
 	if (it == map.end())
 		return TE_hardware;
 
-	if (it->second.second) {
-		if (it->second.second->check(m)) {
-			log(LL_DEBUG, "NOT forwarding message %s: filtered", m.get_id_short().c_str());
+	bool forwarded = false;
 
-			return TE_filter;
+	for(auto & target_filters_pair : it->second) {
+		if (target_filters_pair.f == nullptr || target_filters_pair.f->check(m)) {
+			log(LL_DEBUG, "Forwarding %s to %zu tranceivers", m.get_id_short().c_str(), target_filters_pair.t.size());
+
+			for(auto t : target_filters_pair.t) {
+				log(LL_DEBUG_VERBOSE, "Forwarding %s to: %s", m.get_id_short().c_str(), t->get_id().c_str());
+
+				transmit_error_t rc = t->put_message(m);
+
+				if (rc != TE_ok && continue_on_error == false)
+					return rc;
+			}
+
+			forwarded = true;
 		}
 	}
 
-	log(LL_DEBUG, "Forwarding %s to %zu tranceivers", m.get_id_short().c_str(), it->second.first.size());
+	if (!forwarded) {
+		log(LL_DEBUG, "NOT forwarding message %s: filtered", m.get_id_short().c_str());
 
-	for(auto t : it->second.first) {
-		log(LL_DEBUG_VERBOSE, "Forwarding %s to: %s", m.get_id_short().c_str(), t->get_id().c_str());
-
-		transmit_error_t rc = t->put_message(m);
-
-		if (rc != TE_ok && continue_on_error == false)
-			return rc;
+		return TE_filter;
 	}
-
-	log(LL_DEBUG_VERBOSE, "Forward of %s ok", m.get_id_short().c_str());
 
 	return TE_ok;
 }
