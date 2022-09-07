@@ -10,6 +10,9 @@
 #include "utils.h"
 #include "websockets.h"
 
+
+#define MAX_HISTORY_SIZE 250
+
 static std::atomic_bool  ws_terminate { false };
 static std::thread      *ws_thread    { nullptr };
 static lws_context      *context      { nullptr };
@@ -147,7 +150,7 @@ void push_to_websockets(ws_global_context_t *const ws, const std::string & json_
 
 	ws->json_data.push_back({ get_us(), json_data });
 
-	while(ws->json_data.size() > 250)
+	while(ws->json_data.size() > MAX_HISTORY_SIZE)
 		ws->json_data.erase(ws->json_data.begin());
 
 	ws->lock.unlock();
