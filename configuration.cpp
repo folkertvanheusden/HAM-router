@@ -212,6 +212,9 @@ void configuration::load_general(const libconfig::Setting & node_in)
 
 	if (lat_set != lng_set)
 		error_exit(false, "General settings: either latitude or longitude is not set");
+
+	if (lat_set && local_pos.latitude == 0. && local_pos.longitude == 0.)
+		error_exit(false, "General settings: suspicious global longitude/latitude set");
 }
 
 void configuration::load_filters(const libconfig::Setting & node_in)
