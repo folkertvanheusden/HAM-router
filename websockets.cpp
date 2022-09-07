@@ -149,7 +149,7 @@ void start_websocket_thread(const int port, ws_global_context_t *const p, const 
 		tm *tm = localtime(&now);
 		std::string today = myformat("%04d-%02d-%02d", tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday);
 
-		auto data = d->get_history("", today, true);
+		auto data = d->get_history("", today, false);
 
 		for(auto & record : data)
 			push_to_websockets(p, message_to_json(record));
