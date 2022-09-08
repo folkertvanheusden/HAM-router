@@ -35,7 +35,11 @@ std::string get_html_page_header(const bool wide)
 
 std::string websocket_receiver;
 
-const std::string html_page_footer = "\n</body>"
+const std::string html_page_footer = 
+	"\n"
+	"<hr>"
+	"<p>Powered by <a href=\"https://github.com/folkertvanheusden/HAM-router\">HAM-router</a></p>"
+	"</body>\n"
 	"</html>";
 
 MHD_Result process_http_request(void *cls,

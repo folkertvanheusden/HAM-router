@@ -97,11 +97,15 @@ int main(int argc, char *argv[])
 
 	snmp          *snmp_ = new snmp(&sd, &st, cfg.get_snmp_port());
 
+	log(LL_INFO, "HAM-router configured");
+
 	std::thread *th = process(&cfg, &w, snmp_);
 	th->join();
 	delete th;
 
 	delete snmp_;
+
+	log(LL_INFO, "HAM-router terminating");
 
 	unsetlogfile();
 
