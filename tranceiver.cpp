@@ -45,52 +45,59 @@ void tranceiver::stop()
 		s->stop();
 }
 
-transmit_error_t tranceiver::queue_incoming_message(const message & m)
+transmit_error_t tranceiver::queue_incoming_message(const message & m_in)
 {
-	auto content = m.get_content();
+	message copy { m_in };
+
+	auto content = copy.get_content();
 
 	stats_add_counter(ifInOctets,   content.second);
 	stats_add_counter(ifHCInOctets, content.second);
 	stats_inc_counter(ifInUcastPkts);
 
-	// check if s was allocated because e.g. the beacon module does
-	// not allocate a seen object
+	bool     ok   = true;
 	uint32_t hash = 0;
 
+	// check if s was allocated because e.g. the beacon module does
+	// not allocate a seen object
 	if (s) {
 		auto ratelimit_rc = s->check(content.first, content.second);
 
+		ok   = ratelimit_rc.first;
+
 		hash = ratelimit_rc.second;
-
-		if (ratelimit_rc.first == false) {
-			mlog(LL_DEBUG, m, "queue_incoming_message", myformat("dropped because of duplicates rate limiting (hash: %08x)", hash));
-
-			return TE_ratelimiting;
-		}
 	}
 	else {
 		hash = calc_crc32(content.first, content.second);
 	}
 
+	std::map<std::string, db_record_data> meta;
+
+	meta.insert({ "pkt-crc", db_record_gen(myformat("%08x", hash)) });
+
+	copy.set_meta(meta);
+
+	if (ok == false) {
+		mlog(LL_DEBUG, copy, "queue_incoming_message", "dropped because of duplicates rate limiting");
+
+		return TE_ratelimiting;
+	}
+
 	// push to incoming queue of this tranceiver (TODO: empty when not consuming (eg beacon))
 	{
-		message copy { m };
+		auto meta2 = dissect_packet(content.first, content.second);
 
-		auto    meta = dissect_packet(content.first, content.second);
-
-		if (meta.has_value()) {
-			if (meta.value().find("latitude") != meta.value().end() && meta.value().find("longitude") != meta.value().end()) {
-				double cur_lat = meta.value().find("latitude")->second.d_value;
-				double cur_lng = meta.value().find("longitude")->second.d_value;
+		if (meta2.has_value()) {
+			if (meta2.value().find("latitude") != meta2.value().end() && meta2.value().find("longitude") != meta2.value().end()) {
+				double cur_lat = meta2.value().find("latitude")->second.d_value;
+				double cur_lng = meta2.value().find("longitude")->second.d_value;
 
 				double distance = calcGPSDistance(cur_lat, cur_lng, local_pos.latitude, local_pos.longitude);
 
-				meta.value().insert({ "distance", myformat("%.2f", distance) });
+				meta2.value().insert({ "distance", myformat("%.2f", distance) });
 			}
 
-			meta.value().insert({ "pkt-crc", myformat("%08x", hash) });
-
-			copy.set_meta(meta.value());
+			copy.set_meta(meta2.value());
 		}
 
 		std::unique_lock<std::mutex> lck(incoming_lock);
@@ -99,7 +106,7 @@ transmit_error_t tranceiver::queue_incoming_message(const message & m)
 
 		incoming_cv.notify_all();
 
-		mlog(LL_DEBUG, m, "queue_incoming_message", "message queued");
+		mlog(LL_DEBUG, copy, "queue_incoming_message", "message queued");
 	}
 
 	// let main know that there's work to process
