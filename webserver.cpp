@@ -155,11 +155,13 @@ MHD_Result process_http_request(void *cls,
 				page += "<th>" + myformat("%02d", hour) + "</th>";
 			page += "</tr>\n";
 
-			uint8_t start_color[] = { 80,  80, 255 };
-			uint8_t end_color[]   = { 80, 255,  80 };
+			constexpr uint8_t start_color[] = { 80,  80, 255 };
+			constexpr uint8_t end_color[]   = { 80, 255,  80 };
+
+			const std::string day_name[] = { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
 
 			for(int day=0; day<7; day++) {
-				page += "<tr><th>" + myformat("%d", day) + "</th>";
+				page += "<tr><th>" + day_name[day] + "</th>";
 
 				for(int hour=0; hour<24; hour++) {
 					uint32_t count = counts[day][hour];
