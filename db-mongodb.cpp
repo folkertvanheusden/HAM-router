@@ -325,4 +325,35 @@ std::vector<message> db_mongodb::get_history(const std::string & callsign, const
 
 	return out;
 }
+
+std::vector<std::tuple<int, int, uint32_t> > db_mongodb::get_heatmap()
+{
+	std::vector<std::tuple<int, int, uint32_t> > out;
+
+        mongocxx::database   db              = (*m_c)[database];
+
+        mongocxx::collection work_collection = db[collection];
+
+	mongocxx::pipeline   p { };
+
+	// db.loraprod.aggregate([{$group:{ _id:{$dateToString:{format: "%w-%H", date: "$receive-time"}}, count:{ $sum: 1}}}])
+
+	p.group(make_document(kvp("_id", make_document(kvp("date", make_document(kvp("$dateToString", make_document(kvp("format", "%w-%H"), kvp("date", "$receive-time"))))))), kvp("count", make_document(kvp("$sum", 1)))));
+
+	auto cursor = work_collection.aggregate(p, mongocxx::options::aggregate{});
+
+	for(auto doc : cursor) {
+		std::string date_str = doc["_id"]["date"].get_utf8().value.to_string();
+		std::size_t dash     = date_str.find("-");
+
+		int day   = std::stoi(date_str.substr(0, dash));
+		int hour  = std::stoi(date_str.substr(dash + 1));
+
+		int count = doc["count"].get_int32().value;
+
+		out.push_back({ day, hour, count });
+	}
+
+	return out;
+}
 #endif

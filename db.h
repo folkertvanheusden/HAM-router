@@ -31,4 +31,6 @@ public:
 	virtual std::map<std::string, uint32_t> get_misc_counts() = 0;
 
 	virtual std::vector<message> get_history(const std::string & callsign, const std::string & date, const bool ignore_callsign) = 0;
+
+	virtual std::vector<std::tuple<int, int, uint32_t> > get_heatmap() = 0;
 };

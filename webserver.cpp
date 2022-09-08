@@ -133,6 +133,52 @@ MHD_Result process_http_request(void *cls,
 				page += "<tr><td>" + row.first + "</td><td>" + std::to_string(row.second) + "</td></tr>\n";
 
 			page += "</table>";
+
+			auto heatmap_data = parameters.d->get_heatmap();
+
+			uint32_t max_count = 0;
+
+			uint32_t counts[7][24] { 0 };
+
+			for(auto row : heatmap_data) {
+				max_count = std::max(max_count, std::get<2>(row));
+
+				counts[std::get<0>(row) - 1][std::get<1>(row)] = std::get<2>(row);
+			}
+
+			page += "<h3>heatmap</h3>\n";
+
+			page += "<table>\n";
+
+			page += "<tr><th></th>";
+			for(int hour=0; hour<24; hour++)
+				page += "<th>" + myformat("%02d", hour) + "</th>";
+			page += "</tr>\n";
+
+			uint8_t start_color[] = { 80,  80, 255 };
+			uint8_t end_color[]   = { 80, 255,  80 };
+
+			for(int day=0; day<7; day++) {
+				page += "<tr><th>" + myformat("%d", day) + "</th>";
+
+				for(int hour=0; hour<24; hour++) {
+					uint32_t count = counts[day][hour];
+
+					if (count == 0)
+						page += "<td></td>";
+					else {
+						uint8_t red   = (end_color[0] - start_color[0]) * count / max_count + start_color[0];
+						uint8_t green = (end_color[1] - start_color[1]) * count / max_count + start_color[1];
+						uint8_t blue  = (end_color[2] - start_color[2]) * count / max_count + start_color[2];
+
+						page += "<td style=\"background-color: #" + myformat("%02x%02x%02x", red, green, blue) + "\">" + std::to_string(count) + "</td>";
+					}
+				}
+
+				page += "</tr>\n";
+			}
+
+			page += "</table>\n";
 		}
 
 		page += html_page_footer;
