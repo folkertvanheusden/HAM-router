@@ -60,13 +60,13 @@ transmit_error_t tranceiver::queue_incoming_message(const message & m)
 	if (s) {
 		auto ratelimit_rc = s->check(content.first, content.second);
 
+		hash = ratelimit_rc.second;
+
 		if (ratelimit_rc.first == false) {
-			mlog(LL_DEBUG, m, "queue_incoming_message", "dropped because of duplicates rate limiting");
+			mlog(LL_DEBUG, m, "queue_incoming_message", myformat("dropped because of duplicates rate limiting (hash: %08x)", hash));
 
 			return TE_ratelimiting;
 		}
-
-		hash = ratelimit_rc.second;
 	}
 	else {
 		hash = calc_crc32(content.first, content.second);
