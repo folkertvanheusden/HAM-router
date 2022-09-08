@@ -147,7 +147,7 @@ transmit_error_t tranceiver::put_message(const message & m)
 	return put_message_low(m);
 }
 
-tranceiver *tranceiver::instantiate(const libconfig::Setting & node, work_queue_t *const w, const position_t & pos, stats *const st, int device_nr, ws_global_context_t *const ws, const std::vector<tranceiver *> & tranceivers)
+tranceiver *tranceiver::instantiate(const libconfig::Setting & node, work_queue_t *const w, const position_t & pos, stats *const st, int device_nr, ws_global_context_t *const ws, const std::vector<tranceiver *> & tranceivers, std::map<std::string, filter *> & filters)
 {
 	std::string type = node.lookup("type").c_str();
 
@@ -166,7 +166,7 @@ tranceiver *tranceiver::instantiate(const libconfig::Setting & node, work_queue_
 		t = tranceiver_lora_sx1278::instantiate(node, w, pos, st, device_nr);
 	}
 	else if (type == "axudp") {
-		t = tranceiver_axudp::instantiate(node, w, pos);
+		t = tranceiver_axudp::instantiate(node, w, pos, filters);
 	}
 	else if (type == "beacon") {
 		t = tranceiver_beacon::instantiate(node, w, pos);

@@ -38,15 +38,20 @@ transmit_error_t tranceiver_axudp::put_message_low(const message & m)
 	temp[len] = crc;
 	temp[len + 1] = crc >> 8;
 
-	for(auto d : destinations) {
-		log(LL_DEBUG_VERBOSE, "tranceiver_axudp::put_message_low(%s): transmit to %s (%s)", m.get_id_short().c_str(), d.c_str(), dump_replace(temp, temp_len).c_str());
+	for(auto p : peers) {
+		log(LL_DEBUG_VERBOSE, "tranceiver_axudp::put_message_low(%s): transmit to %s (%s)", m.get_id_short().c_str(), p.first.c_str(), dump_replace(temp, temp_len).c_str());
 
-		if (transmit_udp(d, temp, temp_len) == false && continue_on_error == false) {
-			log(LL_WARNING, "axudp(%s): problem sending", m.get_id_short().c_str());
+		if (p.second == nullptr || p.second->check(m)) {
+			if (transmit_udp(p.first, temp, temp_len) == false && continue_on_error == false) {
+				log(LL_WARNING, "axudp(%s): problem sending", m.get_id_short().c_str());
 
-			free(temp);
+				free(temp);
 
-			return TE_hardware;
+				return TE_hardware;
+			}
+		}
+		else {
+			log(LL_DEBUG, "axudp(%s): not sending to %s due to filter", m.get_id_short().c_str(), p.first.c_str());
 		}
 	}
 
@@ -55,10 +60,10 @@ transmit_error_t tranceiver_axudp::put_message_low(const message & m)
 	return TE_ok;
 }
 
-tranceiver_axudp::tranceiver_axudp(const std::string & id, seen *const s, work_queue_t *const w, const position_t & pos, const int listen_port, const std::vector<std::string> & destinations, const bool continue_on_error, const bool distribute) :
+tranceiver_axudp::tranceiver_axudp(const std::string & id, seen *const s, work_queue_t *const w, const position_t & pos, const int listen_port, const std::vector<std::pair<std::string, filter *> > & peers, const bool continue_on_error, const bool distribute) :
 	tranceiver(id, s, w, pos),
 	listen_port(listen_port),
-	destinations(destinations),
+	peers(peers),
 	continue_on_error(continue_on_error),
 	distribute(distribute)
 {
@@ -85,21 +90,26 @@ tranceiver_axudp::~tranceiver_axudp()
 
 transmit_error_t tranceiver_axudp::send_to_other_axudp_targets(const message & m, const std::string & came_from)
 {
-	for(auto d : destinations) {
-		if (d == came_from) {
-			log(LL_DEBUG_VERBOSE, "send_to_other_axudp_targets(%s/%s): not (re-)sending to %s", get_id().c_str(), m.get_id_short().c_str(), d.c_str());
+	for(auto p : peers) {
+		if (p.first == came_from) {
+			log(LL_DEBUG_VERBOSE, "send_to_other_axudp_targets(%s/%s): not (re-)sending to %s", get_id().c_str(), m.get_id_short().c_str(), p.first.c_str());
 
 			continue;
 		}
 
-		log(LL_DEBUG_VERBOSE, "send_to_other_axudp_targets(%s/%s): transmit to %s", get_id().c_str(), m.get_id_short().c_str(), d.c_str());
+		if (p.second == nullptr || p.second->check(m)) {
+			log(LL_DEBUG_VERBOSE, "send_to_other_axudp_targets(%s/%s): transmit to %s", get_id().c_str(), m.get_id_short().c_str(), p.first.c_str());
 
-		auto content = m.get_content();
+			auto content = m.get_content();
 
-		if (transmit_udp(d, content.first, content.second) == false && continue_on_error == false) {
-			log(LL_WARNING, "send_to_other_axudp_targets(%s/%s): problem sending", get_id().c_str(), m.get_id_short().c_str());
+			if (transmit_udp(p.first, content.first, content.second) == false && continue_on_error == false) {
+				log(LL_WARNING, "send_to_other_axudp_targets(%s/%s): problem sending", get_id().c_str(), m.get_id_short().c_str());
 
-			return TE_hardware;
+				return TE_hardware;
+			}
+		}
+		else {
+			log(LL_DEBUG, "send_to_other_axudp_targets(%s): not sending to %s due to filter", m.get_id_short().c_str(), p.first.c_str());
 		}
 	}
 
@@ -179,14 +189,14 @@ void tranceiver_axudp::operator()()
         }
 }
 
-tranceiver *tranceiver_axudp::instantiate(const libconfig::Setting & node_in, work_queue_t *const w, const position_t & pos)
+tranceiver *tranceiver_axudp::instantiate(const libconfig::Setting & node_in, work_queue_t *const w, const position_t & pos, const std::map<std::string, filter *> & filters)
 {
-	std::string               id;
-	seen                     *s                 = nullptr;
-	int                       listen_port       = -1;
-	std::vector<std::string>  destinations;
-	bool                      continue_on_error = false;
-	bool                      distribute        = false;
+	std::string  id;
+	seen        *s                 = nullptr;
+	int          listen_port       = -1;
+	std::vector<std::pair<std::string, filter *> > peers;
+	bool         continue_on_error = false;
+	bool         distribute        = false;
 
         for(int i=0; i<node_in.getLength(); i++) {
                 const libconfig::Setting & node = node_in[i];
@@ -201,10 +211,40 @@ tranceiver *tranceiver_axudp::instantiate(const libconfig::Setting & node_in, wo
 
 			s = seen::instantiate(node);
 		}
-		else if (type == "destinations") {
-			std::string d = node_in.lookup(type).c_str();
+		else if (type == "peers") {
+			for(int j=0; j<node.getLength(); j++) {
+				const libconfig::Setting & peer_node = node[j];
 
-			destinations = split(d, " ");
+				std::string  host;
+				filter      *f    = nullptr;
+
+				for(int k=0; k<peer_node.getLength(); k++) {
+					const libconfig::Setting & peer_setting = peer_node[k];
+
+					std::string peer_setting_type = peer_node.getName();
+
+					if (peer_setting_type == "host")
+						host = peer_node.lookup(peer_setting_type).c_str();
+					else if (peer_setting_type == "filter") {
+						std::string filter_name = peer_node.lookup(peer_setting_type).c_str();
+
+						auto it_f = filters.find(filter_name);
+
+						if (it_f == filters.end())
+							error_exit(false, "axudp(line %d): filter \"%s\" is not defined", peer_setting.getSourceLine(), filter_name.c_str());
+
+						f = it_f->second;
+					}
+					else {
+						error_exit(false, "axudp(line %d): unknown peer type '%s'", peer_setting.getSourceLine(), peer_setting_type.c_str());
+					}
+				}
+
+				if (host.empty())
+					error_exit(false, "axudp(line %d): host not defined", peer_node.getSourceLine());
+
+				peers.push_back({ host, f });
+			}
 		}
 		else if (type == "continue-on-error")
 			continue_on_error = node_in.lookup(type);
@@ -217,5 +257,5 @@ tranceiver *tranceiver_axudp::instantiate(const libconfig::Setting & node_in, wo
 		}
         }
 
-	return new tranceiver_axudp(id, s, w, pos, listen_port, destinations, continue_on_error, distribute);
+	return new tranceiver_axudp(id, s, w, pos, listen_port, peers, continue_on_error, distribute);
 }

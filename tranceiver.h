@@ -11,6 +11,7 @@
 #include <thread>
 
 #include "buffer.h"
+#include "filter.h"
 #include "gps.h"
 #include "message.h"
 #include "seen.h"
@@ -70,7 +71,7 @@ public:
 
 	transmit_error_t       put_message(const message & m);
 
-	static tranceiver *instantiate(const libconfig::Setting & node, work_queue_t *const w, const position_t & pos, stats *const st, int device_nr, ws_global_context_t *const ws, const std::vector<tranceiver *> &tranceivers);
+	static tranceiver *instantiate(const libconfig::Setting & node, work_queue_t *const w, const position_t & pos, stats *const st, int device_nr, ws_global_context_t *const ws, const std::vector<tranceiver *> & tranceivers, std::map<std::string, filter *> & filters);
 
 	virtual void operator()() = 0;
 };
