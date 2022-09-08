@@ -41,17 +41,12 @@ transmit_error_t tranceiver_axudp::put_message_low(const message & m)
 	for(auto p : peers) {
 		log(LL_DEBUG_VERBOSE, "tranceiver_axudp::put_message_low(%s): transmit to %s (%s)", m.get_id_short().c_str(), p.first.c_str(), dump_replace(temp, temp_len).c_str());
 
-		if (p.second == nullptr || p.second->check(m)) {
-			if (transmit_udp(p.first, temp, temp_len) == false && continue_on_error == false) {
-				log(LL_WARNING, "axudp(%s): problem sending", m.get_id_short().c_str());
+		if (transmit_udp(p.first, temp, temp_len) == false && continue_on_error == false) {
+			log(LL_WARNING, "axudp(%s): problem sending", m.get_id_short().c_str());
 
-				free(temp);
+			free(temp);
 
-				return TE_hardware;
-			}
-		}
-		else {
-			log(LL_DEBUG, "axudp(%s): not sending to %s due to filter", m.get_id_short().c_str(), p.first.c_str());
+			return TE_hardware;
 		}
 	}
 
@@ -221,7 +216,7 @@ tranceiver *tranceiver_axudp::instantiate(const libconfig::Setting & node_in, wo
 				for(int k=0; k<peer_node.getLength(); k++) {
 					const libconfig::Setting & peer_setting = peer_node[k];
 
-					std::string peer_setting_type = peer_node.getName();
+					std::string peer_setting_type = peer_setting.getName();
 
 					if (peer_setting_type == "host")
 						host = peer_node.lookup(peer_setting_type).c_str();
