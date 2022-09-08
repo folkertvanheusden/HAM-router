@@ -24,7 +24,7 @@ std::string get_html_page_header(const bool wide)
 	return std::string("<!DOCTYPE html>"
 		"<html lang=\"en\">"
 		"<head>"
-		"<title>LoRa APRS gateway</title>"
+		"<title>HAM-router</title>"
 		"<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
 		"<link href=\"") + (wide ? "stylesheet-w.css" : "stylesheet.css") + "\" rel=\"stylesheet\" type=\"text/css\">"
 		"<meta charset=\"utf-8\">"
