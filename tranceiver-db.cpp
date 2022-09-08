@@ -43,7 +43,7 @@ tranceiver_db::tranceiver_db(const std::string & id, seen *const s, work_queue_t
 	tranceiver(id, s, w, pos),
 	d(d)
 {
-	log(LL_INFO, "Instantiated MongoDB (%s)", id.c_str());
+	log(LL_INFO, "Instantiated MongoDB");
 }
 
 tranceiver_db::~tranceiver_db()
@@ -100,7 +100,7 @@ tranceiver *tranceiver_db::instantiate(const libconfig::Setting & node_in, work_
 
 	return new tranceiver_db(id, s, w, pos, d);
 #else
-	log(LL_ERROR, "(line %d): No MongoDB support compiled in!", node_in.getSourceLine());
+	llog(LL_ERROR, node_in, "No MongoDB support compiled in!");
 
 	error_exit(false, "No MongoDB support compiled in!");
 

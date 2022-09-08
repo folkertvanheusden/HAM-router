@@ -19,7 +19,7 @@ static std::optional<std::string> receive_string(const int fd)
 	for(;;) {
 		char c = 0;
 		if (read(fd, &c, 1) <= 0) {
-			log(LL_WARNING, "APRS-SI: Receive failed: %s", strerror(errno));
+			::log(LL_WARNING, "APRS-SI: Receive failed: %s", strerror(errno));
 			return { };
 		}
 
@@ -40,7 +40,7 @@ transmit_error_t tranceiver_aprs_si::put_message_low(const message & m)
 		return TE_hardware;
 
 	if (content.first[0] != '<' || content.first[1] != 0xff || content.first[2] != 0x01) {  // not an APRS packet?
-		log(LL_DEBUG, "tranceiver_aprs_si::put_message_low(%s): not an APRS packet %s", m.get_id_short().c_str(), dump_hex(content.first, content.second).c_str());
+		mlog(LL_DEBUG, m, "put_message_low", myformat("not an APRS packet %s", dump_hex(content.first, content.second).c_str()));
 
 		return TE_ok;
 	}
@@ -50,7 +50,7 @@ transmit_error_t tranceiver_aprs_si::put_message_low(const message & m)
 	auto rate_limit_rc = s->check(content.first, content.second);
 
 	if (rate_limit_rc.first == false) {
-		log(LL_DEBUG_VERBOSE, "tranceiver_aprs_si::put_message_low(%s): denied by rate limiter", m.get_id_short().c_str());
+		mlog(LL_DEBUG_VERBOSE, m, "put_message_low", "denied by rate limiter");
 
 		stats_inc_counter(cnt_frame_aprs_rate_limited);
 
@@ -81,7 +81,7 @@ transmit_error_t tranceiver_aprs_si::put_message_low(const message & m)
 
 			content_out = from + ">" + to_full + ",qAO," + local_callsign + content_out.substr(colon);
 
-			log(LL_DEBUG_VERBOSE, "tranceiver_aprs_si::put_message_low(%s): %s => %s", m.get_id_short().c_str(), from.c_str(), to.c_str());
+			mlog(LL_DEBUG_VERBOSE, m, "put_message_low", from + " => " + to);
 		}
 		else {
 			stats_inc_counter(cnt_aprs_invalid);
@@ -115,12 +115,12 @@ transmit_error_t tranceiver_aprs_si::put_message_low(const message & m)
 					fd = -1;
 				}
 				else {
-					log(LL_DEBUG, "recv: %s", reply.value().c_str());
+					log(LL_DEBUG, "recv: " + reply.value());
 				}
 			}
 		}
 		else {
-			log(LL_ERROR, "failed to connect: %s", strerror(errno));
+			log(LL_ERROR, myformat("failed to connect: %s", strerror(errno)));
 		}
 	}
 
@@ -130,12 +130,12 @@ transmit_error_t tranceiver_aprs_si::put_message_low(const message & m)
 
 		std::string payload     = content_out + "\r\n";
 
-		log(LL_DEBUG, myformat("(%s) To APRS-IS: %s", m.get_id_short().c_str(), content_out.c_str()).c_str());
+		log(LL_DEBUG, myformat("To APRS-IS: %s", content_out.c_str()));
 
 		if (WRITE(fd, reinterpret_cast<const uint8_t *>(payload.c_str()), payload.size()) != ssize_t(payload.size())) {
 			close(fd);
 			fd = -1;
-			log(LL_WARNING, "Failed to transmit %s APRS data to aprsi (%s)", m.get_id_short().c_str(), strerror(errno));
+			log(LL_WARNING, myformat("Failed to transmit APRS data to aprsi (%s)", strerror(errno)));
 		}
 	}
 
@@ -148,7 +148,7 @@ tranceiver_aprs_si::tranceiver_aprs_si(const std::string & id, seen *const s, wo
 	aprs_pass(aprs_pass),
 	local_callsign(local_callsign)
 {
-	log(LL_INFO, "Instantiated APRS-SI (%s)", id.c_str());
+	log(LL_INFO, "Instantiated APRS-SI");
 
         cnt_frame_aprs              = st->register_stat(myformat("%s-aprs-frames",              get_id().c_str()), myformat("1.3.6.1.2.1.4.57850.2.4.%zu.1", device_nr), snmp_integer::si_counter64);
         cnt_frame_aprs_rate_limited = st->register_stat(myformat("%s-aprs-frames-rate-limited", get_id().c_str()), myformat("1.3.6.1.2.1.4.57850.2.4.%zu.2", device_nr), snmp_integer::si_counter64);

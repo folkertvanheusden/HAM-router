@@ -32,7 +32,7 @@ tranceiver_beacon::tranceiver_beacon(const std::string & id, seen *const s, work
 	bm(bm),
 	callsign(callsign)
 {
-	log(LL_INFO, "Instantiated beacon (%s)", id.c_str());
+	log(LL_INFO, "Instantiated beacon");
 
 	th = new std::thread(std::ref(*this));
 }
@@ -104,12 +104,12 @@ void tranceiver_beacon::operator()()
 			free(packet_binary.first);
 		}
 		else {
-			log(LL_INFO, "UNEXPECTED BEACON MODE");
+			log(LL_INFO, myformat("UNEXPECTED BEACON MODE (%d)", bm));
 
 			break;
 		}
 
-		log(LL_INFO, "Send beacon %s", m->get_id_short().c_str());
+		log(LL_INFO, "Send beacon " + m->get_id_short());
 
 		queue_incoming_message(*m);
 

@@ -61,7 +61,7 @@ transmit_error_t tranceiver::queue_incoming_message(const message & m)
 		auto ratelimit_rc = s->check(content.first, content.second);
 
 		if (ratelimit_rc.first == false) {
-			log(LL_DEBUG, "tranceiver::queue_incoming_message(%s: %s): dropped because of duplicates rate limiting", id.c_str(), m.get_id_short().c_str());
+			mlog(LL_DEBUG, m, "queue_incoming_message", "dropped because of duplicates rate limiting");
 
 			return TE_ratelimiting;
 		}
@@ -99,7 +99,7 @@ transmit_error_t tranceiver::queue_incoming_message(const message & m)
 
 		incoming_cv.notify_all();
 
-		log(LL_DEBUG, "tranceiver::queue_incoming_message(%s: %s): message queued", id.c_str(), m.get_id_short().c_str());
+		mlog(LL_DEBUG, m, "queue_incoming_message", "message queued");
 	}
 
 	// let main know that there's work to process
@@ -199,4 +199,25 @@ void tranceiver::register_snmp_counters(stats *const st, const int device_nr)
 
 	if (s)
 		s->register_snmp_counters(st, get_id(), device_nr);
+}
+
+void tranceiver::log(const int llevel, const std::string & str)
+{
+	::log(llevel, (get_type_name() + "(" + get_id() + "): " + str).c_str());
+}
+
+void tranceiver::mlog(const int llevel, const message & m, const std::string & where, const std::string & str)
+{
+	auto meta = m.get_meta();
+
+	auto it   = meta.find("pkt-crc");
+
+	auto crc  = it != meta.end() ? it->second.s_value : std::string("-");
+
+	::log(llevel, (get_type_name() + "(" + get_id() + "|" + where + ")[" + m.get_id_short() + "|" + crc + "]: " + str).c_str());
+}
+
+void tranceiver::llog(const int llevel, const libconfig::Setting & node, const std::string & str)
+{
+	::log(llevel, (get_type_name() + "(" + get_id() + ")@" + myformat("%u", node.getSourceLine()) + ": " + str).c_str());
 }

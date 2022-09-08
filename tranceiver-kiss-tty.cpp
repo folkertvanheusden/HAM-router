@@ -25,7 +25,7 @@
 tranceiver_kiss_tty::tranceiver_kiss_tty(const std::string & id, seen *const s, work_queue_t *const w, const position_t & pos, const std::string & tty_path, const int tty_bps) :
 	tranceiver_kiss(id, s, w, pos)
 {
-	log(LL_INFO, "Instantiating KISS-tty (%s)", id.c_str());
+	log(LL_INFO, "Instantiating KISS-tty");
 
 	fd = open(tty_path.c_str(), O_RDWR | O_NOCTTY);
 

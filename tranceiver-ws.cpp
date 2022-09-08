@@ -29,7 +29,7 @@ transmit_error_t tranceiver_ws::put_message_low(const message & m)
 tranceiver_ws::tranceiver_ws(const std::string & id, seen *const s, work_queue_t *const w, const position_t & pos, const int http_port, const std::string & ws_url, const int ws_port, stats *const st, const bool ws_ssl_enabled, const std::string & ws_ssl_cert, const std::string & ws_ssl_priv_key, const std::string & ws_ssl_ca, db *const d) :
 	tranceiver(id, s, w, pos)
 {
-	log(LL_INFO, "Instantiated websockets (%s)", id.c_str());
+	log(LL_INFO, "Instantiated websockets");
 
 	if (ws_port != -1)
                 start_websocket_thread(ws_port, &ws, ws_ssl_enabled, ws_ssl_cert, ws_ssl_priv_key, ws_ssl_ca, d);

@@ -22,7 +22,7 @@
 tranceiver_kiss_kernel::tranceiver_kiss_kernel(const std::string & id, seen *const s, work_queue_t *const w, const position_t & pos, const std::string & callsign, const std::string & if_up) :
 	tranceiver_kiss(id, s, w, pos)
 {
-	log(LL_INFO, "Instantiating KISS-kernel (%s)", id.c_str());
+	log(LL_INFO, "Instantiating KISS-kernel");
 
 	int fd_master = -1;
 	int fd_slave  = -1;

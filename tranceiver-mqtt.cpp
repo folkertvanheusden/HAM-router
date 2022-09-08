@@ -18,8 +18,6 @@ void on_mqtt_message(mosquitto *mi, void *user, const mosquitto_message *msg)
 {
 	tranceiver_mqtt *t = reinterpret_cast<tranceiver_mqtt *>(user);
 
-	log(LL_DEBUG, "Transmit msg from MQTT: %s", std::string(reinterpret_cast<const char *>(msg->payload), msg->payloadlen).c_str());
-
         uint64_t msg_id = get_random_uint64_t();
 
 	timeval tv;
@@ -30,6 +28,8 @@ void on_mqtt_message(mosquitto *mi, void *user, const mosquitto_message *msg)
                         msg_id,
                         reinterpret_cast<uint8_t *>(msg->payload),
                         msg->payloadlen);
+
+	t->mlog(LL_DEBUG, m, "on_mqtt_message", "Transmit msg from MQTT: " + std::string(reinterpret_cast<const char *>(msg->payload), msg->payloadlen));
 
         t->queue_incoming_message(m);
 }
@@ -66,7 +66,7 @@ transmit_error_t tranceiver_mqtt::put_message_low(const message & m)
 
 	int err = 0;
 	if ((err = mosquitto_publish(mi, nullptr, topic_out.c_str(), content.second, content.first, 0, false)) != MOSQ_ERR_SUCCESS) {
-		log(LL_WARNING, "mqtt failed to publish %s: %s", m.get_id_short().c_str(), mosquitto_strerror(err));
+		mlog(LL_WARNING, m, "put_message_low", myformat("mqtt failed to publish: %s", mosquitto_strerror(err)));
 
 		return TE_hardware;
 	}
@@ -74,7 +74,7 @@ transmit_error_t tranceiver_mqtt::put_message_low(const message & m)
 	std::string json = message_to_json(m);
 
 	if ((err = mosquitto_publish(mi, nullptr, topic_out_json.c_str(), json.size(), json.c_str(), 0, false)) != MOSQ_ERR_SUCCESS) {
-		log(LL_WARNING, "mqtt failed to publish (json) %s: %s", m.get_id_short().c_str(), mosquitto_strerror(err));
+		mlog(LL_WARNING, m, "put_message_low", myformat("mqtt failed to publish (json): %s", mosquitto_strerror(err)));
 
 		return TE_hardware;
 	}
@@ -86,7 +86,7 @@ tranceiver_mqtt::tranceiver_mqtt(const std::string & id, seen *const s, work_que
 	tranceiver(id, s, w, pos),
 	topic_in(topic_in), topic_out(topic_out), topic_out_json(topic_out_json)
 {
-	log(LL_INFO, "Instantiated MQTT (%s)", id.c_str());
+	log(LL_INFO, "Instantiated MQTT");
 
 	mi = init_mqtt(this, mqtt_host, mqtt_port, topic_in);
 }

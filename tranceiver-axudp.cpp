@@ -39,10 +39,10 @@ transmit_error_t tranceiver_axudp::put_message_low(const message & m)
 	temp[len + 1] = crc >> 8;
 
 	for(auto p : peers) {
-		log(LL_DEBUG_VERBOSE, "tranceiver_axudp::put_message_low(%s): transmit to %s (%s)", m.get_id_short().c_str(), p.first.c_str(), dump_replace(temp, temp_len).c_str());
+		mlog(LL_DEBUG_VERBOSE, m, "put_message_low", myformat("transmit to %s (%s)", p.first.c_str(), dump_replace(temp, temp_len).c_str()));
 
 		if (transmit_udp(p.first, temp, temp_len) == false && continue_on_error == false) {
-			log(LL_WARNING, "axudp(%s): problem sending", m.get_id_short().c_str());
+			mlog(LL_WARNING, m, "put_message_low", "problem sending");
 
 			free(temp);
 
@@ -62,7 +62,7 @@ tranceiver_axudp::tranceiver_axudp(const std::string & id, seen *const s, work_q
 	continue_on_error(continue_on_error),
 	distribute(distribute)
 {
-	log(LL_INFO, "Instantiated AXUDP (%s)", get_id().c_str());
+	log(LL_INFO, "Instantiated AXUDP");
 
 	fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
@@ -87,24 +87,24 @@ transmit_error_t tranceiver_axudp::send_to_other_axudp_targets(const message & m
 {
 	for(auto p : peers) {
 		if (p.first == came_from) {
-			log(LL_DEBUG_VERBOSE, "send_to_other_axudp_targets(%s/%s): not (re-)sending to %s", get_id().c_str(), m.get_id_short().c_str(), p.first.c_str());
+			mlog(LL_DEBUG_VERBOSE, m, "send_to_other_axudp_targets", myformat("not (re-)sending to %s", p.first.c_str()));
 
 			continue;
 		}
 
 		if (p.second == nullptr || p.second->check(m)) {
-			log(LL_DEBUG_VERBOSE, "send_to_other_axudp_targets(%s/%s): transmit to %s", get_id().c_str(), m.get_id_short().c_str(), p.first.c_str());
+			mlog(LL_DEBUG_VERBOSE, m, "send_to_other_axudp_targets", myformat("transmit to %s", p.first.c_str()));
 
 			auto content = m.get_content();
 
 			if (transmit_udp(p.first, content.first, content.second) == false && continue_on_error == false) {
-				log(LL_WARNING, "send_to_other_axudp_targets(%s/%s): problem sending", get_id().c_str(), m.get_id_short().c_str());
+				mlog(LL_WARNING, m, "send_to_other_axudp_targets", "problem sending");
 
 				return TE_hardware;
 			}
 		}
 		else {
-			log(LL_DEBUG, "send_to_other_axudp_targets(%s): not sending to %s due to filter", m.get_id_short().c_str(), p.first.c_str());
+			mlog(LL_DEBUG, m, "send_to_other_axudp_targets", myformat("not sending to %s due to filter", p.first.c_str()));
 		}
 	}
 
@@ -118,7 +118,7 @@ void tranceiver_axudp::operator()()
 	if (listen_port == -1)
 		return;
 
-	log(LL_INFO, "APRS-SI(%s): started thread", get_id().c_str());
+	log(LL_INFO, "started thread");
 
 	pollfd fds[] = { { fd, POLLIN, 0 } };
 
@@ -130,7 +130,7 @@ void tranceiver_axudp::operator()()
 				continue;
 
 			if (rc == -1) {
-				log(LL_ERROR, "tranceiver_axudp(%s): poll returned %s", get_id().c_str(), strerror(errno));
+				log(LL_ERROR, myformat("poll returned %s", strerror(errno)));
 
 				break;
 			}
@@ -157,7 +157,7 @@ void tranceiver_axudp::operator()()
 						reinterpret_cast<const uint8_t *>(buffer),
 						n - 2 /* "remove" crc */);
 
-				log(LL_DEBUG_VERBOSE, "tranceiver_axudp(%s/%s): received message from %s", get_id().c_str(), m.get_id_short().c_str(), came_from.c_str());
+				mlog(LL_DEBUG_VERBOSE, m, "operator", "received message from " + came_from);
 
 				// if an error occured, do not pass on to
 				transmit_error_t rc = queue_incoming_message(m);
@@ -173,13 +173,13 @@ void tranceiver_axudp::operator()()
 				}
 			}
 			else if (n == -1) {
-				log(LL_WARNING, "axudp(%s): recvfrom returned %s", get_id().c_str(), strerror(errno));
+				log(LL_WARNING, myformat("recvfrom returned %s", strerror(errno)));
 			}
 
 			free(buffer);
                 }
                 catch(const std::exception& e) {
-                        log(LL_ERROR, "tranceiver_axudp(%s): recvfrom failed: %s", get_id().c_str(), e.what());
+                        log(LL_ERROR, myformat("recvfrom failed: %s", e.what()));
                 }
         }
 }

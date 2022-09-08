@@ -46,7 +46,7 @@ void * rx_f(void *in)
 
 	m.set_meta(meta);
 
-	log(LL_DEBUG, "LoRa-sx1278 rx(%s), SNR: %f, RSSI: %d, CRC: %d: %s (ascii)", m.get_id_short().c_str(), rx->SNR, rx->RSSI, rx->CRC, dump_replace(reinterpret_cast<uint8_t *>(rx->buf), rx->size).c_str());
+	t->mlog(LL_DEBUG, m, "rx_f", myformat("LoRa-sx1278, SNR: %f, RSSI: %d, CRC: %d: %s (ascii)", rx->SNR, rx->RSSI, rx->CRC, dump_replace(reinterpret_cast<uint8_t *>(rx->buf), rx->size).c_str()));
 
 	t->queue_incoming_message(m);
 
@@ -54,7 +54,7 @@ void * rx_f(void *in)
 		auto rc = t->put_message(m);
 
 		if (rc != TE_ok)
-			log(LL_WARNING, "LoRa-sx1278 digipeat(%s), failed: %d", m.get_id_short().c_str(), rc);
+			t->mlog(LL_WARNING, m, "rx_f", myformat("digipeat failed: %d", rc));
 	}
 
 	free(rx);
@@ -68,14 +68,14 @@ transmit_error_t tranceiver_lora_sx1278::put_message_low(const message & m)
 	auto content = m.get_content();
 
 	if (content.second > 255) {
-		log(LL_WARNING, "tranceiver_lora_sx1278::put_message_low(%s): packet too big (%d bytes)", m.get_id_short().c_str(), content.second);
+		mlog(LL_WARNING, m, "put_message_low", myformat("packet too big (%d bytes)", content.second));
 
 		return TE_hardware;
 	}
 
-	std::unique_lock<std::mutex> lck(lock);
+	mlog(LL_DEBUG, m, "put_message_low", dump_replace(reinterpret_cast<const uint8_t *>(content.first), content.second));
 
-	log(LL_DEBUG, "tranceiver_lora_sx1278::put_message_low(%s): %s", m.get_id_short().c_str(), dump_replace(reinterpret_cast<const uint8_t *>(content.first), content.second).c_str());
+	std::unique_lock<std::mutex> lck(lock);
 
 	memcpy(modem.tx.data.buf, content.first, content.second);
 
@@ -93,7 +93,7 @@ transmit_error_t tranceiver_lora_sx1278::put_message_low(const message & m)
 	while(LoRa_get_op_mode(&modem) != STDBY_MODE && !terminate)
 		usleep(101000);
 
-	log(LL_DEBUG, "tranceiver_lora_sx1278::put_message_low(%s): time on air data - Tsym: %f; Tpkt: %f; payloadSymbNb: %u", m.get_id_short().c_str(), modem.tx.data.Tsym, modem.tx.data.Tpkt, modem.tx.data.payloadSymbNb);
+	mlog(LL_DEBUG, m, "put_message_low", myformat("time on air data - Tsym: %f; Tpkt: %f; payloadSymbNb: %u", modem.tx.data.Tsym, modem.tx.data.Tpkt, modem.tx.data.payloadSymbNb));
 	// TODO: calculate overhead by measuring how long this routine took
 
 	LoRa_receive(&modem);
@@ -108,7 +108,7 @@ tranceiver_lora_sx1278::tranceiver_lora_sx1278(const std::string & id, seen *con
 	tranceiver(id, s, w, pos),
 	digipeater(digipeater)
 {
-	log(LL_INFO, "Instantiated LoRa SX1278 (%s)", id.c_str());
+	log(LL_INFO, "Instantiated LoRa SX1278");
 
 	memset(&modem, 0x00, sizeof modem);
 
@@ -141,8 +141,6 @@ tranceiver_lora_sx1278::tranceiver_lora_sx1278(const std::string & id, seen *con
 	LoRa_begin(&modem);
 
 	LoRa_receive(&modem);
-
-	log(LL_INFO, "LoRa SX1278 (%s) initialized", id.c_str());
 }
 
 tranceiver_lora_sx1278::~tranceiver_lora_sx1278()

@@ -59,13 +59,17 @@ public:
 	void stop();
 
 	std::string get_id() const { return id; }
-	virtual std::string get_type_name() const { return "base class"; }
+	virtual std::string get_type_name() const = 0;
 
 	void register_snmp_counters(stats *const s, const int device_nr);
 
 	transmit_error_t queue_incoming_message(const message & m);
 
 	bool peek();
+
+	void log(const int llevel, const std::string & str);
+	void llog(const int llevel, const libconfig::Setting & node, const std::string & str);
+	void mlog(const int llevel, const message & m, const std::string & where, const std::string & str);
 
 	std::optional<message> get_message();
 
