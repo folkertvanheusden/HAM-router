@@ -50,7 +50,7 @@ std::thread * process(configuration *const cfg, work_queue_t *const w, snmp *con
 
 			if (m.has_value() == false) {
 				if (!terminate)
-					log(LL_WARNING, "Tranceiver \"%s\" did not return data while it had ready-state", t_has_work->get_id().c_str());
+					t_has_work->mlog(LL_WARNING, m.value(), "process", "Tranceiver did not return data while it had ready-state");
 
 				continue;
 			}
@@ -62,18 +62,18 @@ std::thread * process(configuration *const cfg, work_queue_t *const w, snmp *con
 				auto ratelimit_rc = s->check(content.first, content.second);
 
 				if (ratelimit_rc.first == false) {
-					log(LL_DEBUG, "main(%s): dropped because of duplicates rate limiting", m.value().get_id_short().c_str());
+					t_has_work->mlog(LL_DEBUG, m.value(), "process", "Dropped because of duplicates rate limiting");
 
 					continue;
 				}
 			}
 
-			log(LL_DEBUG_VERBOSE, "Forwarding message from %s (%s): %s", m.value().get_source().c_str(), m.value().get_id_short().c_str(), dump_replace(content.first, content.second).c_str());
+			t_has_work->mlog(LL_DEBUG_VERBOSE, m.value(), "process", "Forwarding message from " + m.value().get_source() + ": " + dump_replace(content.first, content.second));
 
 			transmit_error_t rc = cfg->get_switchboard()->put_message(t_has_work, m.value(), true);
 
 			if (rc != TE_ok)
-				log(LL_INFO, "Switchboard indicated error during put_message: %d", rc);
+				t_has_work->mlog(LL_INFO, m.value(), "process", myformat("Switchboard indicated error during put_message: %d", rc));
 			// Put this in a thread ^^^^
 		}
 	});

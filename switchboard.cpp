@@ -50,7 +50,7 @@ transmit_error_t switchboard::put_message(tranceiver *const from, const message 
 			log(LL_DEBUG, "Forwarding %s to %zu tranceivers", m.get_id_short().c_str(), target_filters_pair.t.size());
 
 			for(auto t : target_filters_pair.t) {
-				log(LL_DEBUG_VERBOSE, "Forwarding %s to: %s", m.get_id_short().c_str(), t->get_id().c_str());
+				t->mlog(LL_DEBUG_VERBOSE, m, "put_message", "Forwarding to " + t->get_id());
 
 				transmit_error_t rc = t->put_message(m);
 

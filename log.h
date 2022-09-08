@@ -2,6 +2,7 @@
 #pragma once
 #include <string>
 
+
 #define LL_FATAL	0
 #define LL_ERROR	1
 #define LL_WARNING	2
