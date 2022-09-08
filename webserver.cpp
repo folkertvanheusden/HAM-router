@@ -140,12 +140,12 @@ MHD_Result process_http_request(void *cls,
 
 			auto heatmap_data = parameters.d->get_heatmap();
 
-			uint32_t max_count = 0;
+			int max_count = 0;
 
-			uint32_t counts[7][24] { 0 };
+			int counts[7][24] { 0 };
 
 			for(auto row : heatmap_data) {
-				max_count = std::max(max_count, std::get<2>(row));
+				max_count = std::max(max_count, int(std::get<2>(row)));
 
 				counts[std::get<0>(row) - 1][std::get<1>(row)] = std::get<2>(row);
 			}
@@ -159,8 +159,8 @@ MHD_Result process_http_request(void *cls,
 				page += "<th>" + myformat("%02d", hour) + "</th>";
 			page += "</tr>\n";
 
-			constexpr uint8_t start_color[] = { 80,  80, 255 };
-			constexpr uint8_t end_color[]   = { 80, 255,  80 };
+			constexpr int start_color[] = { 80,  80, 255 };
+			constexpr int end_color[]   = { 80, 255,  80 };
 
 			const std::string day_name[] = { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
 
@@ -168,14 +168,14 @@ MHD_Result process_http_request(void *cls,
 				page += "<tr><th>" + day_name[day] + "</th>";
 
 				for(int hour=0; hour<24; hour++) {
-					uint32_t count = counts[day][hour];
+					int count = counts[day][hour];
 
 					if (count == 0)
 						page += "<td></td>";
 					else {
-						uint8_t red   = (end_color[0] - start_color[0]) * count / max_count + start_color[0];
-						uint8_t green = (end_color[1] - start_color[1]) * count / max_count + start_color[1];
-						uint8_t blue  = (end_color[2] - start_color[2]) * count / max_count + start_color[2];
+						int red   = (end_color[0] - start_color[0]) * count / max_count + start_color[0];
+						int green = (end_color[1] - start_color[1]) * count / max_count + start_color[1];
+						int blue  = (end_color[2] - start_color[2]) * count / max_count + start_color[2];
 
 						page += "<td style=\"background-color: #" + myformat("%02x%02x%02x", red, green, blue) + "\">" + std::to_string(count) + "</td>";
 					}
