@@ -65,18 +65,23 @@ transmit_error_t tranceiver_mqtt::put_message_low(const message & m)
 	auto content = m.get_content();
 
 	int err = 0;
-	if ((err = mosquitto_publish(mi, nullptr, topic_out.c_str(), content.second, content.first, 0, false)) != MOSQ_ERR_SUCCESS) {
-		mlog(LL_WARNING, m, "put_message_low", myformat("mqtt failed to publish: %s", mosquitto_strerror(err)));
 
-		return TE_hardware;
+	if (topic_out.empty() == false) {
+		if ((err = mosquitto_publish(mi, nullptr, topic_out.c_str(), content.second, content.first, 0, false)) != MOSQ_ERR_SUCCESS) {
+			mlog(LL_WARNING, m, "put_message_low", myformat("mqtt failed to publish: %s", mosquitto_strerror(err)));
+
+			return TE_hardware;
+		}
 	}
 
-	std::string json = message_to_json(m);
+	if (topic_out_json.empty() == false) {
+		std::string json = message_to_json(m);
 
-	if ((err = mosquitto_publish(mi, nullptr, topic_out_json.c_str(), json.size(), json.c_str(), 0, false)) != MOSQ_ERR_SUCCESS) {
-		mlog(LL_WARNING, m, "put_message_low", myformat("mqtt failed to publish (json): %s", mosquitto_strerror(err)));
+		if ((err = mosquitto_publish(mi, nullptr, topic_out_json.c_str(), json.size(), json.c_str(), 0, false)) != MOSQ_ERR_SUCCESS) {
+			mlog(LL_WARNING, m, "put_message_low", myformat("mqtt failed to publish (json): %s", mosquitto_strerror(err)));
 
-		return TE_hardware;
+			return TE_hardware;
+		}
 	}
 
 	return TE_ok;
