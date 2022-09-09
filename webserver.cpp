@@ -147,7 +147,7 @@ MHD_Result process_http_request(void *cls,
 			for(auto row : heatmap_data) {
 				max_count = std::max(max_count, int(std::get<2>(row)));
 
-				counts[std::get<0>(row) - 1][std::get<1>(row)] = std::get<2>(row);
+				counts[std::get<0>(row)][std::get<1>(row)] = std::get<2>(row);
 			}
 
 			page += "<h3>heatmap</h3>\n";
@@ -162,7 +162,7 @@ MHD_Result process_http_request(void *cls,
 			constexpr int start_color[] = { 80,  80, 255 };
 			constexpr int end_color[]   = { 80, 255,  80 };
 
-			const std::string day_name[] = { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
+			const std::string day_name[] = { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" };
 
 			for(int day=0; day<7; day++) {
 				page += "<tr><th>" + day_name[day] + "</th>";
