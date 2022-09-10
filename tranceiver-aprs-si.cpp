@@ -142,8 +142,8 @@ transmit_error_t tranceiver_aprs_si::put_message_low(const message & m)
 	return fd != -1 ? TE_ok : TE_hardware;
 }
 
-tranceiver_aprs_si::tranceiver_aprs_si(const std::string & id, seen *const s, work_queue_t *const w, const position_t & pos, const std::string & aprs_user, const std::string & aprs_pass, const std::string & local_callsign, stats *const st, int device_nr) :
-	tranceiver(id, s, w, pos),
+tranceiver_aprs_si::tranceiver_aprs_si(const std::string & id, seen *const s, work_queue_t *const w, gps_connector *const gps, const std::string & aprs_user, const std::string & aprs_pass, const std::string & local_callsign, stats *const st, int device_nr) :
+	tranceiver(id, s, w, gps),
 	aprs_user(aprs_user),
 	aprs_pass(aprs_pass),
 	local_callsign(local_callsign)
@@ -166,7 +166,7 @@ void tranceiver_aprs_si::operator()()
 	// no-op
 }
 
-tranceiver *tranceiver_aprs_si::instantiate(const libconfig::Setting & node_in, work_queue_t *const w, const position_t & pos, stats *const st, int device_nr)
+tranceiver *tranceiver_aprs_si::instantiate(const libconfig::Setting & node_in, work_queue_t *const w, gps_connector *const gps, stats *const st, int device_nr)
 {
 	std::string  id;
 	seen        *s = nullptr;
@@ -202,5 +202,5 @@ tranceiver *tranceiver_aprs_si::instantiate(const libconfig::Setting & node_in, 
 	if (local_callsign.empty())
 		error_exit(false, "aprs_si(line %d): No local callsign selected", node_in.getSourceLine());
 
-	return new tranceiver_aprs_si(id, s, w, pos, aprs_user, aprs_pass, local_callsign, st, device_nr);
+	return new tranceiver_aprs_si(id, s, w, gps, aprs_user, aprs_pass, local_callsign, st, device_nr);
 }

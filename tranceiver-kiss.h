@@ -16,7 +16,7 @@ protected:
 	transmit_error_t put_message_low(const message & m) override;
 
 public:
-	tranceiver_kiss(const std::string & id, seen *const s, work_queue_t *const w, const position_t & pos);
+	tranceiver_kiss(const std::string & id, seen *const s, work_queue_t *const w, gps_connector *const gps);
 	virtual ~tranceiver_kiss();
 
 	virtual std::string get_type_name() const override { return "KISS-base"; }

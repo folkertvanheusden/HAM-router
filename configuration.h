@@ -2,6 +2,7 @@
 #include <vector>
 
 #include "filter.h"
+#include "gps.h"
 #include "seen.h"
 #include "snmp.h"
 #include "switchboard.h"
@@ -25,9 +26,9 @@ private:
 
 	ws_global_context_t        ws;
 
-	position_t                 local_pos { 0       };
-
 	std::string                logfile   { "gateway.log" };
+
+	gps_connector             *gps       { nullptr };
 
 	std::map<std::string, filter *> filters;
 
@@ -53,19 +54,19 @@ public:
 
 	std::vector<tranceiver *> & get_tranceivers() { return tranceivers; }
 
-	tranceiver  * find_tranceiver(const std::string & id);
+	tranceiver    * find_tranceiver(const std::string & id);
 
-	db          * get_db()                { return d;         }
+	db            * get_db()                { return d;         }
 
-	switchboard * get_switchboard() const { return sb;        }
+	switchboard   * get_switchboard() const { return sb;        }
 
-	int           get_snmp_port() const   { return snmp_port; }
+	int             get_snmp_port() const   { return snmp_port; }
 
 	ws_global_context_t * get_websockets_context() { return &ws; }
 
-	position_t    get_local_pos() const   { return local_pos; }
+	gps_connector * get_gps() const         { return gps;       }
 
 	std::string   get_logfile() const     { return logfile;   }
 
-	seen        * get_global_repetition_filter() { return global_repetition_filter; }
+	seen          * get_global_repetition_filter() { return global_repetition_filter; }
 };

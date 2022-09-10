@@ -19,8 +19,8 @@
 #include "utils.h"
 
 
-tranceiver_kiss_kernel::tranceiver_kiss_kernel(const std::string & id, seen *const s, work_queue_t *const w, const position_t & pos, const std::string & callsign, const std::string & if_up) :
-	tranceiver_kiss(id, s, w, pos)
+tranceiver_kiss_kernel::tranceiver_kiss_kernel(const std::string & id, seen *const s, work_queue_t *const w, gps_connector *const gps, const std::string & callsign, const std::string & if_up) :
+	tranceiver_kiss(id, s, w, gps)
 {
 	log(LL_INFO, "Instantiating KISS-kernel");
 
@@ -61,7 +61,7 @@ tranceiver_kiss_kernel::~tranceiver_kiss_kernel()
 {
 }
 
-tranceiver *tranceiver_kiss_kernel::instantiate(const libconfig::Setting & node_in, work_queue_t *const w, const position_t & pos)
+tranceiver *tranceiver_kiss_kernel::instantiate(const libconfig::Setting & node_in, work_queue_t *const w, gps_connector *const gps)
 {
 	std::string  id;
 	seen        *s = nullptr;
@@ -93,5 +93,5 @@ tranceiver *tranceiver_kiss_kernel::instantiate(const libconfig::Setting & node_
 	if (callsign.empty())
 		error_exit(false, "(line %d): No callsign selected", node_in.getSourceLine());
 
-	return new tranceiver_kiss_kernel(id, s, w, pos, callsign, if_up);
+	return new tranceiver_kiss_kernel(id, s, w, gps, callsign, if_up);
 }
