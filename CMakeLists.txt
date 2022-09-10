@@ -66,10 +66,10 @@ target_link_libraries(ham-router Threads::Threads)
 target_link_libraries(ham-router -lrt)
 
 if (EXISTS "/usr/include/pigpio.h")
-	target_link_libraries(ham-router -lax25 -lmysqlcppconn -lpigpio -lutil)
+	target_link_libraries(ham-router -lax25 -lpigpio -lutil)
 	add_definitions(-DHAS_GPIO)
 else()
-	target_link_libraries(ham-router -lax25 -lmysqlcppconn -lutil)
+	target_link_libraries(ham-router -lax25 -lutil)
 endif()
 
 include(FindPkgConfig)
