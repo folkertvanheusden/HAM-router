@@ -25,8 +25,8 @@
 #include "utils.h"
 
 
-tranceiver_beacon::tranceiver_beacon(const std::string & id, seen *const s, work_queue_t *const w, const position_t & pos, const std::string & beacon_text, const int beacon_interval, const beacon_mode_t bm, const std::string & callsign) :
-	tranceiver(id, s, w, pos),
+tranceiver_beacon::tranceiver_beacon(const std::string & id, seen *const s, work_queue_t *const w, gps_connector *const gps, const std::string & beacon_text, const int beacon_interval, const beacon_mode_t bm, const std::string & callsign) :
+	tranceiver(id, s, w, gps),
 	beacon_text(beacon_text),
 	beacon_interval(beacon_interval),
 	bm(bm),
@@ -64,15 +64,19 @@ void tranceiver_beacon::operator()()
 		uint64_t    msg_id = get_random_uint64_t();
 
 		if (bm == beacon_mode_aprs) {
-			std::string aprs_text = "!" + gps_double_to_aprs(local_pos.latitude, local_pos.longitude) + "[";
+			std::optional<position_t> pos = gps->get_position();
 
-			std::string output = "<\xff\x01" + callsign + "-L>APLG01,TCPIP*,qAC:" + aprs_text + beacon_text;
+			if (pos.has_value()) {
+				std::string aprs_text = "!" + gps_double_to_aprs(pos.value().latitude, pos.value().longitude) + "[";
 
-			m = new message(tv,
-					source,
-					msg_id,
-					reinterpret_cast<const uint8_t *>(output.c_str()),
-					output.size());
+				std::string output = "<\xff\x01" + callsign + "-L>APLG01,TCPIP*,qAC:" + aprs_text + beacon_text;
+
+				m = new message(tv,
+						source,
+						msg_id,
+						reinterpret_cast<const uint8_t *>(output.c_str()),
+						output.size());
+			}
 		}
 		else if (bm == beacon_mode_ax25) {
 			ax25 packet;
@@ -109,18 +113,20 @@ void tranceiver_beacon::operator()()
 			break;
 		}
 
-		log(LL_INFO, "Send beacon " + m->get_id_short());
+		if (m) {
+			log(LL_INFO, "Send beacon " + m->get_id_short());
 
-		queue_incoming_message(*m);
+			queue_incoming_message(*m);
 
-		delete m;
+			delete m;
+		}
 
 		if (!myusleep(beacon_interval * 1000000ll, &terminate))
 			break;
         }
 }
 
-tranceiver *tranceiver_beacon::instantiate(const libconfig::Setting & node_in, work_queue_t *const w, const position_t & pos)
+tranceiver *tranceiver_beacon::instantiate(const libconfig::Setting & node_in, work_queue_t *const w, gps_connector *const gps)
 {
 	std::string   id;
 	seen         *s               = nullptr;
@@ -160,5 +166,5 @@ tranceiver *tranceiver_beacon::instantiate(const libconfig::Setting & node_in, w
 	if (callsign.empty())
 		error_exit(false, "beacon(line %d): beacons need a source-callsign configured", node_in.getSourceLine());
 
-	return new tranceiver_beacon(id, s, w, pos, beacon_text, beacon_interval, bm, callsign);
+	return new tranceiver_beacon(id, s, w, gps, beacon_text, beacon_interval, bm, callsign);
 }

@@ -18,12 +18,12 @@ protected:
 	transmit_error_t put_message_low(const message & m) override;
 
 public:
-	tranceiver_beacon(const std::string & id, seen *const s, work_queue_t *const w, const position_t & pos, const std::string & beacon_text, const int beacon_interval, const beacon_mode_t bm, const std::string & callsign);
+	tranceiver_beacon(const std::string & id, seen *const s, work_queue_t *const w, gps_connector *const gps, const std::string & beacon_text, const int beacon_interval, const beacon_mode_t bm, const std::string & callsign);
 	virtual ~tranceiver_beacon();
 
 	std::string get_type_name() const override { return "beacon"; }
 
-	static tranceiver *instantiate(const libconfig::Setting & node, work_queue_t *const w, const position_t & pos);
+	static tranceiver *instantiate(const libconfig::Setting & node, work_queue_t *const w, gps_connector *const gps);
 
 	void operator()() override;
 };

@@ -104,5 +104,10 @@ target_link_libraries(ham-router ${WEBSOCKETS_LIBRARIES})
 target_include_directories(ham-router PUBLIC ${WEBSOCKETS_INCLUDE_DIRS})
 target_compile_options(ham-router PUBLIC ${WEBSOCKETS_CFLAGS_OTHER})
 
+pkg_check_modules(GPS libgps)
+target_link_libraries(ham-router ${GPS_LIBRARIES})
+target_include_directories(ham-router PUBLIC ${GPS_INCLUDE_DIRS})
+target_compile_options(ham-router PUBLIC ${GPS_CFLAGS_OTHER})
+
 configure_file(config.h.in config.h)
 target_include_directories(ham-router PUBLIC "${PROJECT_BINARY_DIR}")

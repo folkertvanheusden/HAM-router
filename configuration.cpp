@@ -3,6 +3,7 @@
 #include "configuration.h"
 #include "db-mongodb.h"
 #include "error.h"
+#include "gps.h"
 #include "log.h"
 #include "str.h"
 #include "tranceiver-aprs-si.h"
@@ -76,13 +77,15 @@ configuration::~configuration()
 
 		delete global_repetition_filter;
 	}
+
+	delete gps;
 }
 
 void configuration::load_tranceivers(const libconfig::Setting & node_in, work_queue_t *const w, snmp_data *const sd, stats *const st, ws_global_context_t *const ws) {
 	for(int i=0; i<node_in.getLength(); i++) {
 		const libconfig::Setting & node = node_in[i];
 
-		tranceiver *t = tranceiver::instantiate(node, w, local_pos, st, i + 1, ws, tranceivers, filters);
+		tranceiver *t = tranceiver::instantiate(node, w, gps, st, i + 1, ws, tranceivers, filters);
 
 		tranceivers.push_back(t);
 	}
@@ -185,18 +188,13 @@ void configuration::load_snmp(const libconfig::Setting & node_in, snmp_data *con
 
 void configuration::load_general(const libconfig::Setting & node_in)
 {
-	bool lat_set = false;
-	bool lng_set = false;
-
         for(int i=0; i<node_in.getLength(); i++) {
                 const libconfig::Setting & node = node_in[i];
 
 		std::string type = node.getName();
 
-		if (type == "local-latitude")
-			local_pos.latitude = node_in.lookup(type),  lat_set = true;
-		else if (type == "local-longitude")
-			local_pos.longitude = node_in.lookup(type), lng_set = true;
+		if (type == "gps")
+			gps = gps_connector::instantiate(node);
 		else if (type == "logfile")
 			logfile = node_in.lookup(type).c_str();
                 else if (type == "repetition-rate-limiting") {
@@ -210,11 +208,8 @@ void configuration::load_general(const libconfig::Setting & node_in)
 		}
         }
 
-	if (lat_set != lng_set)
-		error_exit(false, "General settings: either latitude or longitude is not set");
-
-	if (lat_set && local_pos.latitude == 0. && local_pos.longitude == 0.)
-		error_exit(false, "General settings: suspicious global longitude/latitude set");
+	if (!gps)
+		error_exit(false, "No GPS configuration set");
 }
 
 void configuration::load_filters(const libconfig::Setting & node_in)

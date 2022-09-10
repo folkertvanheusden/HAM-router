@@ -87,8 +87,8 @@ transmit_error_t tranceiver_mqtt::put_message_low(const message & m)
 	return TE_ok;
 }
 
-tranceiver_mqtt::tranceiver_mqtt(const std::string & id, seen *const s, work_queue_t *const w, const position_t & pos, const std::string & mqtt_host, const int mqtt_port, const std::string & topic_in, const std::string & topic_out, const std::string & topic_out_json) :
-	tranceiver(id, s, w, pos),
+tranceiver_mqtt::tranceiver_mqtt(const std::string & id, seen *const s, work_queue_t *const w, gps_connector *const gps, const std::string & mqtt_host, const int mqtt_port, const std::string & topic_in, const std::string & topic_out, const std::string & topic_out_json) :
+	tranceiver(id, s, w, gps),
 	topic_in(topic_in), topic_out(topic_out), topic_out_json(topic_out_json)
 {
 	log(LL_INFO, "Instantiated MQTT");
@@ -105,7 +105,7 @@ void tranceiver_mqtt::operator()()
 {
 }
 
-tranceiver *tranceiver_mqtt::instantiate(const libconfig::Setting & node_in, work_queue_t *const w, const position_t & pos)
+tranceiver *tranceiver_mqtt::instantiate(const libconfig::Setting & node_in, work_queue_t *const w, gps_connector *const gps)
 {
 	std::string  id;
 	seen        *s { nullptr };
@@ -146,5 +146,5 @@ tranceiver *tranceiver_mqtt::instantiate(const libconfig::Setting & node_in, wor
 	if (mqtt_host.empty())
 		error_exit(true, "(line %d): No MQTT server selected", node_in.getSourceLine());
 
-	return new tranceiver_mqtt(id, s, w, pos, mqtt_host, mqtt_port, topic_in, topic_out, topic_out_json);
+	return new tranceiver_mqtt(id, s, w, gps, mqtt_host, mqtt_port, topic_in, topic_out, topic_out_json);
 }

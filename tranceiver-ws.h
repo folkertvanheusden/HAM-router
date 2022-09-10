@@ -15,12 +15,12 @@ protected:
 	transmit_error_t put_message_low(const message & m) override;
 
 public:
-	tranceiver_ws(const std::string & id, seen *const s, work_queue_t *const w, const position_t & pos, const int http_port, const std::string & ws_url, const int ws_port, stats *const st, const bool ws_ssl_enabled, const std::string & ws_ssl_cert, const std::string & ws_ssl_priv_key, const std::string & ws_ssl_ca, db *const d);
+	tranceiver_ws(const std::string & id, seen *const s, work_queue_t *const w, gps_connector *const gps, const int http_port, const std::string & ws_url, const int ws_port, stats *const st, const bool ws_ssl_enabled, const std::string & ws_ssl_cert, const std::string & ws_ssl_priv_key, const std::string & ws_ssl_ca, db *const d);
 	virtual ~tranceiver_ws();
 
 	std::string get_type_name() const override { return "WebSockets"; }
 
-	static tranceiver *instantiate(const libconfig::Setting & node_in, work_queue_t *const w, const position_t & pos, stats *const st, const std::vector<tranceiver *> & other_tranceivers);
+	static tranceiver *instantiate(const libconfig::Setting & node_in, work_queue_t *const w, gps_connector *const gps, stats *const st, const std::vector<tranceiver *> & other_tranceivers);
 
 	void operator()() override;
 };

@@ -36,24 +36,24 @@ private:
         uint64_t          *ifOutUcastPkts { &snmp_dummy };
 
 protected:
-	work_queue_t      *const w  { nullptr };
+	work_queue_t      *const w   { nullptr };
 
-	seen              *const s  { nullptr };
+	seen              *const s   { nullptr };
 
-	const position_t         local_pos;
+	gps_connector     *const gps { nullptr };
 
 	std::condition_variable incoming_cv;
 	std::mutex              incoming_lock;
 	std::queue<message>     incoming;
 
-	std::thread      *th        { nullptr };
+	std::thread      *th         { nullptr };
 
-	std::atomic_bool  terminate { false   };
+	std::atomic_bool  terminate  { false   };
 
 	virtual transmit_error_t put_message_low(const message & m) = 0;
 
 public:
-	tranceiver(const std::string & id, seen *const s, work_queue_t *const w, const position_t & local_pos);
+	tranceiver(const std::string & id, seen *const s, work_queue_t *const w, gps_connector *const gps);
 	virtual ~tranceiver();
 
 	void stop();
@@ -75,7 +75,7 @@ public:
 
 	transmit_error_t       put_message(const message & m);
 
-	static tranceiver *instantiate(const libconfig::Setting & node, work_queue_t *const w, const position_t & pos, stats *const st, int device_nr, ws_global_context_t *const ws, const std::vector<tranceiver *> & tranceivers, std::map<std::string, filter *> & filters);
+	static tranceiver *instantiate(const libconfig::Setting & node, work_queue_t *const w, gps_connector *const gps, stats *const st, int device_nr, ws_global_context_t *const ws, const std::vector<tranceiver *> & tranceivers, std::map<std::string, filter *> & filters);
 
 	virtual void operator()() = 0;
 };

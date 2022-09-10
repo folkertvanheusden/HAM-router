@@ -104,8 +104,8 @@ transmit_error_t tranceiver_lora_sx1278::put_message_low(const message & m)
 #endif
 }
 
-tranceiver_lora_sx1278::tranceiver_lora_sx1278(const std::string & id, seen *const s, work_queue_t *const w, const position_t & pos, const int dio0_pin, const int reset_pin, const bool digipeater, stats *const st, const int dev_nr) :
-	tranceiver(id, s, w, pos),
+tranceiver_lora_sx1278::tranceiver_lora_sx1278(const std::string & id, seen *const s, work_queue_t *const w, gps_connector *const gps, const int dio0_pin, const int reset_pin, const bool digipeater, stats *const st, const int dev_nr) :
+	tranceiver(id, s, w, gps),
 	digipeater(digipeater)
 {
 	log(LL_INFO, "Instantiated LoRa SX1278");
@@ -160,7 +160,7 @@ void tranceiver_lora_sx1278::count_packets(const bool valid)
 		stats_inc_counter(invalid_pkts);
 }
 
-tranceiver *tranceiver_lora_sx1278::instantiate(const libconfig::Setting & node_in, work_queue_t *const w, const position_t & pos, stats *const st, const int dev_nr)
+tranceiver *tranceiver_lora_sx1278::instantiate(const libconfig::Setting & node_in, work_queue_t *const w, gps_connector *const gps, stats *const st, const int dev_nr)
 {
 	std::string  id;
 	seen        *s          = nullptr;
@@ -192,5 +192,5 @@ tranceiver *tranceiver_lora_sx1278::instantiate(const libconfig::Setting & node_
 		}
         }
 
-	return new tranceiver_lora_sx1278(id, s, w, pos, dio0_pin, reset_pin, digipeater, st, dev_nr);
+	return new tranceiver_lora_sx1278(id, s, w, gps, dio0_pin, reset_pin, digipeater, st, dev_nr);
 }

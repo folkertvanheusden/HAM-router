@@ -177,8 +177,8 @@ transmit_error_t tranceiver_kiss::put_message_low(const message & m)
 	return TE_hardware;
 }
 
-tranceiver_kiss::tranceiver_kiss(const std::string & id, seen *const s, work_queue_t *const w, const position_t & pos) :
-	tranceiver(id, s, w, pos)
+tranceiver_kiss::tranceiver_kiss(const std::string & id, seen *const s, work_queue_t *const w, gps_connector *const gps) :
+	tranceiver(id, s, w, gps)
 {
 }
 

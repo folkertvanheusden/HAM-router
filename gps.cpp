@@ -1,8 +1,16 @@
+#include "config.h"
 #include <math.h>
 #include <string>
 #include <string.h>
+#if GPS_FOUND == 1
+#include <libgpsmm.h>
+#endif
 
+#include "error.h"
+#include "gps.h"
+#include "log.h"
 #include "str.h"
+
 
 // https://stackoverflow.com/questions/27126714/c-latitude-and-longitude-distance-calculator
 #define RADIO_TERRESTRE 6372797.56085
@@ -81,3 +89,114 @@ std::string gps_double_to_aprs(const double lat, const double lng)
                         int(lngd), int(floor(lngm)), int(floor(lngh)), lng > 0 ? 'E' : 'W');
 }
 
+gps_connector::gps_connector(const std::string & host, const int port, const std::optional<position_t> & default_position) :
+	default_position(default_position)
+{
+#if GPS_FOUND == 1
+	if (!host.empty()) {
+		gps_instance = new gpsmm(host.c_str(), myformat("%d", port).c_str());
+
+		if (gps_instance->stream(WATCH_ENABLE | WATCH_JSON) == nullptr)
+			error_exit(false, "GSPD cannot be contacted");
+
+		th = new std::thread(std::ref(*this));
+	}
+
+	log(LL_INFO, "gps_connector instantiated");
+#endif
+}
+
+gps_connector::~gps_connector()
+{
+	if (th) {
+		terminate = true;
+
+		th->join();
+		delete th;
+
+		delete gps_instance;
+	}
+}
+
+void gps_connector::operator()()
+{
+#if GPS_FOUND == 1
+	bool has_fix = false;
+
+	log(LL_DEBUG, "gps_connector thread started");
+
+	for(;!terminate;) {
+		if (!gps_instance->waiting(100000))  // wait 100ms for gps-data
+			continue;
+
+		gps_data_t * gpsd_data = gps_instance->read();
+		if (gpsd_data == nullptr)
+			continue;
+
+		if (gpsd_data->fix.mode < MODE_2D) {
+			current_position = { };
+
+			has_fix          = false;
+
+			continue;
+		}
+
+		current_position = { gpsd_data->fix.latitude, gpsd_data->fix.longitude };
+
+		if (!has_fix) {
+			has_fix = true;
+
+			log(LL_INFO, "GPS has fix: %f,%f", current_position.value().latitude, current_position.value().longitude);
+		}
+	}
+#endif
+}
+
+std::optional<position_t> gps_connector::get_position()
+{
+	if (current_position.has_value())
+		return current_position;
+
+	return default_position;
+}
+
+gps_connector * gps_connector::instantiate(const libconfig::Setting & node_in)
+{
+        bool        lat_set   = false;
+        bool        lng_set   = false;
+	std::string gpsd_host;
+	int         gpsd_port = 2947;
+	double      latitude  = 0.;
+	double      longitude = 0.;
+
+        for(int i=0; i<node_in.getLength(); i++) {
+                const libconfig::Setting & node = node_in[i];
+
+                std::string type = node.getName();
+
+                if (type == "local-latitude")
+                        latitude = node_in.lookup(type),  lat_set = true;
+                else if (type == "local-longitude")
+                        longitude = node_in.lookup(type), lng_set = true;
+                else if (type == "gpsd-host")
+                        gpsd_host = node_in.lookup(type).c_str();
+                else if (type == "gpsd-port")
+                        gpsd_port = node_in.lookup(type);
+                else {
+                        error_exit(false, "General setting \"%s\" is not known", type.c_str());
+                }
+        }
+
+        if (lat_set != lng_set)
+                error_exit(false, "General settings: either latitude or longitude is not set");
+
+        if (lat_set && latitude == 0. && longitude == 0.)
+                error_exit(false, "General settings: suspicious global longitude/latitude set");
+
+	std::optional<position_t> pos;
+
+	if (lat_set)
+		pos = { latitude, longitude };
+
+	return new gps_connector(gpsd_host, gpsd_port, pos);
+}

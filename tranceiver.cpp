@@ -18,11 +18,11 @@
 #include "tranceiver-ws.h"
 
 
-tranceiver::tranceiver(const std::string & id, seen *const s, work_queue_t *const w, const position_t & local_pos) :
+tranceiver::tranceiver(const std::string & id, seen *const s, work_queue_t *const w, gps_connector *const gps) :
 	id(id),
 	w(w),
 	s(s),
-	local_pos(local_pos)
+	gps(gps)
 {
 }
 
@@ -89,12 +89,16 @@ transmit_error_t tranceiver::queue_incoming_message(const message & m_in)
 
 		if (meta2.has_value()) {
 			if (meta2.value().find("latitude") != meta2.value().end() && meta2.value().find("longitude") != meta2.value().end()) {
-				double cur_lat = meta2.value().find("latitude")->second.d_value;
-				double cur_lng = meta2.value().find("longitude")->second.d_value;
+				std::optional<position_t> position = gps->get_position();
 
-				double distance = calcGPSDistance(cur_lat, cur_lng, local_pos.latitude, local_pos.longitude);
+				if (position.has_value()) {
+					double cur_lat = meta2.value().find("latitude")->second.d_value;
+					double cur_lng = meta2.value().find("longitude")->second.d_value;
 
-				meta2.value().insert({ "distance", myformat("%.2f", distance) });
+					double distance = calcGPSDistance(cur_lat, cur_lng, position.value().latitude, position.value().longitude);
+
+					meta2.value().insert({ "distance", myformat("%.2f", distance) });
+				}
 			}
 
 			copy.set_meta(meta2.value());
@@ -154,38 +158,38 @@ transmit_error_t tranceiver::put_message(const message & m)
 	return put_message_low(m);
 }
 
-tranceiver *tranceiver::instantiate(const libconfig::Setting & node, work_queue_t *const w, const position_t & pos, stats *const st, int device_nr, ws_global_context_t *const ws, const std::vector<tranceiver *> & tranceivers, std::map<std::string, filter *> & filters)
+tranceiver *tranceiver::instantiate(const libconfig::Setting & node, work_queue_t *const w, gps_connector *const gps, stats *const st, int device_nr, ws_global_context_t *const ws, const std::vector<tranceiver *> & tranceivers, std::map<std::string, filter *> & filters)
 {
 	std::string type = node.lookup("type").c_str();
 
 	tranceiver *t = nullptr;
 
 	if (type == "aprs-si") {
-		t = tranceiver_aprs_si::instantiate(node, w, pos, st, device_nr);
+		t = tranceiver_aprs_si::instantiate(node, w, gps, st, device_nr);
 	}
 	else if (type == "kiss-kernel") {
-		t = tranceiver_kiss_kernel::instantiate(node, w, pos);
+		t = tranceiver_kiss_kernel::instantiate(node, w, gps);
 	}
 	else if (type == "kiss-tty") {
-		t = tranceiver_kiss_tty::instantiate(node, w, pos);
+		t = tranceiver_kiss_tty::instantiate(node, w, gps);
 	}
 	else if (type == "lora-sx1278") {
-		t = tranceiver_lora_sx1278::instantiate(node, w, pos, st, device_nr);
+		t = tranceiver_lora_sx1278::instantiate(node, w, gps, st, device_nr);
 	}
 	else if (type == "axudp") {
-		t = tranceiver_axudp::instantiate(node, w, pos, filters);
+		t = tranceiver_axudp::instantiate(node, w, gps, filters);
 	}
 	else if (type == "beacon") {
-		t = tranceiver_beacon::instantiate(node, w, pos);
+		t = tranceiver_beacon::instantiate(node, w, gps);
 	}
 	else if (type == "database") {
-		t = tranceiver_db::instantiate(node, w, pos);
+		t = tranceiver_db::instantiate(node, w, gps);
 	}
 	else if (type == "mqtt") {
-		t = tranceiver_mqtt::instantiate(node, w, pos);
+		t = tranceiver_mqtt::instantiate(node, w, gps);
 	}
 	else if (type == "http-ws") {
-		t = tranceiver_ws::instantiate(node, w, pos, st, tranceivers);
+		t = tranceiver_ws::instantiate(node, w, gps, st, tranceivers);
 	}
 	else {
 		error_exit(false, "(line %d): \"%s\" is an unknown tranceiver type", node.getSourceLine(), type.c_str());

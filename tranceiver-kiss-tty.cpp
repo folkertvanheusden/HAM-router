@@ -22,8 +22,8 @@
 #include "utils.h"
 
 
-tranceiver_kiss_tty::tranceiver_kiss_tty(const std::string & id, seen *const s, work_queue_t *const w, const position_t & pos, const std::string & tty_path, const int tty_bps) :
-	tranceiver_kiss(id, s, w, pos)
+tranceiver_kiss_tty::tranceiver_kiss_tty(const std::string & id, seen *const s, work_queue_t *const w, gps_connector *const gps, const std::string & tty_path, const int tty_bps) :
+	tranceiver_kiss(id, s, w, gps)
 {
 	log(LL_INFO, "Instantiating KISS-tty");
 
@@ -72,7 +72,7 @@ tranceiver_kiss_tty::~tranceiver_kiss_tty()
 {
 }
 
-tranceiver *tranceiver_kiss_tty::instantiate(const libconfig::Setting & node_in, work_queue_t *const w, const position_t & pos)
+tranceiver *tranceiver_kiss_tty::instantiate(const libconfig::Setting & node_in, work_queue_t *const w, gps_connector *const gps)
 {
 	std::string  id;
 	seen        *s            = nullptr;
@@ -101,5 +101,5 @@ tranceiver *tranceiver_kiss_tty::instantiate(const libconfig::Setting & node_in,
 		}
         }
 
-	return new tranceiver_kiss_tty(id, s, w, pos, tty_device, tty_baudrate);
+	return new tranceiver_kiss_tty(id, s, w, gps, tty_device, tty_baudrate);
 }
