@@ -31,7 +31,7 @@ configuration::configuration(const std::string & file, work_queue_t *const w, sn
 			else if (node_name == "tranceivers") {
 				load_tranceivers(node, w, sd, st, &ws);
 			}
-			else if (node_name == "connections") {
+			else if (node_name == "bridge-mappings") {
 				load_switchboard(node);
 			}
 			else if (node_name == "snmp") {
