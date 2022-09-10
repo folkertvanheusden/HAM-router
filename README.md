@@ -12,9 +12,10 @@ software requirements:
 * cmake
 * libax25-dev
 * libconfig++-dev
+* libgps-dev           (optional)
 * libjansson-dev
 * libmicrohttpd-dev
-* libmongocxx-dev      or from https://mongocxx.org/mongocxx-v3/installation/
+* libmongocxx-dev      or from https://mongocxx.org/mongocxx-v3/installation/  (optional)
 * libmosquitto-dev
 * libpigpio-dev
 * libwebsockets-dev
