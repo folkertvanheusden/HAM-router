@@ -38,6 +38,8 @@ void seen::stop()
 		th->join();
 
 		delete th;
+
+		th = nullptr;
 	}
 }
 
