@@ -63,12 +63,12 @@ bool filter_rule::check(const message & m)
 		return ignore_action_not_applicable_to_data_type;
 	}
 	else {
-		error_exit(false, "Internal error: unknown data type");
+		error_exit(false, "filter_rule: internal error: unknown data type");
 	}
 
 	// TODO i_value and f_value
 
-	log(LL_ERROR, "This should not be reached.");
+	log(LL_ERROR, "filter_rule: this should not be reached");
 
 	return false;
 }
@@ -95,7 +95,7 @@ filter_rule *filter_rule::instantiate(const libconfig::Setting & node_in)
 			value_type = node_in.lookup(type).c_str();
 		else if (type == "value-data") {
 			if (value_type.empty())
-				error_exit(false, "Filter rule: need to set a \"value-type\" first");
+				error_exit(false, "(line %d): Filter rule: need to set a \"value-type\" first", node.getSourceLine());
 
 			if (value_type == "string")
 				value.dt = dt_string, value.s_value = node_in.lookup(type).c_str();
@@ -104,7 +104,7 @@ filter_rule *filter_rule::instantiate(const libconfig::Setting & node_in)
 			else if (value_type == "float")
 				value.dt = dt_float64, value.d_value = node_in.lookup(type);
 			else
-				error_exit(false, "Filter rule: unknown value-type (%s)", value_type.c_str());
+				error_exit(false, "(line %d): Filter rule: unknown value-type (%s)", node.getSourceLine(), value_type.c_str());
 		}
 		else if (type == "not")
 			not_ = node_in.lookup(type);
@@ -128,19 +128,19 @@ filter_rule *filter_rule::instantiate(const libconfig::Setting & node_in)
 			else if (how_to == "regex")
 				fc = FC_regex;
 			else {
-				error_exit(false, "How-to-compare is invalid (%s)", how_to.c_str());
+				error_exit(false, "(line %d): How-to-compare \"%s\" is invalid", node.getSourceLine(), how_to.c_str());
 			}
 		}
 		else {
-			error_exit(false, "Filter_rule: \"%s\" is not known", type.c_str());
+			error_exit(false, "(line %d): Filter_rule: \"%s\" is not known", node.getSourceLine(), type.c_str());
 		}
         }
 
 	if (value.dt == dt_none)
-		error_exit(false, "No value-type set");
+		error_exit(false, "(line %d): No value-type set", node_in.getSourceLine());
 
 	if (fc == FC_invalid)
-		error_exit(false, "How to compare not set");
+		error_exit(false, "(line %d): How to compare not set", node_in.getSourceLine());
 
 	return new filter_rule(field_name, value, fc, not_, ignore_if_missing, ignore_data_type_mismatch, ignore_action_not_applicable_to_data_type);
 
@@ -205,19 +205,19 @@ filter *filter::instantiate(const libconfig::Setting & node_in)
 			else if (how_to == "none")
 				how = FR_none;
 			else {
-				error_exit(false, "How-to-compare is invalid (%s)", how_to.c_str());
+				error_exit(false, "(line %d): How-to-compare is invalid (%s)", node.getSourceLine(), how_to.c_str());
 			}
 		}
 		else {
-			error_exit(false, "Filter: \"%s\" is not known", type.c_str());
+			error_exit(false, "(line %d): Filter: \"%s\" is not known", node.getSourceLine(), type.c_str());
 		}
         }
 
 	if (rules.empty())
-		error_exit(false, "No rules defined");
+		error_exit(false, "(line %d): No rules defined", node_in.getSourceLine());
 
 	if (how == FR_invalid)
-		error_exit(false, "How to compare not set");
+		error_exit(false, "(line %d): How to compare not set", node_in.getSourceLine());
 
 	return new filter(rules, how);
 }

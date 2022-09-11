@@ -43,16 +43,16 @@ mosquitto *init_mqtt(tranceiver *const t, const std::string & mqtt_host, const i
 
 	mosquitto *mi = mosquitto_new(nullptr, true, t);
 	if (!mi)
-		error_exit(false, "Cannot crate mosquitto instance");
+		error_exit(false, "init_mqtt: Cannot crate mosquitto instance");
 
 	if ((err = mosquitto_connect(mi, mqtt_host.c_str(), mqtt_port, 30)) != MOSQ_ERR_SUCCESS)
-		error_exit(false, "mqtt failed to connect (%s)", mosquitto_strerror(err));
+		error_exit(false, "mqtt failed to connect to [%s]:%d (%s)", mqtt_host.c_str(), mqtt_port, mosquitto_strerror(err));
 
 	mosquitto_message_callback_set(mi, on_mqtt_message);
 
 	if (topic_in.empty() == false) {
 		if ((err = mosquitto_subscribe(mi, nullptr, topic_in.c_str(), 0)) != MOSQ_ERR_SUCCESS)
-			error_exit(false, "mqtt failed to subscribe (%s)", mosquitto_strerror(err));
+			error_exit(false, "mqtt failed to subscribe to topic \"%s\" (%s)", topic_in.c_str(), mosquitto_strerror(err));
 	}
 
 	if ((err = mosquitto_loop_start(mi)) != MOSQ_ERR_SUCCESS)
@@ -157,6 +157,6 @@ tranceiver *tranceiver_mqtt::instantiate(const libconfig::Setting & node_in, wor
 
 	return new tranceiver_mqtt(id, s, w, gps, mqtt_host, mqtt_port, topic_in, topic_out, topic_out_json);
 #else
-	error_exit(false, "libmosquitto not compiled in");
+	error_exit(false, "(line %d): libmosquitto not compiled in", node_in.getSourceLine());
 #endif
 }

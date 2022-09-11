@@ -199,15 +199,15 @@ gps_connector * gps_connector::instantiate(const libconfig::Setting & node_in)
                 else if (type == "gpsd-port")
                         gpsd_port = node_in.lookup(type);
                 else {
-                        error_exit(false, "General setting \"%s\" is not known", type.c_str());
+                        error_exit(false, "(line %d): GPS setting \"%s\" is not known", node.getSourceLine(), type.c_str());
                 }
         }
 
         if (lat_set != lng_set)
-                error_exit(false, "General settings: either latitude or longitude is not set");
+                error_exit(false, "(line %d): GPS settings: either latitude or longitude is not set", node_in.getSourceLine());
 
         if (lat_set && latitude == 0. && longitude == 0.)
-                error_exit(false, "General settings: suspicious global longitude/latitude set");
+                error_exit(false, "(line %d): GPS settings: suspicious global longitude/latitude set", node_in.getSourceLine());
 
 	std::optional<position_t> pos;
 

@@ -118,7 +118,7 @@ seen *seen::instantiate(const libconfig::Setting & node_in)
 		else if (type == "max-n-elements")
 			pars_seen.max_seen_elements = node_in.lookup(type);
 		else
-			error_exit(false, "setting \"%s\" is not known", type.c_str());
+			error_exit(false, "(line %d): setting \"%s\" is not known", node_in.getSourceLine(), type.c_str());
         }
 
 	return new seen(pars_seen);

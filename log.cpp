@@ -54,7 +54,7 @@ void _log(const std::string & id, const int ll, const char *const what, va_list 
 
 	char *msg = nullptr;
 	if (vasprintf(&msg, what, args) == -1)
-		error_exit(true, "vasprintf failed\n");
+		error_exit(true, "_log: vasprintf failed\n");
 
 	const char *lls = "???";
 	switch(ll) {
@@ -84,7 +84,7 @@ void _log(const std::string & id, const int ll, const char *const what, va_list 
 			tm.tm_hour, tm.tm_min, tm.tm_sec, tv.tv_usec,
 			lls, get_thread_name().c_str(), id.c_str(),
 			msg) == -1)
-		error_exit(true, "asprintf failed\n");
+		error_exit(true, "_log: asprintf failed\n");
 
 	free(msg);
 
