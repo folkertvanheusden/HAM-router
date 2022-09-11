@@ -97,7 +97,7 @@ void configuration::load_tranceivers(const libconfig::Setting & node_in, work_qu
 	// visible in the web-interface as well
 	sd->register_oid("1.3.6.1.2.1.2.1.0", snmp_integer::si_integer, tranceivers.size());  // number of network interfaces
 
-	int interface_nr = 1;
+	size_t interface_nr = 1;
 
 	for(auto t : tranceivers) {
 		// register interface 1
