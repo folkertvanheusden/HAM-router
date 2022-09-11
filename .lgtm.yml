@@ -4,10 +4,9 @@ extraction:
       packages:
         - libax25-dev
         - libconfig++-dev
+        - libgps-dev
         - libjansson-dev
-        - libmicrohttpd-dev
         - libmosquitto-dev
-        - libmysqlcppconn-dev
         - libwebsockets-dev
     configure:
       command:
