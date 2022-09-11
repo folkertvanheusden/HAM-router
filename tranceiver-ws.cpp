@@ -57,6 +57,7 @@ void tranceiver_ws::operator()()
 
 tranceiver *tranceiver_ws::instantiate(const libconfig::Setting & node_in, work_queue_t *const w, gps_connector *const gps, stats *const st, const std::vector<tranceiver *> & other_tranceivers)
 {
+#if HTTP_FOUND == 1 || WEBSOCKETS_FOUND == 1
 	std::string  id;
 	seen        *s               = nullptr;
 	int          http_port       = -1;
@@ -121,4 +122,9 @@ tranceiver *tranceiver_ws::instantiate(const libconfig::Setting & node_in, work_
         }
 
 	return new tranceiver_ws(id, s, w, gps, http_port, ws_url, ws_port, st, ws_ssl_enabled, ws_ssl_cert, ws_ssl_priv_key, ws_ssl_ca, d);
+#else
+	error_exit(false, "libmicrohttpd not compiled in");
+
+	return nullptr;
+#endif
 }
