@@ -39,7 +39,7 @@ configuration::configuration(const std::string & file, work_queue_t *const w, sn
 				load_snmp(node, sd);
 			}
 			else {
-				error_exit(false, "Setting \"%s\" is not known", node_name.c_str());
+				error_exit(false, "(line %d): Setting \"%s\" is not known", node.getSourceLine(), node_name.c_str());
 			}
 		}
 	}
@@ -139,7 +139,7 @@ void configuration::load_switchboard(const libconfig::Setting & node_in) {
 			auto it_f = filters.find(filter_name);
 
 			if (it_f == filters.end())
-				error_exit(false, "Filter \"%s\" is not defined", filter_name.c_str());
+				error_exit(false, "(line %d): Filter \"%s\" is not defined", node.getSourceLine(), filter_name.c_str());
 
 			f = it_f->second;
 		}
@@ -149,14 +149,14 @@ void configuration::load_switchboard(const libconfig::Setting & node_in) {
 
 		tranceiver *from_t = find_tranceiver(from);
 		if (!from_t)
-			error_exit(false, "Mapping: \"%s\" is an unknown tranceiver", from.c_str());
+			error_exit(false, "(line %d): Mapping: \"%s\" is an unknown tranceiver", node.getSourceLine(), from.c_str());
 
 		std::vector<std::string> parts = split(tos, " ");
 
 		for(auto & to : parts) {
 			tranceiver *to_t = find_tranceiver(to);
 			if (!to_t)
-				error_exit(false, "Mapping: \"%s\" is an unknown tranceiver", to.c_str());
+				error_exit(false, "(line %d): Mapping: \"%s\" is an unknown tranceiver", node.getSourceLine(), to.c_str());
 
 			log(LL_DEBUG_VERBOSE, "%s sends to %s", from.c_str(), to.c_str());
 
@@ -175,7 +175,7 @@ void configuration::load_snmp(const libconfig::Setting & node_in, snmp_data *con
 		if (type == "port")
 			snmp_port = node_in.lookup(type);
 		else
-			error_exit(false, "SNMP setting \"%s\" is not known", type.c_str());
+			error_exit(false, "(line %d): SNMP setting \"%s\" is not known", node.getSourceLine(), type.c_str());
         }
 
 	if (snmp_port != -1) {
@@ -203,17 +203,17 @@ void configuration::load_general(const libconfig::Setting & node_in)
 			logfile = node_in.lookup(type).c_str();
                 else if (type == "repetition-rate-limiting") {
 			if (global_repetition_filter)
-				error_exit(false, "repetition-rate-limiting is already defined");
+				error_exit(false, "(line %d): repetition-rate-limiting is already defined", node.getSourceLine());
 
                         global_repetition_filter = seen::instantiate(node);
                 }
 		else {
-			error_exit(false, "General setting \"%s\" is not known", type.c_str());
+			error_exit(false, "(line %d): General setting \"%s\" is not known", node.getSourceLine(), type.c_str());
 		}
         }
 
 	if (!gps)
-		error_exit(false, "No GPS configuration set");
+		error_exit(false, "(line %d): No GPS/location configuration set", node_in.getSourceLine());
 }
 
 void configuration::load_filters(const libconfig::Setting & node_in)
@@ -233,17 +233,17 @@ void configuration::load_filters(const libconfig::Setting & node_in)
 				name = node.lookup(type).c_str();
 			else if (type == "definition") {
 				if (f)
-					error_exit(false, "Multiple rules definitions found");
+					error_exit(false, "(line %d): Multiple rules definitions found", node_def.getSourceLine());
 
 				f    = filter::instantiate(node_def);
 			}
 			else {
-				error_exit(false, "General setting \"%s\" is not known", type.c_str());
+				error_exit(false, "(line %d): General setting \"%s\" is not known", node_def.getSourceLine(), type.c_str());
 			}
 		}
 
 		if (!f)
-			error_exit(false, "No filter defination set for \"%s\"", name.c_str());
+			error_exit(false, "(line %d): No filter defination set for \"%s\"", node_in.getSourceLine(), name.c_str());
 
 		filters.insert({ name, f });
         }

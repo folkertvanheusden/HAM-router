@@ -30,22 +30,22 @@ tranceiver_kiss_kernel::tranceiver_kiss_kernel(const std::string & id, seen *con
 	log(LL_INFO, "Configuring kiss interface");
 
 	if (openpty(&fd_master, &fd_slave, NULL, NULL, NULL) == -1)
-		error_exit(true, "openpty failed");
+		error_exit(true, "tranceiver_kiss_kernel: openpty failed");
 
 	int disc = N_AX25;
 	if (ioctl(fd_slave, TIOCSETD, &disc) == -1)
-		error_exit(true, "error setting line discipline");
+		error_exit(true, "tranceiver_kiss_kernel: error setting line discipline");
 
 	if (setifcall(fd_slave, callsign.c_str()) == -1)
-		error_exit(false, "cannot set call");
+		error_exit(false, "tranceiver_kiss_kernel: cannot set callsign");
 
 	int v = 4;
 	if (ioctl(fd_slave, SIOCSIFENCAP, &v) == -1)
-		error_exit(true, "failed to set encapsulation");
+		error_exit(true, "tranceiver_kiss_kernel : failed to set encapsulation");
 
 	char dev_name[64] = { 0 };
 	if (ioctl(fd_slave, SIOCGIFNAME, dev_name) == -1)
-		error_exit(true, "failed retrieving name of ax25 network device name");
+		error_exit(true, "tranceiver_kiss_kernel: failed retrieving name of ax25 network device name");
 
 	startiface(dev_name);
 

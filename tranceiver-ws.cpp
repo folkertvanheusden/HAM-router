@@ -123,7 +123,7 @@ tranceiver *tranceiver_ws::instantiate(const libconfig::Setting & node_in, work_
 
 	return new tranceiver_ws(id, s, w, gps, http_port, ws_url, ws_port, st, ws_ssl_enabled, ws_ssl_cert, ws_ssl_priv_key, ws_ssl_ca, d);
 #else
-	error_exit(false, "libmicrohttpd not compiled in");
+	error_exit(false, "(line %d): libmicrohttpd not compiled in", node_in.getSourceLine());
 
 	return nullptr;
 #endif

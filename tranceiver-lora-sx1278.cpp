@@ -83,22 +83,35 @@ transmit_error_t tranceiver_lora_sx1278::put_message_low(const message & m)
 
 	LoRa_stop_receive(&modem);  // manually stoping RxCont mode
 
-	// TODO: timeout
-	while(LoRa_get_op_mode(&modem) != STDBY_MODE && !terminate)
-		usleep(101000);
-
-	LoRa_send(&modem);
+	uint64_t start_ts = get_us();
+	bool     fail     = false;
 
 	// TODO: timeout
-	while(LoRa_get_op_mode(&modem) != STDBY_MODE && !terminate)
+	while(LoRa_get_op_mode(&modem) != STDBY_MODE && !terminate && get_us() - start_ts < 60000000 /* timeout of 60s */)
 		usleep(101000);
 
-	mlog(LL_DEBUG, m, "put_message_low", myformat("time on air data - Tsym: %f; Tpkt: %f; payloadSymbNb: %u", modem.tx.data.Tsym, modem.tx.data.Tpkt, modem.tx.data.payloadSymbNb));
-	// TODO: calculate overhead by measuring how long this routine took
+	if (LoRa_get_op_mode(&modem) != STDBY_MODE)
+		fail = true;
+	else {
+		LoRa_send(&modem);
+
+		// TODO: timeout
+		while(LoRa_get_op_mode(&modem) != STDBY_MODE && !terminate && get_us() - start_ts < 60000000 /* timeout of 60s */)
+			usleep(101000);
+
+		if (LoRa_get_op_mode(&modem) != STDBY_MODE)
+			fail = true;
+
+		if (!fail) 
+			mlog(LL_DEBUG, m, "put_message_low", myformat("time on air data - Tsym: %f; Tpkt: %f; payloadSymbNb: %u", modem.tx.data.Tsym, modem.tx.data.Tpkt, modem.tx.data.payloadSymbNb));
+	}
 
 	LoRa_receive(&modem);
 
-	return TE_ok;
+	if (fail)
+		log(LL_WARNING, "put_message_low", "SX1278 is unresponsive");
+
+	return fail ? TE_hardware : TE_ok;
 #else
 	return TE_hardware;
 #endif

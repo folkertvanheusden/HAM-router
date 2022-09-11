@@ -66,7 +66,7 @@ public:
 
 	gps_connector * get_gps() const         { return gps;       }
 
-	std::string   get_logfile() const     { return logfile;   }
+	std::string   get_logfile() const       { return logfile;   }
 
 	seen          * get_global_repetition_filter() { return global_repetition_filter; }
 };
