@@ -78,10 +78,10 @@ int LoRa_begin(LoRa_ctl *modem) {
 
 void lora_set_ocp(int spid, unsigned char OCP) {
 	unsigned char OcpTrim;
-	if(OCP == 0) {//turn off OCP
+	if (OCP == 0) {//turn off OCP
 		lora_reg_write_byte(spid, REG_OCP, (lora_reg_read_byte(spid, REG_OCP) & 0xdf));
 	}
-	else if(OCP > 0 && OCP <= 120) {
+	else if(OCP <= 120) {
 		if(OCP < 50){OCP = 50;}
 
 		OcpTrim = (OCP-45)/5 + 0x20;
