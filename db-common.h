@@ -46,7 +46,7 @@ struct db_record_data
 		s_value(s) {
 	}
 
-	db_record_data operator=(const db_record_data & in) {
+	db_record_data & operator=(const db_record_data & in) {
 		dt      = in.dt;
 		b       = in.b;
 		s_value = in.s_value;
