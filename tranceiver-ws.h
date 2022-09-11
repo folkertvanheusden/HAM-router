@@ -1,5 +1,3 @@
-#include <mosquitto.h>
-
 #include "db.h"
 #include "tranceiver.h"
 #include "websockets.h"

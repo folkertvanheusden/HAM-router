@@ -100,7 +100,7 @@ tranceiver *tranceiver_db::instantiate(const libconfig::Setting & node_in, work_
 
 	return new tranceiver_db(id, s, w, gps, d);
 #else
-	llog(LL_ERROR, node_in, "No MongoDB support compiled in!");
+	::log(LL_ERROR, "No MongoDB support compiled in!");
 
 	error_exit(false, "No MongoDB support compiled in!");
 

@@ -1,3 +1,5 @@
+#include "config.h"
+#if HTTP_FOUND == 1
 #include <microhttpd.h>
 #include <stdio.h>
 #include <string.h>
@@ -411,3 +413,4 @@ void stop_webserver(void *d)
 	if (d)
 		MHD_stop_daemon(reinterpret_cast<MHD_Daemon *>(d_proc));
 }
+#endif

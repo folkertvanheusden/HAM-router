@@ -111,7 +111,9 @@ gps_connector::~gps_connector()
 		th->join();
 		delete th;
 
+#if GPS_FOUND == 1
 		delete gps_instance;
+#endif
 	}
 }
 

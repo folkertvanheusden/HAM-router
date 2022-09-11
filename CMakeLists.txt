@@ -72,6 +72,10 @@ else()
 	target_link_libraries(ham-router -lax25 -lutil)
 endif()
 
+if (NOT EXISTS "/usr/include/netax25/axlib.h")
+	message(SEND_ERROR "libax25-dev is not installed")
+endif()
+
 include(FindPkgConfig)
 
 pkg_check_modules(LIBMONGOCXX libmongocxx)
@@ -89,17 +93,17 @@ target_link_libraries(ham-router ${JANSSON_LIBRARIES})
 target_include_directories(ham-router PUBLIC ${JANSSON_INCLUDE_DIRS})
 target_compile_options(ham-router PUBLIC ${JANSSON_CFLAGS_OTHER})
 
-pkg_check_modules(HTTP REQUIRED libmicrohttpd)
+pkg_check_modules(HTTP libmicrohttpd)
 target_link_libraries(ham-router ${HTTP_LIBRARIES})
 target_include_directories(ham-router PUBLIC ${HTTP_INCLUDE_DIRS})
 target_compile_options(ham-router PUBLIC ${HTTP_CFLAGS_OTHER})
 
-pkg_check_modules(MOSQUITTO REQUIRED libmosquitto)
+pkg_check_modules(MOSQUITTO libmosquitto)
 target_link_libraries(ham-router ${MOSQUITTO_LIBRARIES})
 target_include_directories(ham-router PUBLIC ${MOSQUITTO_INCLUDE_DIRS})
 target_compile_options(ham-router PUBLIC ${MOSQUITTO_CFLAGS_OTHER})
 
-pkg_check_modules(WEBSOCKETS REQUIRED libwebsockets)
+pkg_check_modules(WEBSOCKETS libwebsockets)
 target_link_libraries(ham-router ${WEBSOCKETS_LIBRARIES})
 target_include_directories(ham-router PUBLIC ${WEBSOCKETS_INCLUDE_DIRS})
 target_compile_options(ham-router PUBLIC ${WEBSOCKETS_CFLAGS_OTHER})

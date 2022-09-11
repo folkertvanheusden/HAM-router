@@ -1,3 +1,5 @@
+#include "config.h"
+#if WEBSOCKETS_FOUND == 1
 #include <atomic>
 #include <libwebsockets.h>
 #include <stdio.h>
@@ -167,3 +169,4 @@ void stop_websockets()
 		lws_context_destroy(context);
 	}
 }
+#endif

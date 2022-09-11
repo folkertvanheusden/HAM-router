@@ -1,4 +1,7 @@
+#include "config.h"
+#if MOSQUITTO_FOUND == 1
 #include <mosquitto.h>
+#endif
 
 #include "db.h"
 #include "tranceiver.h"
@@ -7,7 +10,9 @@
 class tranceiver_mqtt : public tranceiver
 {
 private:
+#if MOSQUITTO_FOUND == 1
 	mosquitto  *mi        { nullptr };
+#endif
 
 	std::string topic_in;
 	std::string topic_out;

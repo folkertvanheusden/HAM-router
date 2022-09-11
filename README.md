@@ -14,11 +14,11 @@ software requirements:
 * libconfig++-dev
 * libgps-dev           (optional)
 * libjansson-dev
-* libmicrohttpd-dev
+* libmicrohttpd-dev    (optional)
 * libmongocxx-dev      or from https://mongocxx.org/mongocxx-v3/installation/  (optional)
-* libmosquitto-dev
-* libpigpio-dev
-* libwebsockets-dev
+* libmosquitto-dev     (optional)
+* libpigpio-dev        (optional)
+* libwebsockets-dev    (optional)
 
 optional hardware:
 * SX1278 tranceiver (e.g. https://www.otronic.nl/a-65481848/lora/sx1278-ra-02-lora-module-433mhz/ )

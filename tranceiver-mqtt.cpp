@@ -14,6 +14,7 @@
 #include "utils.h"
 
 
+#if MOSQUITTO_FOUND == 1
 void on_mqtt_message(mosquitto *mi, void *user, const mosquitto_message *msg)
 {
 	tranceiver_mqtt *t = reinterpret_cast<tranceiver_mqtt *>(user);
@@ -59,6 +60,7 @@ mosquitto *init_mqtt(tranceiver *const t, const std::string & mqtt_host, const i
 
 	return mi;
 }
+#endif
 
 transmit_error_t tranceiver_mqtt::put_message_low(const message & m)
 {
@@ -66,6 +68,7 @@ transmit_error_t tranceiver_mqtt::put_message_low(const message & m)
 
 	int err = 0;
 
+#if MOSQUITTO_FOUND == 1
 	if (topic_out.empty() == false) {
 		if ((err = mosquitto_publish(mi, nullptr, topic_out.c_str(), content.second, content.first, 0, false)) != MOSQ_ERR_SUCCESS) {
 			mlog(LL_WARNING, m, "put_message_low", myformat("mqtt failed to publish: %s", mosquitto_strerror(err)));
@@ -83,6 +86,7 @@ transmit_error_t tranceiver_mqtt::put_message_low(const message & m)
 			return TE_hardware;
 		}
 	}
+#endif
 
 	return TE_ok;
 }
@@ -91,14 +95,18 @@ tranceiver_mqtt::tranceiver_mqtt(const std::string & id, seen *const s, work_que
 	tranceiver(id, s, w, gps),
 	topic_in(topic_in), topic_out(topic_out), topic_out_json(topic_out_json)
 {
+#if MOSQUITTO_FOUND == 1
 	log(LL_INFO, "Instantiated MQTT");
 
 	mi = init_mqtt(this, mqtt_host, mqtt_port, topic_in);
+#endif
 }
 
 tranceiver_mqtt::~tranceiver_mqtt()
 {
+#if MOSQUITTO_FOUND == 1
 	mosquitto_destroy(mi);
+#endif
 }
 
 void tranceiver_mqtt::operator()()
@@ -107,6 +115,7 @@ void tranceiver_mqtt::operator()()
 
 tranceiver *tranceiver_mqtt::instantiate(const libconfig::Setting & node_in, work_queue_t *const w, gps_connector *const gps)
 {
+#if MOSQUITTO_FOUND == 1
 	std::string  id;
 	seen        *s { nullptr };
 	std::string  mqtt_host;
@@ -147,4 +156,7 @@ tranceiver *tranceiver_mqtt::instantiate(const libconfig::Setting & node_in, wor
 		error_exit(true, "(line %d): No MQTT server selected", node_in.getSourceLine());
 
 	return new tranceiver_mqtt(id, s, w, gps, mqtt_host, mqtt_port, topic_in, topic_out, topic_out_json);
+#else
+	error_exit(false, "libmosquitto not compiled in");
+#endif
 }

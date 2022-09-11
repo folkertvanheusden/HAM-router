@@ -21,7 +21,9 @@ transmit_error_t tranceiver_ws::put_message_low(const message & m)
 {
 	std::string json = message_to_json(m);
 
+#if WEBSOCKETS_FOUND == 1
 	push_to_websockets(&ws, json);
+#endif
 
 	return TE_ok;
 }
@@ -31,16 +33,22 @@ tranceiver_ws::tranceiver_ws(const std::string & id, seen *const s, work_queue_t
 {
 	log(LL_INFO, "Instantiated websockets");
 
+#if WEBSOCKETS_FOUND == 1
 	if (ws_port != -1)
                 start_websocket_thread(ws_port, &ws, ws_ssl_enabled, ws_ssl_cert, ws_ssl_priv_key, ws_ssl_ca, d);
+#endif
 
+#if HTTP_FOUND == 1
 	if (http_port != -1)
 		webserver = start_webserver(http_port, ws_url, ws_port, st, d);
+#endif
 }
 
 tranceiver_ws::~tranceiver_ws()
 {
+#if HTTP_FOUND == 1
 	stop_webserver(webserver);
+#endif
 }
 
 void tranceiver_ws::operator()()

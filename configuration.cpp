@@ -55,9 +55,13 @@ configuration::configuration(const std::string & file, work_queue_t *const w, sn
 
 configuration::~configuration()
 {
+#if HTTP_FOUND == 1
 	stop_webserver(webserver);
+#endif
 
+#if WEBSOCKETS_FOUND == 1
 	stop_websockets();
+#endif
 
 	delete sb;
 
