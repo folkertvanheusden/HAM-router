@@ -10,6 +10,7 @@
 #include "net.h"
 #include "random.h"
 #include "str.h"
+#include "time.h"
 #include "tranceiver-lora-sx1278.h"
 #include "utils.h"
 
@@ -109,7 +110,7 @@ transmit_error_t tranceiver_lora_sx1278::put_message_low(const message & m)
 	LoRa_receive(&modem);
 
 	if (fail)
-		log(LL_WARNING, "put_message_low", "SX1278 is unresponsive");
+		log(LL_WARNING, "SX1278 is unresponsive");
 
 	return fail ? TE_hardware : TE_ok;
 #else
