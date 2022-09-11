@@ -10,6 +10,7 @@
 #include "gps.h"
 #include "log.h"
 #include "str.h"
+#include "time.h"
 
 
 // https://stackoverflow.com/questions/27126714/c-latitude-and-longitude-distance-calculator
@@ -90,17 +91,13 @@ std::string gps_double_to_aprs(const double lat, const double lng)
 }
 
 gps_connector::gps_connector(const std::string & host, const int port, const std::optional<position_t> & default_position) :
-	default_position(default_position)
+	default_position(default_position),
+	host(host),
+	port(port)
 {
 #if GPS_FOUND == 1
-	if (!host.empty()) {
-		gps_instance = new gpsmm(host.c_str(), myformat("%d", port).c_str());
-
-		if (gps_instance->stream(WATCH_ENABLE | WATCH_JSON) == nullptr)
-			error_exit(false, "GSPD cannot be contacted");
-
+	if (!host.empty())
 		th = new std::thread(std::ref(*this));
-	}
 
 	log(LL_INFO, "gps_connector instantiated");
 #endif
@@ -126,12 +123,29 @@ void gps_connector::operator()()
 	log(LL_DEBUG, "gps_connector thread started");
 
 	for(;!terminate;) {
+		if (gps_instance == nullptr) {
+			gps_instance = new gpsmm(host.c_str(), myformat("%d", port).c_str());
+
+			if (gps_instance->stream(WATCH_ENABLE | WATCH_JSON) == nullptr)
+				error_exit(false, "GSPD cannot be contacted");
+		}
+
 		if (!gps_instance->waiting(100000))  // wait 100ms for gps-data
 			continue;
 
 		gps_data_t * gpsd_data = gps_instance->read();
-		if (gpsd_data == nullptr)
+		if (gpsd_data == nullptr) {
+			log(LL_WARNING, "Lost connection to gpsd");
+
+			delete gps_instance;
+			gps_instance = nullptr;
+
+			myusleep(1000000, &terminate);
+
+			has_fix          = false;
+
 			continue;
+		}
 
 		if (gpsd_data->fix.mode < MODE_2D) {
 			current_position = { };

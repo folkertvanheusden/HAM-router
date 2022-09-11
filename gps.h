@@ -23,6 +23,9 @@ private:
 	std::optional<position_t> default_position { };
 	std::optional<position_t> current_position { };
 
+	std::string               host;
+	int                       port { 2947 };
+
 	std::atomic_bool          terminate        { false   };
 	std::thread              *th               { nullptr };
 
