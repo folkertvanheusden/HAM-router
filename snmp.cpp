@@ -366,7 +366,7 @@ void snmp::operator()()
 
 	int fd = socket(AF_INET, SOCK_DGRAM, 0);
 	if (fd == -1)
-		error_exit(true, "socket() failed");
+		error_exit(true, "snmp: socket() failed");
 
 	struct sockaddr_in servaddr { 0 };
 
@@ -375,7 +375,7 @@ void snmp::operator()()
 	servaddr.sin_port        = htons(port);
 
 	if (bind(fd, (const struct sockaddr *)&servaddr, sizeof(servaddr)) == -1)
-		error_exit(true, "bind() failed");
+		error_exit(true, "snmp: bind() failed");
 
 	pollfd fds[] = { { fd, POLLIN, 0 } };
 
@@ -387,7 +387,7 @@ void snmp::operator()()
 				continue;
 
 			if (rc == -1)
-				error_exit(true, "poll failed");
+				error_exit(true, "snmp: poll failed");
 
 			char               buffer[1600] { 0 };
 			struct sockaddr_in clientaddr   { 0 };

@@ -19,7 +19,7 @@ void set_nodelay(int fd)
 {
         int on = 1;
         if (setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (char *) &on, sizeof(int)) == -1)
-                error_exit(true, "TCP_NODELAY");
+                error_exit(true, "TCP_NODELAY failed");
 }
 
 int WRITE(int fd, const uint8_t *whereto, size_t len)
@@ -57,7 +57,7 @@ int connect_to(const char *host, const int portnr)
         struct addrinfo *result = nullptr;
         int rc = getaddrinfo(host, portnr_str, &hints, &result);
         if (rc != 0)
-                error_exit(false, "Problem resolving %s: %s\n", host, gai_strerror(rc));
+                error_exit(false, "connect_to: problem resolving %s: %s\n", host, gai_strerror(rc));
 
         for(struct addrinfo *rp = result; rp != nullptr; rp = rp->ai_next) {
                 int fd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
@@ -134,12 +134,12 @@ void startiface(const char *dev)
 {
 	int fd = socket(AF_INET, SOCK_DGRAM, 0);
 	if (fd == -1)
-		error_exit(true, "Cannot create (dummy) socket");
+		error_exit(true, "startiface: cannot create (dummy) socket");
 
 	struct ifreq ifr { 0 };
 
 	if (strlen(dev) >= sizeof ifr.ifr_name)
-		error_exit(false, "Network device name too long");
+		error_exit(false, "startiface: network device name too long");
 
 	strncpy(ifr.ifr_name, dev, sizeof ifr.ifr_name);
 	ifr.ifr_name[sizeof ifr.ifr_name - 1] = 0;
@@ -147,18 +147,17 @@ void startiface(const char *dev)
 	ifr.ifr_mtu = MAX_PACKET_SIZE;
 
 	if (ioctl(fd, SIOCSIFMTU, &ifr) == -1)
-		error_exit(true, "failed setting mtu size for ax25 device");
+		error_exit(true, "startiface: failed setting mtu size for ax25 device");
 
         if (ioctl(fd, SIOCGIFFLAGS, &ifr) == -1)
-		error_exit(true, "failed retrieving current ax25 device settings");
+		error_exit(true, "startiface: failed retrieving current ax25 device settings");
 
 	ifr.ifr_flags &= IFF_NOARP;
 	ifr.ifr_flags |= IFF_UP;
 	ifr.ifr_flags |= IFF_RUNNING;
-//	ifr.ifr_flags |= IFF_BROADCAST;
 
 	if (ioctl(fd, SIOCSIFFLAGS, &ifr) == -1)
-		error_exit(true, "failed setting ax25 device settings");
+		error_exit(true, "startiface: failed setting ax25 device settings");
 
 	close(fd);
 }

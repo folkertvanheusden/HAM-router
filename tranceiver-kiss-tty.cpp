@@ -30,13 +30,13 @@ tranceiver_kiss_tty::tranceiver_kiss_tty(const std::string & id, seen *const s, 
 	fd = open(tty_path.c_str(), O_RDWR | O_NOCTTY);
 
 	if (fd == -1)
-		error_exit(true, "Failed to open tty (%s)", tty_path.c_str());
+		error_exit(true, "tranceiver_kiss_tty: Failed to open tty (%s)", tty_path.c_str());
 
 	termios tty     { 0 };
 	termios tty_old { 0 };
 
 	if (tcgetattr(fd, &tty) == -1)
-		error_exit(true, "tcgetattr failed");
+		error_exit(true, "tranceiver_kiss_tty: tcgetattr failed");
 
 	tty_old = tty;
 
@@ -64,7 +64,7 @@ tranceiver_kiss_tty::tranceiver_kiss_tty(const std::string & id, seen *const s, 
 	tcflush(fd, TCIFLUSH);
 
 	if (tcsetattr(fd, TCSANOW, &tty) != 0)
-		error_exit(true, "tcsetattr failed");
+		error_exit(true, "tranceiver_kiss_tty: tcsetattr failed");
 
 	th = new std::thread(std::ref(*this));
 }

@@ -71,17 +71,17 @@ stats::stats(const int size, snmp_data *const sd) :
 {
 	fd = shm_open(shm_name, O_RDWR | O_CREAT, 0644);
 	if (fd == -1)
-		error_exit(true, "shm_open: %s", strerror(errno));
+		error_exit(true, "stats: shm_open: %s", strerror(errno));
 
 	if (fcntl(fd, F_SETFD, FD_CLOEXEC) == -1)
-		error_exit(true, "fcntl(FD_CLOEXEC): %s", strerror(errno));
+		error_exit(true, "stats: fcntl(FD_CLOEXEC)");
 
 	if (ftruncate(fd, size) == -1)
-		error_exit(true, "truncate: %s", strerror(errno));
+		error_exit(true, "stats: truncate");
 
 	p = (uint8_t *)mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 	if (p == MAP_FAILED)
-		error_exit(true, "mmap: %s", strerror(errno));
+		error_exit(true, "stats: mmap");
 
 	memset(p, 0x00, size);
 
