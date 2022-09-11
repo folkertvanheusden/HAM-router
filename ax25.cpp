@@ -61,6 +61,21 @@ ax25_address::ax25_address(const std::string & a, const char ssid, const bool en
 	this->valid    = true;
 }
 
+ax25_address & ax25_address::operator=(const ax25_address & in)
+{
+	address  = in.get_address();
+
+	ssid     = in.get_ssid();
+
+	end_mark = in.get_end_mark();
+
+	repeated = in.get_repeated();
+
+	valid    = true;
+
+	return *this;
+}
+
 void ax25_address::set_address(const std::string & address, const char ssid)
 {
 	this->address = address;

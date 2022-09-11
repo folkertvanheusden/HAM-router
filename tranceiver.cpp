@@ -158,7 +158,7 @@ transmit_error_t tranceiver::put_message(const message & m)
 	return put_message_low(m);
 }
 
-tranceiver *tranceiver::instantiate(const libconfig::Setting & node, work_queue_t *const w, gps_connector *const gps, stats *const st, int device_nr, ws_global_context_t *const ws, const std::vector<tranceiver *> & tranceivers, std::map<std::string, filter *> & filters)
+tranceiver *tranceiver::instantiate(const libconfig::Setting & node, work_queue_t *const w, gps_connector *const gps, stats *const st, const size_t device_nr, ws_global_context_t *const ws, const std::vector<tranceiver *> & tranceivers, std::map<std::string, filter *> & filters)
 {
 	std::string type = node.lookup("type").c_str();
 
@@ -198,7 +198,7 @@ tranceiver *tranceiver::instantiate(const libconfig::Setting & node, work_queue_
 	return t;
 }
 
-void tranceiver::register_snmp_counters(stats *const st, const int device_nr)
+void tranceiver::register_snmp_counters(stats *const st, const size_t device_nr)
 {
         ifInOctets     = st->register_stat(myformat("%s-ifInOctets",     get_id().c_str()), myformat("1.3.6.1.2.1.2.2.1.10.%zu",    device_nr), snmp_integer::si_counter32);
         ifHCInOctets   = st->register_stat(myformat("%s-ifHCInOctets",   get_id().c_str()), myformat("1.3.6.1.2.1.31.1.1.1.6.%zu",  device_nr), snmp_integer::si_counter64);

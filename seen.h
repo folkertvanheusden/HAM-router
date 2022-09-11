@@ -47,7 +47,7 @@ public:
 
 	static seen *instantiate(const libconfig::Setting & node);
 
-	void register_snmp_counters(stats *const st, const std::string & parent_id, const int device_nr);
+	void register_snmp_counters(stats *const st, const std::string & parent_id, const size_t device_nr);
 
 	void operator()();
 };
