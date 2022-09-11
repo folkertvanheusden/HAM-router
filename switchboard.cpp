@@ -40,8 +40,11 @@ transmit_error_t switchboard::put_message(tranceiver *const from, const message 
 
 	auto it = map.find(from);
 
-	if (it == map.end())
+	if (it == map.end()) {
+		log(LL_DEBUG, "put_message: tranceiver %s is not mapped", from->get_id().c_str());
+
 		return TE_hardware;
+	}
 
 	bool forwarded = false;
 
