@@ -43,6 +43,7 @@ tranceiver_kiss_tty::tranceiver_kiss_tty(const std::string & id, seen *const s, 
 	speed_t speed = B9600;
 
 	if (tty_bps == 9600) {
+		// default
 	}
 	else if (tty_bps == 115200) {
 		speed = B115200;

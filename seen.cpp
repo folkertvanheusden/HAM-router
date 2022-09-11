@@ -21,6 +21,8 @@ seen::~seen()
 {
 	for(auto it : history)
 		delete it.second;
+
+	stop();
 }
 
 void seen::stop()
@@ -122,7 +124,7 @@ seen *seen::instantiate(const libconfig::Setting & node_in)
 	return new seen(pars_seen);
 }
 
-void seen::register_snmp_counters(stats *const st, const std::string & parent_id, const int device_nr)
+void seen::register_snmp_counters(stats *const st, const std::string & parent_id, const size_t device_nr)
 {
 	counter_hit  = st->register_stat(myformat("seen-%s-hit",  parent_id.c_str()), myformat("1.3.6.1.2.1.4.57850.2.3.%zu.1", device_nr), snmp_integer::si_counter64);
 	counter_miss = st->register_stat(myformat("seen-%s-miss", parent_id.c_str()), myformat("1.3.6.1.2.1.4.57850.2.3.%zu.2", device_nr), snmp_integer::si_counter64);

@@ -61,7 +61,7 @@ public:
 	std::string get_id() const { return id; }
 	virtual std::string get_type_name() const = 0;
 
-	void register_snmp_counters(stats *const s, const int device_nr);
+	void register_snmp_counters(stats *const s, const size_t device_nr);
 
 	transmit_error_t queue_incoming_message(const message & m);
 
@@ -75,7 +75,7 @@ public:
 
 	transmit_error_t       put_message(const message & m);
 
-	static tranceiver *instantiate(const libconfig::Setting & node, work_queue_t *const w, gps_connector *const gps, stats *const st, int device_nr, ws_global_context_t *const ws, const std::vector<tranceiver *> & tranceivers, std::map<std::string, filter *> & filters);
+	static tranceiver *instantiate(const libconfig::Setting & node, work_queue_t *const w, gps_connector *const gps, stats *const st, const size_t device_nr, ws_global_context_t *const ws, const std::vector<tranceiver *> & tranceivers, std::map<std::string, filter *> & filters);
 
 	virtual void operator()() = 0;
 };

@@ -24,6 +24,8 @@ public:
 
 	ax25_address(const std::string & a, const char ssid, const bool end_mark, const bool repeated);
 
+	ax25_address & operator=(const ax25_address &);
+
 	bool get_valid()    const { return valid;    }
 
 	bool get_end_mark() const { return end_mark; }
