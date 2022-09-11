@@ -174,8 +174,8 @@ bool snmp::process_BER(const uint8_t *p, const size_t len, oid_req_t *const oids
 	bool first_integer = true;
 	bool first_octet_str = true;
 
-	while(pnt < &p[len]) {
-		uint8_t type = *pnt++;
+	while(pnt < &p[len] - 1) {
+		uint8_t type   = *pnt++;
 		uint8_t length = *pnt++;
 
 		if (&pnt[length] > &p[len]) {
