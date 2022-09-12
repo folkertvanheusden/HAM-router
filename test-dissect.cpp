@@ -1,16 +1,18 @@
+#include <dirent.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/types.h>
 
 #include "dissect-packet.h"
 #include "error.h"
 
 
-int main(int argc, char *argv[])
+void test_aprs_packets()
 {
-	FILE *fh = fopen(argv[1], "r");
+	FILE *fh = fopen("test-files/aprs-packets.txt", "r");
 
 	if (!fh)
-		error_exit(true, "cannot open %s", argv[1]);
+		error_exit(true, "cannot open aprs packets file");
 
 	constexpr int buffer_size = 4096;
 
@@ -41,6 +43,51 @@ int main(int argc, char *argv[])
 	fclose(fh);
 
 	printf("%d/%d\n", ok, lines);
+}
+
+void test_ax25_packets()
+{
+	const std::string path = "test-files/TNC_Test_CD_Ver-1.1-decoded-packets";
+
+	int ok    = 0;
+	int lines = 0;
+
+	DIR *d = opendir(path.c_str());
+
+	for(;;) {
+		struct dirent *de = readdir(d);
+
+		if (!de)
+			break;
+
+		if (strstr(de->d_name, ".dat") == nullptr)
+			continue;
+
+		std::string file = path + "/" + de->d_name;
+
+		uint8_t buffer[4096] { 0 };
+
+		FILE *fh = fopen(file.c_str(), "rb");
+		size_t n = fread(buffer, 1, sizeof buffer, fh);
+		fclose(fh);
+
+		auto rc = dissect_packet(buffer, n);
+
+		ok += rc.has_value();
+
+		lines++;
+	}
+
+	closedir(d);
+
+	printf("%d/%d\n", ok, lines);
+}
+
+int main(int argc, char *argv[])
+{
+	test_ax25_packets();
+
+	test_aprs_packets();
 
 	return 0;
 }
