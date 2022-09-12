@@ -68,6 +68,7 @@ public:
 	ax25_address get_to  () const;
 	std::vector<ax25_address> get_seen_by() const;
 	buffer       get_data() const;
+	std::optional<uint8_t> get_pid () const;
 
 	std::pair<uint8_t *, size_t> generate_packet() const;
 };

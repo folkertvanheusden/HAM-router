@@ -196,6 +196,11 @@ void ax25::set_pid(const uint8_t pid)
 	this->pid = pid;
 }
 
+std::optional<uint8_t> ax25::get_pid() const
+{
+	return pid;
+}
+
 std::pair<uint8_t *, size_t> ax25::generate_packet() const
 {
 	int      data_size = data.get_size();
