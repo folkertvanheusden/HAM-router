@@ -87,7 +87,6 @@ transmit_error_t tranceiver_lora_sx1278::put_message_low(const message & m)
 	uint64_t start_ts = get_us();
 	bool     fail     = false;
 
-	// TODO: timeout
 	while(LoRa_get_op_mode(&modem) != STDBY_MODE && !terminate && get_us() - start_ts < 60000000 /* timeout of 60s */)
 		usleep(101000);
 
@@ -96,7 +95,6 @@ transmit_error_t tranceiver_lora_sx1278::put_message_low(const message & m)
 	else {
 		LoRa_send(&modem);
 
-		// TODO: timeout
 		while(LoRa_get_op_mode(&modem) != STDBY_MODE && !terminate && get_us() - start_ts < 60000000 /* timeout of 60s */)
 			usleep(101000);
 
