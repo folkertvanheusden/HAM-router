@@ -17,7 +17,8 @@ std::optional<std::map<std::string, db_record_data> > parse_ax25(const uint8_t *
 	if (bit_0_set)
 		return { };
 
-	// TODO: control-byte must not have '01' for lower 2 bits
+	if ((data[14] & 3) == 1)  // non existing control-byte field
+		return { };
 
 	// may be ax.25:
 
@@ -83,15 +84,15 @@ std::optional<std::map<std::string, db_record_data> > parse_aprs(const uint8_t *
         std::size_t colon = work.find(':');
 
 	if (colon != std::string::npos && len - colon >= 8) {
-		double latitude = 0, longitude = 0;
-
 		std::string nmea = work.substr(colon + 1);
 
-		parse_nmea_pos(nmea.c_str(), &latitude, &longitude);
+		auto position = parse_nmea_pos(nmea.c_str());
 
-		fields.insert({ "latitude",  db_record_gen(latitude)  });
+		if (position.has_value()) {
+			fields.insert({ "latitude",  db_record_gen(position.value().first)  });
 
-		fields.insert({ "longitude", db_record_gen(longitude) });
+			fields.insert({ "longitude", db_record_gen(position.value().second) });
+		}
 	}
 
         std::size_t bracket = work.find('[');

@@ -83,7 +83,7 @@ transmit_error_t tranceiver::queue_incoming_message(const message & m_in)
 		return TE_ratelimiting;
 	}
 
-	// push to incoming queue of this tranceiver (TODO: empty when not consuming (eg beacon))
+	// push to incoming queue of this tranceiver
 	{
 		auto meta2 = dissect_packet(content.first, content.second);
 
@@ -95,7 +95,7 @@ transmit_error_t tranceiver::queue_incoming_message(const message & m_in)
 					double cur_lat = meta2.value().find("latitude")->second.d_value;
 					double cur_lng = meta2.value().find("longitude")->second.d_value;
 
-					double distance = calcGPSDistance(cur_lat, cur_lng, position.value().latitude, position.value().longitude);
+					double distance = calc_gps_distance(cur_lat, cur_lng, position.value().latitude, position.value().longitude);
 
 					meta2.value().insert({ "distance", myformat("%.2f", distance) });
 				}

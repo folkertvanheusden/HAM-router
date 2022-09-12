@@ -58,6 +58,21 @@ add_executable(ham-router
 	websockets.cpp
 	)
 
+add_executable(test-dissect
+	test-dissect.cpp
+	dissect-packet.cpp
+	db-common.cpp
+	ax25.cpp
+	buffer.cpp
+	utils.cpp
+	str.cpp
+	net.cpp
+	gps.cpp
+	error.cpp
+	log.cpp
+	time.cpp
+	)
+
 set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads)
@@ -75,6 +90,8 @@ endif()
 if (NOT EXISTS "/usr/include/netax25/axlib.h")
 	message(SEND_ERROR "libax25-dev is not installed")
 endif()
+
+target_link_libraries(test-dissect -lax25 -lutil -lgps -lconfig++)
 
 include(FindPkgConfig)
 
@@ -115,3 +132,4 @@ target_compile_options(ham-router PUBLIC ${GPS_CFLAGS_OTHER})
 
 configure_file(config.h.in config.h)
 target_include_directories(ham-router PUBLIC "${PROJECT_BINARY_DIR}")
+target_include_directories(test-dissect PUBLIC "${PROJECT_BINARY_DIR}")

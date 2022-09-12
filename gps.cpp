@@ -18,7 +18,7 @@
 #define GRADOS_RADIANES M_PI / 180.0
 #define RADIANES_GRADOS 180.0 / M_PI
 
-double calcGPSDistance(double latitude_new, double longitude_new, double latitude_old, double longitude_old)
+double calc_gps_distance(double latitude_new, double longitude_new, double latitude_old, double longitude_old)
 {
     double  lat_new = latitude_old * GRADOS_RADIANES;
     double  lat_old = latitude_new * GRADOS_RADIANES;
@@ -36,42 +36,60 @@ double calcGPSDistance(double latitude_new, double longitude_new, double latitud
 }
 
 // from https://stackoverflow.com/questions/36254363/how-to-convert-latitude-and-longitude-of-nmea-format-data-to-decimal
-double convertToDecimalDegrees(const char *latLon, const char direction)
+std::optional<double> nmea_to_degrees(const char *latLon, const char direction)
 {
-	char deg[4] = { 0 };
-	const char *dot = nullptr, *min = nullptr;
-	int len;
-	double dec = 0;
+	const char *dot = nullptr;
 
 	if ((dot = strchr(latLon, '.')))
-	{                                         // decimal point was found
-		min = dot - 2;                          // mark the start of minutes 2 chars back
-		len = min - latLon;                     // find the length of degrees
+	{                                               // decimal point was found
+		char        deg[4] = { 0 };
+		const char *min    = dot - 2;                          // mark the start of minutes 2 chars back
+		int         len    = min - latLon;                     // find the length of degrees
+
+		if (len > 3 || len < 0)
+			return { };
+
 		strncpy(deg, latLon, len);              // copy the degree string to allow conversion to float
-		dec = atof(deg) + atof(min) / 60;       // convert to float
+
+		double      dec    = atof(deg) + atof(min) / 60;       // convert to float
+
 		if (direction == 'S' || direction == 'W')
 			dec *= -1;
+
+		return dec;
 	}
 
-	return dec;
+	return { };
 }
 
-void parse_nmea_pos(const char *what, double *const lat, double *const lng)
+// lat, lng
+std::optional<std::pair<double, double> > parse_nmea_pos(const char *what)
 {
-	*lat = *lng = 0.;
-
 	if (what[0] == '@') {  // ignore time code
 		what += 7;
 		// TODO
 	}
-	else if (what[0] == '!') {  // straight away position
+	else if (what[0] == '!' && strlen(what) >= 19) {  // straight away position
+		fprintf(stderr, "%s\n", what);
+
 		what++;
 
-		*lat = convertToDecimalDegrees(what, what[8]);
+		auto lat_temp = nmea_to_degrees(what, what[8]);
+
+		if (lat_temp.has_value() == false)
+			return { };
 
 		what += 9;
-		*lng = convertToDecimalDegrees(what, what[8]);
+
+		auto lng_temp = nmea_to_degrees(what, what[8]);
+
+		if (lng_temp.has_value() == false)
+			return { };
+
+		return { { lat_temp.value(), lng_temp.value() } };
 	}
+
+	return { };
 }
 
 std::string gps_double_to_aprs(const double lat, const double lng)
