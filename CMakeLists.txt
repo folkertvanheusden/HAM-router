@@ -78,6 +78,8 @@ set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads)
 target_link_libraries(ham-router Threads::Threads)
 
+target_link_libraries(test-dissect Threads::Threads)
+
 target_link_libraries(ham-router -lrt)
 
 if (EXISTS "/usr/include/pigpio.h")
