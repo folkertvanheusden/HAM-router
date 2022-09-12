@@ -83,17 +83,17 @@ target_link_libraries(test-dissect Threads::Threads)
 target_link_libraries(ham-router -lrt)
 
 if (EXISTS "/usr/include/pigpio.h")
-	target_link_libraries(ham-router -lax25 -lpigpio -lutil)
+	target_link_libraries(ham-router -lax25 -lpigpio -lutil -latomic)
 	add_definitions(-DHAS_GPIO)
 else()
-	target_link_libraries(ham-router -lax25 -lutil)
+	target_link_libraries(ham-router -lax25 -lutil -latomic)
 endif()
 
 if (NOT EXISTS "/usr/include/netax25/axlib.h")
 	message(SEND_ERROR "libax25-dev is not installed")
 endif()
 
-target_link_libraries(test-dissect -lax25 -lutil -lgps -lconfig++)
+target_link_libraries(test-dissect -lax25 -lutil -lgps -lconfig++ -latomic)
 
 include(FindPkgConfig)
 
