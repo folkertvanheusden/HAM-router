@@ -44,8 +44,7 @@ void stats_set(uint64_t *const p, const uint64_t value)
 	if (!p)
 		return;
 
-	// TODO atomic
-	*p = value;
+	__atomic_store(p, &value, __ATOMIC_SEQ_CST);
 }
 
 void stats_add_average(uint64_t *const p, const int val)
