@@ -67,7 +67,7 @@ void tranceiver_beacon::operator()()
 			std::optional<position_t> pos = gps->get_position();
 
 			if (pos.has_value()) {
-				std::string aprs_text = "!" + gps_double_to_aprs(pos.value().latitude, pos.value().longitude) + "[";
+				std::string aprs_text = "=" + gps_double_to_aprs(pos.value().latitude, pos.value().longitude, 'L') + "&L";
 
 				std::string output = "<\xff\x01" + callsign + "-L>APLG01,TCPIP*,qAC:" + aprs_text + beacon_text;
 

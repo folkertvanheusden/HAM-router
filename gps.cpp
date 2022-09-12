@@ -92,7 +92,7 @@ std::optional<std::pair<double, double> > parse_nmea_pos(const char *what)
 	return { };
 }
 
-std::string gps_double_to_aprs(const double lat, const double lng)
+std::string gps_double_to_aprs(const double lat, const double lng, const char symbol_table)
 {
         double lata = abs(lat);
         double latd = floor(lata);
@@ -103,8 +103,9 @@ std::string gps_double_to_aprs(const double lat, const double lng)
         double lngm = (lnga - lngd) * 60;
         double lngh = (lngm - floor(lngm)) * 100;
 
-        return myformat("%02d%02d.%02d%c/%03d%02d.%02d%c",
+        return myformat("%02d%02d.%02d%c%c%03d%02d.%02d%c",
                         int(latd), int(floor(latm)), int(floor(lath)), lat > 0 ? 'N' : 'S',
+			symbol_table,
                         int(lngd), int(floor(lngm)), int(floor(lngh)), lng > 0 ? 'E' : 'W');
 }
 

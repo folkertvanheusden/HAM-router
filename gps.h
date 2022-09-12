@@ -46,4 +46,4 @@ public:
 
 double calc_gps_distance(double latitude_new, double longitude_new, double latitude_old, double longitude_old);
 std::optional<std::pair<double, double> > parse_nmea_pos(const char *what);
-std::string gps_double_to_aprs(const double lat, const double lng);
+std::string gps_double_to_aprs(const double lat, const double lng, const char symbol_table);
