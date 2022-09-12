@@ -70,8 +70,6 @@ std::optional<std::pair<double, double> > parse_nmea_pos(const char *what)
 		// TODO
 	}
 	else if (what[0] == '!' && strlen(what) >= 19) {  // straight away position
-		fprintf(stderr, "%s\n", what);
-
 		what++;
 
 		auto lat_temp = nmea_to_degrees(what, what[8]);
