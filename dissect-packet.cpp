@@ -198,6 +198,8 @@ std::optional<std::map<std::string, db_record_data> > parse_aprs(const uint8_t *
 						default: break;
 					}
 
+					break;
+
 				case 'W':
 					switch(symbol_table_selector_sub1) {
 						case 'a': symbol = "WinLink"; break;
