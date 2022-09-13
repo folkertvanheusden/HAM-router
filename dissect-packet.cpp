@@ -140,6 +140,86 @@ std::optional<std::map<std::string, db_record_data> > parse_aprs(const uint8_t *
 
 			fields.insert({ "longitude", db_record_gen(position.value().second) });
 		}
+
+		if (chars_left >= 20) {
+			char symbol_table_selector      = nmea[9];
+			char symbol_table_selector_sub1 = nmea[19];
+			char symbol_table_selector_sub2 = chars_left >= 21 ? nmea[20] : 0;
+
+			std::string symbol;
+
+			switch(symbol_table_selector) {
+				case '/':
+					switch(symbol_table_selector_sub1) {
+						case '#': symbol = "Digi"; break;
+						case '%': symbol = "DX cluster"; break;
+						case '&': symbol = "HF gateway"; break;
+						case '(': symbol = "Mobile satellite groundstation"; break;
+						case 'I': symbol = "TCP/IP"; break;
+						case 'M': symbol = "MacAPRS"; break;
+						case 'O': symbol = "Balloon"; break;
+						case 'S': symbol = "Space shuttle"; break;
+						case 'Z': symbol = "WinAPRS"; break;
+						case '`': symbol = "Dish antenna"; break;
+						case 'n': symbol = "Node"; break;
+						case 'x': symbol = "X-APRS"; break;
+						default: break;
+					}
+
+					break;
+
+				case '\\':
+					switch(symbol_table_selector_sub1) {
+						case 'K': symbol = "Kenwood"; break;
+						default: break;
+					}
+
+					break;
+
+				case 'A':
+					switch(symbol_table_selector_sub1) {
+						case 'a': symbol = "ARES"; break;
+						default: break;
+					}
+
+					break;
+
+				case 'D':
+					switch(symbol_table_selector_sub1) {
+						case 'a': symbol = "DSTAR"; break;
+						default: break;
+					}
+
+					break;
+
+				case 'L':
+					switch(symbol_table_selector_sub1) {
+						case '&': if (symbol_table_selector_sub2 == 'L') { symbol = "LoRa"; break; } else { break; }
+						default: break;
+					}
+
+				case 'W':
+					switch(symbol_table_selector_sub1) {
+						case 'a': symbol = "WinLink"; break;
+						default: break;
+					}
+
+					break;
+
+				case 'Y':
+					switch(symbol_table_selector_sub1) {
+						case 'a': symbol = "C4FM Yaesu repeaters"; break;
+						default: break;
+					}
+
+					break;
+
+				default: break;
+			}
+
+			if (symbol.empty() == false)
+				fields.insert({ "station-type", db_record_gen(symbol) });
+		}
 	}
 	else if (command == '$') {
 		fields.insert({ "payload",   db_record_gen(work.substr(colon + 2)) });
