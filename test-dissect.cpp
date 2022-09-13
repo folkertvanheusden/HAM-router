@@ -45,14 +45,15 @@ void test_aprs_packets()
 	printf("%d/%d\n", ok, lines);
 }
 
-void test_ax25_packets()
+void test_ax25_packets(const std::string & path)
 {
-	const std::string path = "test-files/TNC_Test_CD_Ver-1.1-decoded-packets";
-
 	int ok    = 0;
 	int lines = 0;
 
 	DIR *d = opendir(path.c_str());
+
+	if (!d)
+		error_exit(true, "Cannot open path %s", path.c_str());
 
 	for(;;) {
 		struct dirent *de = readdir(d);
@@ -85,7 +86,12 @@ void test_ax25_packets()
 
 int main(int argc, char *argv[])
 {
-	test_ax25_packets();
+	const std::string path = "test-files/TNC_Test_CD_Ver-1.1-decoded-packets/";
+
+	test_ax25_packets(path + "1");
+	test_ax25_packets(path + "2");
+	test_ax25_packets(path + "3");
+	test_ax25_packets(path + "4");
 
 	test_aprs_packets();
 
