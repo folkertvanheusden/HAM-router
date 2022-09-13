@@ -22,7 +22,7 @@ void insert_into_database(db *const d, const message & m)
 
 	db_record_insert(&record, "raw-data", db_record_gen(m.get_buffer()));
 
-	db_record_insert(&record, "source", db_record_gen(m.get_source()));
+	db_record_insert(&record, "source", db_record_gen(m.get_source()->get_id()));
 
 	db_record_insert(&record, "msg-id", db_record_gen(int64_t(m.get_msg_id())));
 

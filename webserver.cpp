@@ -8,6 +8,7 @@
 #include "log.h"
 #include "stats.h"
 #include "str.h"
+#include "tranceiver.h"
 
 #if MHD_VERSION < 0x00097002
 // lgtm.com has a very old libmicrohttpd
@@ -280,7 +281,9 @@ MHD_Result process_http_request(void *cls,
 
 				std::string air_time   = myformat("%.2f", meta.find("air-time")  != meta.end() ? meta.at("air-time" ).d_value : 0.);
 
-				page += "<tr><td>" + std::string(ts_buffer_date) + "</td><td>" + record.get_source() + "</td><td>" + from + "</td><td>" + to + "</td><td>" + record.get_id_short() + "</td><td>" + payload + "</td></tr>";
+				const tranceiver *tx   = record.get_source();
+
+				page += "<tr><td>" + std::string(ts_buffer_date) + "</td><td>" + (tx ? tx->get_id() : std::string("")) + "</td><td>" + from + "</td><td>" + to + "</td><td>" + record.get_id_short() + "</td><td>" + payload + "</td></tr>";
 
 				page += "<tr><td>" + std::string(ts_buffer_time) + "</td><td>" + latitude + "</td><td> " + longitude + "</td><td>" + air_time + "</td><td> " + rssi + "</td><td>" + proto + "</td></tr>\n";
 			}

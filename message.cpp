@@ -4,9 +4,10 @@
 #include "base64.h"
 #include "message.h"
 #include "str.h"
+#include "tranceiver.h"
 
 
-message::message(const timeval & tv, const std::string & source, const uint64_t msg_id, const uint8_t *const data, const size_t size) :
+message::message(const timeval & tv, const tranceiver *const source, const uint64_t msg_id, const uint8_t *const data, const size_t size) :
 	tv      (tv),
 	source  (source),
 	msg_id  (msg_id),
@@ -46,7 +47,9 @@ std::string message_to_json(const message & m)
 
 	json_object_set_new(json_out, "timestamp", json_integer(m.get_tv().tv_sec));
 
-	json_object_set_new(json_out, "source",    json_string(m.get_source().c_str()));
+	const tranceiver *t      = m.get_source();
+
+	json_object_set_new(json_out, "source",    json_string(t ? t->get_id().c_str() : ""));
 
 	json_object_set_new(json_out, "msg-id",    json_string(m.get_id_short().c_str()));
 

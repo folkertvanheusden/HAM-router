@@ -68,7 +68,7 @@ std::thread * process(configuration *const cfg, work_queue_t *const w, snmp *con
 				}
 			}
 
-			t_has_work->mlog(LL_DEBUG_VERBOSE, m.value(), "process", "Forwarding message from " + m.value().get_source() + ": " + dump_replace(content.first, content.second));
+			t_has_work->mlog(LL_DEBUG_VERBOSE, m.value(), "process", "Forwarding message from " + m.value().get_source()->get_id() + ": " + dump_replace(content.first, content.second));
 
 			transmit_error_t rc = cfg->get_switchboard()->put_message(t_has_work, m.value(), true);
 

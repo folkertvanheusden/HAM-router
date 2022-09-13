@@ -61,7 +61,6 @@ void tranceiver_beacon::operator()()
 
 		timeval tv = get_now_tv();
 
-		std::string source = myformat("beacon(%s)", get_id().c_str());
 		uint64_t    msg_id = get_random_uint64_t();
 
 		if (bm == beacon_mode_aprs) {
@@ -73,7 +72,7 @@ void tranceiver_beacon::operator()()
 				std::string output = "<\xff\x01" + callsign + "-L>APLG01,TCPIP*,qAC:" + aprs_text + beacon_text;
 
 				m = new message(tv,
-						source,
+						this,
 						msg_id,
 						reinterpret_cast<const uint8_t *>(output.c_str()),
 						output.size());
@@ -101,7 +100,7 @@ void tranceiver_beacon::operator()()
 			auto packet_binary = packet.generate_packet();
 
 			m = new message(tv,
-					source,
+					this,
 					msg_id,
 					packet_binary.first,
 					packet_binary.second);

@@ -23,7 +23,7 @@ void on_mqtt_message(mosquitto *mi, void *user, const mosquitto_message *msg)
         uint64_t msg_id = get_random_uint64_t();
 
         message m(get_now_tv(),
-                        myformat("MQTT(%s)", t->get_id().c_str()),
+                        t,
                         msg_id,
                         reinterpret_cast<uint8_t *>(msg->payload),
                         msg->payloadlen);

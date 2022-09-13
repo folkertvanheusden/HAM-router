@@ -9,20 +9,22 @@
 #include "db-common.h"
 
 
+class tranceiver;
+
 class message {
 private:
-	const timeval     tv;
+	const timeval     tv     { 0, 0    };
 
-	const std::string source;
+	const tranceiver *source { nullptr };
 
-	const uint64_t    msg_id;
+	const uint64_t    msg_id { 0       };
 
 	const buffer      b;
 
 	std::map<std::string, db_record_data> meta;
 
 public:
-	message(const timeval & tv, const std::string & source, const uint64_t msg_id, const uint8_t *const data, const size_t size);
+	message(const timeval & tv, const tranceiver *const source, const uint64_t msg_id, const uint8_t *const data, const size_t size);
 
 	message(const message & m);
 
@@ -30,7 +32,7 @@ public:
 
 	timeval        get_tv()         const { return tv;       }
 
-	std::string    get_source()     const { return source;   }
+	const tranceiver * get_source() const { return source;   }
 
 	uint64_t       get_msg_id()     const { return msg_id;   }
 

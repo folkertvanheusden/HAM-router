@@ -36,15 +36,17 @@ private:
 
 	snmp_data_type_running_since *running_since { new snmp_data_type_running_since() };
 
+	void load_bridge_switchboard(const libconfig::Setting & node);
+
 	void load_database   (const libconfig::Setting & node_in);
 
 	void load_filters    (const libconfig::Setting & node_in);
 
 	void load_general    (const libconfig::Setting & node_in);
 
-	void load_snmp       (const libconfig::Setting & node_in, snmp_data *const sd);
+	void load_routing_switchboard(const libconfig::Setting & node);
 
-	void load_switchboard(const libconfig::Setting & node);
+	void load_snmp       (const libconfig::Setting & node_in, snmp_data *const sd);
 
 	void load_tranceivers(const libconfig::Setting & node, work_queue_t *const w, snmp_data *const sd, stats *const st, ws_global_context_t *const ws);
 

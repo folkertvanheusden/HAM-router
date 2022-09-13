@@ -1,5 +1,7 @@
 // (C) 2017-2022 by folkert van heusden, released under Apache License v2.0
 #pragma once
+
+#include <regex.h>
 #include <string>
 
 
@@ -18,3 +20,4 @@ void log(const int loglevel, const char *const what, ...);
 void lognee(const int loglevel, const char *const what, ...);
 void log(const std::string & id, const int loglevel, const char *const what, ...);
 void log(const int loglevel, const std::string & what, ...);
+void log_regexp_error(int rc, regex_t *const re, const std::string & what);

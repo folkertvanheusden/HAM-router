@@ -1,4 +1,5 @@
 // (C) 2017-2022 by folkert van heusden, released under Apache License v2.0
+#include <regex.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -169,4 +170,12 @@ std::string ll_to_str(const int ll)
 		return "debug-verbose";
 
 	return "?";
+}
+
+void log_regexp_error(int rc, regex_t *const re, const std::string & what)
+{
+	char errbuf[128] { 0 };
+	regerror(rc, re, errbuf, sizeof errbuf);
+
+	log(LL_ERROR, "Problem executing regular expression (%s): %s", what.c_str(), errbuf);
 }

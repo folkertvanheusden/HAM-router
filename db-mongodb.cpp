@@ -308,7 +308,7 @@ std::vector<message> db_mongodb::get_history(const std::string & callsign, const
 			const uint8_t *bin_p    = pkt ? pkt.get_binary().bytes : reinterpret_cast<const uint8_t *>("");
 			int            bin_size = pkt ? pkt.get_binary().size : 1;
 
-			message m(tv, source, msg_id, bin_p, bin_size);
+			message m(tv, nullptr, msg_id, bin_p, bin_size);
 
 			// TODO: move this into a function of some sort, see also tranceiver.cpp
 			auto        meta    = dissect_packet(bin_p, bin_size);

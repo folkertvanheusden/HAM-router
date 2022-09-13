@@ -34,7 +34,7 @@ void * rx_f(void *in)
 	uint64_t msg_id = get_random_uint64_t();
 
 	message m(rx->last_time,
-			myformat("LoRa-sx1278(%s)", t->get_id().c_str()),
+			t,
 			msg_id,
 			reinterpret_cast<uint8_t *>(rx->buf),
 			rx->size);

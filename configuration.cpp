@@ -33,7 +33,10 @@ configuration::configuration(const std::string & file, work_queue_t *const w, sn
 				load_tranceivers(node, w, sd, st, &ws);
 			}
 			else if (node_name == "bridge-mappings") {
-				load_switchboard(node);
+				load_bridge_switchboard(node);
+			}
+			else if (node_name == "routing-mappings") {
+				load_routing_switchboard(node);
 			}
 			else if (node_name == "snmp") {
 				load_snmp(node, sd);
@@ -122,8 +125,10 @@ tranceiver * configuration::find_tranceiver(const std::string & id)
 	return nullptr;
 }
 
-void configuration::load_switchboard(const libconfig::Setting & node_in) {
-	sb = new switchboard();
+void configuration::load_bridge_switchboard(const libconfig::Setting & node_in)
+{
+	if (sb == nullptr)
+		sb = new switchboard();
 
         for(int i=0; i<node_in.getLength(); i++) {
                 const libconfig::Setting & node = node_in[i];
@@ -160,8 +165,54 @@ void configuration::load_switchboard(const libconfig::Setting & node_in) {
 
 			log(LL_DEBUG_VERBOSE, "%s sends to %s", from.c_str(), to.c_str());
 
-			sb->add_mapping(from_t, to_t, f);
+			sb->add_bridge_mapping(from_t, to_t, f);
 		}
+        }
+}
+
+void configuration::load_routing_switchboard(const libconfig::Setting & node_in)
+{
+	if (sb == nullptr)
+		sb = new switchboard();
+
+        for(int i=0; i<node_in.getLength(); i++) {
+                const libconfig::Setting & node = node_in[i];
+
+		std::string from_callsign       = node.lookup("from-callsign").c_str();
+
+		std::string to_callsign         = node.lookup("to-callsign"  ).c_str();
+
+		std::string incoming_via        = node.lookup("incoming-via" ).c_str();
+
+                tranceiver *t_incoming_via { nullptr };
+
+		if (incoming_via.empty() == false) {
+			t_incoming_via = find_tranceiver(incoming_via);
+
+			if (!t_incoming_via)
+				error_exit(false, "(line %d): \"incoming-via\": \"%s\" is an unknown tranceiver", node.getSourceLine(), incoming_via.c_str());
+		}
+
+		std::string route_via_interface = node.lookup("outgoing-via").c_str();
+
+                tranceiver *t_route_via_interface      = find_tranceiver(route_via_interface);
+
+                if (!t_route_via_interface)
+                        error_exit(false, "(line %d): \"outgoing-via\": \"%s\" is an unknown tranceiver", node.getSourceLine(), route_via_interface.c_str());
+
+		sb_routing_mapping_t *m = new sb_routing_mapping_t();
+
+		if (regcomp(&m->re_from_callsign, from_callsign.c_str(), REG_EXTENDED | REG_NOSUB) != 0)
+			error_exit(false, "(line %d): \"from-callsign\": \"%s\" is not a valid regular expression", node.getSourceLine(), from_callsign.c_str());
+
+		if (regcomp(&m->re_to_callsign, to_callsign.c_str(), REG_EXTENDED | REG_NOSUB) != 0)
+			error_exit(false, "(line %d): \"to-callsign\": \"%s\" is not a valid regular expression", node.getSourceLine(), to_callsign.c_str());
+
+		m->t_incoming_via = t_incoming_via;
+
+		m->t_outgoing_via = t_route_via_interface;
+
+		sb->add_routing_mapping(m);
         }
 }
 

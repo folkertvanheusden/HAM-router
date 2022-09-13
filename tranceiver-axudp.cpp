@@ -147,11 +147,10 @@ void tranceiver_axudp::operator()()
 
 				timeval tv = get_now_tv();
 
-				std::string source = myformat("axudp(%s)", get_id().c_str());
 				uint64_t    msg_id = get_random_uint64_t();
 
 				message m(tv,
-						source,
+						this,
 						msg_id,
 						reinterpret_cast<const uint8_t *>(buffer),
 						n - 2 /* "remove" crc */);
@@ -163,7 +162,7 @@ void tranceiver_axudp::operator()()
 
 				if (distribute && rc != TE_ratelimiting) {
 					message m_full(tv,
-						source,
+						this,
 						msg_id,
 						reinterpret_cast<const uint8_t *>(buffer),
 						n);

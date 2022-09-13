@@ -209,7 +209,7 @@ void tranceiver_kiss::operator()()
 			continue;
 
 		message m(get_now_tv(),
-				myformat("kiss(%s)", get_id().c_str()),
+				this,
 				get_random_uint64_t(),
 				p,
 				len);
