@@ -1,12 +1,12 @@
-This software can function as a gateway, router and digipeater for e.g.
-AX.25 and APRS over LoRa, axudp, local ax.25 network interfaces and TNC
-devices (KISS over serial).
+This software can function as a gateway, router, bridge and digipeater for
+e.g. AX.25 and APRS over LoRa, axudp, local ax.25 network interfaces and
+TNC devices (KISS over serial).
 
 Packets can be stored in a MongoDB, viewed via a web-interface (using
 web-sockets). The program has a built-in SNMP server (for statistics).
-APRS data can be transmitted to APRS-SI. It can bridge between AXUDP,
-local interface and LoRa: each bridge can have a filter with one or more
-rules.
+APRS data can be transmitted to APRS-SI. It can bridged and routed between
+AXUDP, local interface, KISS interfaces and LoRa: each bridge can have a
+filter with one or more rules.
 
 software requirements:
 * cmake
