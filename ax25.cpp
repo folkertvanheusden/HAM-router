@@ -18,6 +18,9 @@ ax25_address::ax25_address(const std::vector<uint8_t> & from)
 	for(int i=0; i<6; i++) {
 		uint8_t b = from[i];
 
+		if (b & 1)
+			return;
+
 		char    c = char(b >> 1);
 
 		if (c == 0 || c == 32 || end)
@@ -127,6 +130,9 @@ ax25::ax25(const std::vector<uint8_t> & in)
 		offset += 7;
 
 		end_mark = a.get_end_mark();
+
+		if (!a.get_valid())
+			return;
 
 		seen_by.push_back(a);
 	}

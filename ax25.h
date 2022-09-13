@@ -1,3 +1,5 @@
+#pragma once
+
 #include <optional>
 #include <stdint.h>
 #include <string>
@@ -69,6 +71,7 @@ public:
 	std::vector<ax25_address> get_seen_by() const;
 	buffer       get_data() const;
 	std::optional<uint8_t> get_pid () const;
+	bool         get_valid() const { return valid; }
 
 	std::pair<uint8_t *, size_t> generate_packet() const;
 };

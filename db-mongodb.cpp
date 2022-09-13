@@ -314,9 +314,11 @@ std::vector<message> db_mongodb::get_history(const std::string & callsign, const
 			auto        meta    = dissect_packet(bin_p, bin_size);
 
 			if (meta.has_value()) {
-				meta.value().insert({ "air-time", db_record_gen(double(air_time)) });
+				meta.value().first.insert({ "air-time", db_record_gen(double(air_time)) });
 
-				m.set_meta(meta.value());
+				m.set_meta(meta.value().first);
+
+				delete meta.value().second;
 			}
 
 			out.push_back(m);

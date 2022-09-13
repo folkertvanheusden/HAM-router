@@ -88,20 +88,22 @@ transmit_error_t tranceiver::queue_incoming_message(const message & m_in)
 		auto meta2 = dissect_packet(content.first, content.second);
 
 		if (meta2.has_value()) {
-			if (meta2.value().find("latitude") != meta2.value().end() && meta2.value().find("longitude") != meta2.value().end()) {
+			if (meta2.value().first.find("latitude") != meta2.value().first.end() && meta2.value().first.find("longitude") != meta2.value().first.end()) {
 				std::optional<position_t> position = gps->get_position();
 
 				if (position.has_value()) {
-					double cur_lat = meta2.value().find("latitude")->second.d_value;
-					double cur_lng = meta2.value().find("longitude")->second.d_value;
+					double cur_lat = meta2.value().first.find("latitude")->second.d_value;
+					double cur_lng = meta2.value().first.find("longitude")->second.d_value;
 
 					double distance = calc_gps_distance(cur_lat, cur_lng, position.value().latitude, position.value().longitude);
 
-					meta2.value().insert({ "distance", myformat("%.2f", distance) });
+					meta2.value().first.insert({ "distance", myformat("%.2f", distance) });
 				}
 			}
 
-			copy.set_meta(meta2.value());
+			copy.set_meta(meta2.value().first);
+
+			delete meta2.value().second;
 		}
 
 		std::unique_lock<std::mutex> lck(incoming_lock);

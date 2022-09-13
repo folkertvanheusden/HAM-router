@@ -49,6 +49,7 @@ void test_ax25_packets(const std::string & path)
 {
 	int ok    = 0;
 	int lines = 0;
+	int valid = 0;
 
 	DIR *d = opendir(path.c_str());
 
@@ -77,11 +78,17 @@ void test_ax25_packets(const std::string & path)
 		ok += rc.has_value();
 
 		lines++;
+
+		if (rc.has_value()) {
+			valid += rc.value().second->get_valid();
+
+			delete rc.value().second;
+		}
 	}
 
 	closedir(d);
 
-	printf("%d/%d\n", ok, lines);
+	printf("%d/%d/%d\n", ok, lines, valid);
 }
 
 int main(int argc, char *argv[])

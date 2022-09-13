@@ -5,7 +5,7 @@
 #include "str.h"
 
 
-std::optional<std::map<std::string, db_record_data> > parse_ax25(const uint8_t *const data, const size_t len)
+std::optional<std::pair<std::map<std::string, db_record_data>, ax25 *> > parse_ax25(const uint8_t *const data, const size_t len)
 {
 	if (len < 16)
 		return { };
@@ -23,21 +23,21 @@ std::optional<std::map<std::string, db_record_data> > parse_ax25(const uint8_t *
 
 	// may be ax.25:
 
-	ax25 packet(std::vector<uint8_t>(data, &data[len]));
+	ax25 *packet = new ax25(std::vector<uint8_t>(data, &data[len]));
 
 	std::map<std::string, db_record_data> fields;
 
 	fields.insert({ "protocol", db_record_gen("AX.25") });
 
-	fields.insert({ "from", db_record_gen(packet.get_from().get_address()) });
+	fields.insert({ "from", db_record_gen(packet->get_from().get_address()) });
 
-	fields.insert({ "to",   db_record_gen(packet.get_to  ().get_address()) });
+	fields.insert({ "to",   db_record_gen(packet->get_to  ().get_address()) });
 
-	buffer payload = packet.get_data();
+	buffer payload = packet->get_data();
 
 	fields.insert({ "payload",  db_record_gen(dump_replace(payload.get_pointer(), payload.get_size())) });
 
-	auto pid = packet.get_pid();
+	auto pid = packet->get_pid();
 
 	if (pid.has_value()) {
 		switch(pid.value()) {
@@ -73,7 +73,7 @@ std::optional<std::map<std::string, db_record_data> > parse_ax25(const uint8_t *
 		}
 	}
 
-	return fields;
+	return { { fields, packet } };
 }
 
 std::optional<std::map<std::string, db_record_data> > parse_aprs(const uint8_t *const data, const size_t len)
@@ -157,12 +157,12 @@ std::optional<std::map<std::string, db_record_data> > parse_aprs(const uint8_t *
 	return fields;
 }
 
-std::optional<std::map<std::string, db_record_data> > dissect_packet(const uint8_t *const data, const size_t len)
+std::optional<std::pair<std::map<std::string, db_record_data>, ax25 *> > dissect_packet(const uint8_t *const data, const size_t len)
 {
 	auto aprs = parse_aprs(data, len);
 
 	if (aprs.has_value())
-		return aprs;
+		return { { aprs.value(), nullptr } };
 
 	auto ax25 = parse_ax25(data, len);
 
