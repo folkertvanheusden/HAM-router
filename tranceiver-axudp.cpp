@@ -145,8 +145,7 @@ void tranceiver_axudp::operator()()
                         if (n > 2) {
 				std::string came_from = inet_ntoa(clientaddr.sin_addr) + myformat(":%d", clientaddr.sin_port);
 
-				timeval tv { 0 };
-				gettimeofday(&tv, nullptr);
+				timeval tv = get_now_tv();
 
 				std::string source = myformat("axudp(%s)", get_id().c_str());
 				uint64_t    msg_id = get_random_uint64_t();

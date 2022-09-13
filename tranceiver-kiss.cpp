@@ -208,10 +208,7 @@ void tranceiver_kiss::operator()()
 		if (!recv_mkiss(&p, &len))
 			continue;
 
-		timeval tv;
-		gettimeofday(&tv, nullptr);
-
-		message m(tv,
+		message m(get_now_tv(),
 				myformat("kiss(%s)", get_id().c_str()),
 				get_random_uint64_t(),
 				p,

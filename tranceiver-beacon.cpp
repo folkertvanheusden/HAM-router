@@ -57,8 +57,7 @@ void tranceiver_beacon::operator()()
         for(;!terminate;) {
 		message *m { nullptr };
 
-		timeval tv { 0 };
-		gettimeofday(&tv, nullptr);
+		timeval tv = get_now_tv();
 
 		std::string source = myformat("beacon(%s)", get_id().c_str());
 		uint64_t    msg_id = get_random_uint64_t();

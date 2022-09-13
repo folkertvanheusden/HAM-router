@@ -10,6 +10,7 @@
 #include "net.h"
 #include "random.h"
 #include "str.h"
+#include "time.h"
 #include "tranceiver-mqtt.h"
 #include "utils.h"
 
@@ -21,10 +22,7 @@ void on_mqtt_message(mosquitto *mi, void *user, const mosquitto_message *msg)
 
         uint64_t msg_id = get_random_uint64_t();
 
-	timeval tv;
-	gettimeofday(&tv, nullptr);
-
-        message m(tv,
+        message m(get_now_tv(),
                         myformat("MQTT(%s)", t->get_id().c_str()),
                         msg_id,
                         reinterpret_cast<uint8_t *>(msg->payload),

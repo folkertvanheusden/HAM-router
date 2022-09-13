@@ -3,7 +3,9 @@
 #include <stdint.h>
 #include <time.h>
 #include <unistd.h>
+#include <sys/time.h>
 
+#include "error.h"
 #include "time.h"
 
 
@@ -55,4 +57,14 @@ timeval to_timeval(const std::chrono::milliseconds & ms)
     tv.tv_usec = ms.count() % 1000 * 1000;
 
     return tv;
+}
+
+timeval get_now_tv()
+{
+	timeval tv { 0 };
+
+	if (gettimeofday(&tv, nullptr) == -1)
+		error_exit(true, "gettimeofday failed");
+
+	return tv;
 }

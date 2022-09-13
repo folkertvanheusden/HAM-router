@@ -15,3 +15,5 @@ bool     myusleep(uint64_t duration, std::atomic_bool *const terminate);
 std::chrono::system_clock::time_point to_time_point(const timeval & tv);
 
 timeval  to_timeval(const std::chrono::milliseconds & tp);
+
+timeval  get_now_tv();
