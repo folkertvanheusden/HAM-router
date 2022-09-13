@@ -25,12 +25,14 @@
 #include "utils.h"
 
 
-tranceiver_beacon::tranceiver_beacon(const std::string & id, seen *const s, work_queue_t *const w, gps_connector *const gps, const std::string & beacon_text, const int beacon_interval, const beacon_mode_t bm, const std::string & callsign) :
+tranceiver_beacon::tranceiver_beacon(const std::string & id, seen *const s, work_queue_t *const w, gps_connector *const gps, const std::string & beacon_text, const int beacon_interval, const beacon_mode_t bm, const std::string & callsign, const char aprs_symbol_table, const std::string & aprs_symbol) :
 	tranceiver(id, s, w, gps),
 	beacon_text(beacon_text),
 	beacon_interval(beacon_interval),
 	bm(bm),
-	callsign(callsign)
+	callsign(callsign),
+	aprs_symbol_table(aprs_symbol_table),
+	aprs_symbol(aprs_symbol)
 {
 	log(LL_INFO, "Instantiated beacon");
 
@@ -66,7 +68,7 @@ void tranceiver_beacon::operator()()
 			std::optional<position_t> pos = gps->get_position();
 
 			if (pos.has_value()) {
-				std::string aprs_text = "=" + gps_double_to_aprs(pos.value().latitude, pos.value().longitude, 'L') + "&L";
+				std::string aprs_text = "=" + gps_double_to_aprs(pos.value().latitude, pos.value().longitude, aprs_symbol_table) + aprs_symbol;
 
 				std::string output = "<\xff\x01" + callsign + "-L>APLG01,TCPIP*,qAC:" + aprs_text + beacon_text;
 
@@ -128,11 +130,13 @@ void tranceiver_beacon::operator()()
 tranceiver *tranceiver_beacon::instantiate(const libconfig::Setting & node_in, work_queue_t *const w, gps_connector *const gps)
 {
 	std::string   id;
-	seen         *s               = nullptr;
-	std::string   beacon_text     = "Hello, this is dog!";
-	int           beacon_interval = 60;
-	beacon_mode_t bm              = beacon_mode_ax25;
+	seen         *s                 = nullptr;
+	std::string   beacon_text       = "HAM-router - https://github.com/folkertvanheusden/HAM-router - https://www.vanheusden.com/";
+	int           beacon_interval   = 60;
+	beacon_mode_t bm                = beacon_mode_aprs;
 	std::string   callsign;
+        char          aprs_symbol_table = '/';
+        std::string   aprs_symbol       = "&L";  // default is LoRa gateway
 
         for(int i=0; i<node_in.getLength(); i++) {
                 const libconfig::Setting & node = node_in[i];
@@ -147,6 +151,10 @@ tranceiver *tranceiver_beacon::instantiate(const libconfig::Setting & node_in, w
 			callsign = node_in.lookup(type).c_str();
 		else if (type == "interval")
 			beacon_interval = node_in.lookup(type);
+		else if (type == "aprs-symbol-table")
+			aprs_symbol_table = int(node_in.lookup(type));
+		else if (type == "aprs-symbol")
+			aprs_symbol = node_in.lookup(type).c_str();
 		else if (type == "mode") {
 			std::string mode = node_in.lookup(type).c_str();
 
@@ -165,5 +173,5 @@ tranceiver *tranceiver_beacon::instantiate(const libconfig::Setting & node_in, w
 	if (callsign.empty())
 		error_exit(false, "beacon(line %d): beacons need a source-callsign configured", node_in.getSourceLine());
 
-	return new tranceiver_beacon(id, s, w, gps, beacon_text, beacon_interval, bm, callsign);
+	return new tranceiver_beacon(id, s, w, gps, beacon_text, beacon_interval, bm, callsign, aprs_symbol_table, aprs_symbol);
 }
