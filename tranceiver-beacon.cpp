@@ -134,7 +134,7 @@ tranceiver *tranceiver_beacon::instantiate(const libconfig::Setting & node_in, w
 	int           beacon_interval   = 60;
 	beacon_mode_t bm                = beacon_mode_aprs;
 	std::string   callsign;
-        char          aprs_symbol_table = '/';
+        char          aprs_symbol_table = 'L';
         std::string   aprs_symbol       = "&L";  // default is LoRa gateway
 
         for(int i=0; i<node_in.getLength(); i++) {
@@ -151,7 +151,7 @@ tranceiver *tranceiver_beacon::instantiate(const libconfig::Setting & node_in, w
 		else if (type == "interval")
 			beacon_interval = node_in.lookup(type);
 		else if (type == "aprs-symbol-table")
-			aprs_symbol_table = int(node_in.lookup(type));
+			aprs_symbol_table = node_in.lookup(type).c_str()[0];
 		else if (type == "aprs-symbol")
 			aprs_symbol = node_in.lookup(type).c_str();
 		else if (type == "mode") {
