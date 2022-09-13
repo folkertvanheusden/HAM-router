@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "configuration.h"
 #include "db.h"
 #include "log.h"
 #include "stats.h"
@@ -18,8 +19,9 @@
 static MHD_Daemon *d_proc { nullptr };
 
 struct {
-	stats *s;
-	db    *d;
+	stats         *s;
+	db            *d;
+	configuration *c;
 } parameters;
 
 std::string get_html_page_header(const bool wide) 
@@ -240,7 +242,7 @@ MHD_Result process_http_request(void *cls,
 
 			std::string  date   = p_date;
 
-			auto history = parameters.d->get_history(callsign, date, false);
+			auto history = parameters.d->get_history(callsign, date, false, parameters.c);
 
 			page += "<h2>History for " + callsign + "</h2>";
 
@@ -304,13 +306,14 @@ MHD_Result process_http_request(void *cls,
 	return ret;
 }
 
-void * start_webserver(const int listen_port, const std::string & ws_url_in, const int ws_port, stats *const s, db *const d)
+void * start_webserver(const int listen_port, const std::string & ws_url_in, const int ws_port, stats *const s, db *const d, configuration *const cfg)
 {
 	if (listen_port != -1) {
 		log(LL_INFO, "Starting webserver");
 
 		parameters.s = s;
 		parameters.d = d;
+		parameters.c = cfg;
 
 		std::string ws_ssl_url = myformat("'wss://' + location.hostname + ':%d/'", ws_port);
 		std::string ws_url     = myformat("'ws://'  + location.hostname + ':%d/'", ws_port);

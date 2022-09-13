@@ -119,7 +119,7 @@ static struct lws_protocols protocols[] = {
 	}
 };
 
-void start_websocket_thread(const int port, ws_global_context_t *const p, const bool ws_ssl_enable, const std::string & ws_ssl_cert, const std::string & ws_ssl_priv_key, const std::string & ws_ssl_ca, db *const d)
+void start_websocket_thread(const int port, ws_global_context_t *const p, const bool ws_ssl_enable, const std::string & ws_ssl_cert, const std::string & ws_ssl_priv_key, const std::string & ws_ssl_ca, db *const d, configuration *const cfg)
 {
 	log(LL_INFO, "Starting websocket server");
 
@@ -151,7 +151,7 @@ void start_websocket_thread(const int port, ws_global_context_t *const p, const 
 		tm *tm = localtime(&now);
 		std::string today = myformat("%04d-%02d-%02d", tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday);
 
-		auto data = d->get_history("", today, true);
+		auto data = d->get_history("", today, true, cfg);
 
 		for(auto it = data.rbegin(); it != data.rend(); ++it)
 			push_to_websockets(p, message_to_json(*it));

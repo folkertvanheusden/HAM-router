@@ -28,19 +28,19 @@ transmit_error_t tranceiver_ws::put_message_low(const message & m)
 	return TE_ok;
 }
 
-tranceiver_ws::tranceiver_ws(const std::string & id, seen *const s, work_queue_t *const w, gps_connector *const gps, const int http_port, const std::string & ws_url, const int ws_port, stats *const st, const bool ws_ssl_enabled, const std::string & ws_ssl_cert, const std::string & ws_ssl_priv_key, const std::string & ws_ssl_ca, db *const d) :
+tranceiver_ws::tranceiver_ws(const std::string & id, seen *const s, work_queue_t *const w, gps_connector *const gps, const int http_port, const std::string & ws_url, const int ws_port, stats *const st, const bool ws_ssl_enabled, const std::string & ws_ssl_cert, const std::string & ws_ssl_priv_key, const std::string & ws_ssl_ca, db *const d, configuration *const cfg) :
 	tranceiver(id, s, w, gps)
 {
 	log(LL_INFO, "Instantiated websockets");
 
 #if WEBSOCKETS_FOUND == 1
 	if (ws_port != -1)
-                start_websocket_thread(ws_port, &ws, ws_ssl_enabled, ws_ssl_cert, ws_ssl_priv_key, ws_ssl_ca, d);
+                start_websocket_thread(ws_port, &ws, ws_ssl_enabled, ws_ssl_cert, ws_ssl_priv_key, ws_ssl_ca, d, cfg);
 #endif
 
 #if HTTP_FOUND == 1
 	if (http_port != -1)
-		webserver = start_webserver(http_port, ws_url, ws_port, st, d);
+		webserver = start_webserver(http_port, ws_url, ws_port, st, d, cfg);
 #endif
 }
 
@@ -55,7 +55,7 @@ void tranceiver_ws::operator()()
 {
 }
 
-tranceiver *tranceiver_ws::instantiate(const libconfig::Setting & node_in, work_queue_t *const w, gps_connector *const gps, stats *const st, const std::vector<tranceiver *> & other_tranceivers)
+tranceiver *tranceiver_ws::instantiate(const libconfig::Setting & node_in, work_queue_t *const w, gps_connector *const gps, stats *const st, const std::vector<tranceiver *> & other_tranceivers, configuration *const cfg)
 {
 #if HTTP_FOUND == 1 || WEBSOCKETS_FOUND == 1
 	std::string  id;
@@ -121,7 +121,7 @@ tranceiver *tranceiver_ws::instantiate(const libconfig::Setting & node_in, work_
 		}
         }
 
-	return new tranceiver_ws(id, s, w, gps, http_port, ws_url, ws_port, st, ws_ssl_enabled, ws_ssl_cert, ws_ssl_priv_key, ws_ssl_ca, d);
+	return new tranceiver_ws(id, s, w, gps, http_port, ws_url, ws_port, st, ws_ssl_enabled, ws_ssl_cert, ws_ssl_priv_key, ws_ssl_ca, d, cfg);
 #else
 	error_exit(false, "(line %d): libmicrohttpd not compiled in", node_in.getSourceLine());
 

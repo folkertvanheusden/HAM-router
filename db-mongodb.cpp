@@ -9,6 +9,7 @@
 #include <mongocxx/instance.hpp>
 #include <mongocxx/instance.hpp>
 
+#include "configuration.h"
 #include "db-mongodb.h"
 #include "dissect-packet.h"
 #include "gps.h"
@@ -270,7 +271,7 @@ std::map<std::string, uint32_t> db_mongodb::get_misc_counts()
 	return out;
 }
 
-std::vector<message> db_mongodb::get_history(const std::string & callsign, const std::string & date, const bool ignore_callsign)
+std::vector<message> db_mongodb::get_history(const std::string & callsign, const std::string & date, const bool ignore_callsign, configuration *const cfg)
 {
 	std::vector<message> out;
 
@@ -315,7 +316,9 @@ std::vector<message> db_mongodb::get_history(const std::string & callsign, const
 			const uint8_t *bin_p    = pkt ? pkt.get_binary().bytes : reinterpret_cast<const uint8_t *>("");
 			int            bin_size = pkt ? pkt.get_binary().size : 1;
 
-			message m(tv, nullptr, msg_id, bin_p, bin_size);
+			tranceiver *t        = cfg->find_tranceiver(source);
+
+			message m(tv, t, msg_id, bin_p, bin_size);
 
 			// TODO: move this into a function of some sort, see also tranceiver.cpp
 			auto        meta    = dissect_packet(bin_p, bin_size);

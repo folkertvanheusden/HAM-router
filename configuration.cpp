@@ -92,7 +92,7 @@ void configuration::load_tranceivers(const libconfig::Setting & node_in, work_qu
 	for(int i=0; i<node_in.getLength(); i++) {
 		const libconfig::Setting & node = node_in[i];
 
-		tranceiver *t = tranceiver::instantiate(node, w, gps, st, i + 1, ws, tranceivers, filters);
+		tranceiver *t = tranceiver::instantiate(node, w, gps, st, i + 1, ws, tranceivers, filters, this);
 
 		tranceivers.push_back(t);
 	}
