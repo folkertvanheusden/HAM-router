@@ -42,31 +42,31 @@ std::optional<std::pair<std::map<std::string, db_record_data>, ax25 *> > parse_a
 	if (pid.has_value()) {
 		switch(pid.value()) {
 			case 0x01:  // ISO 8208/CCITT X.25 PLP
-				fields.insert({ "protocol", db_record_gen("X.25") }); break;
+				fields.insert({ "payload-protocol", db_record_gen("X.25") }); break;
 			case 0x06:  // Compressed TCP/IP packet
-				fields.insert({ "protocol", db_record_gen("compressed TCP/IP") }); break;
+				fields.insert({ "payload-protocol", db_record_gen("compressed TCP/IP") }); break;
 			case 0x07:  // Uncompressed TCP/IP packet
-				fields.insert({ "protocol", db_record_gen("uncompressed TCP/IP") }); break;
+				fields.insert({ "payload-protocol", db_record_gen("uncompressed TCP/IP") }); break;
 			case 0x08:  // Segmentation fragment
-				fields.insert({ "protocol", db_record_gen("segmentation fragment") }); break;	
+				fields.insert({ "payload-protocol", db_record_gen("segmentation fragment") }); break;	
 			case 0xc3:  // Text Telephone
-				fields.insert({ "protocol", db_record_gen("TEXNET") }); break;
+				fields.insert({ "payload-protocol", db_record_gen("TEXNET") }); break;
 			case 0xc4:  // Link Quality Protocol
-				fields.insert({ "protocol", db_record_gen("LQP") }); break;
+				fields.insert({ "payload-protocol", db_record_gen("LQP") }); break;
 			case 0xca:  // Appletalk
-				fields.insert({ "protocol", db_record_gen("Appletalk") }); break;
+				fields.insert({ "payload-protocol", db_record_gen("Appletalk") }); break;
 			case 0xcb:  // Appletalk ARP
-				fields.insert({ "protocol", db_record_gen("Appletalk ARP") }); break;
+				fields.insert({ "payload-protocol", db_record_gen("Appletalk ARP") }); break;
 			case 0xcc:  // ARPA Internet Protocol
-				fields.insert({ "protocol", db_record_gen("IP") }); break;
+				fields.insert({ "payload-protocol", db_record_gen("IP") }); break;
 			case 0xcd:  // ARPA Address Resolution Protocol
-				fields.insert({ "protocol", db_record_gen("ARP") }); break;
+				fields.insert({ "payload-protocol", db_record_gen("ARP") }); break;
 			case 0xce:  // FlexNet
-				fields.insert({ "protocol", db_record_gen("FlexNet") }); break;
+				fields.insert({ "payload-protocol", db_record_gen("FlexNet") }); break;
 			case 0xcf:  // NET/ROM
-				fields.insert({ "protocol", db_record_gen("NET/ROM") }); break;
+				fields.insert({ "payload-protocol", db_record_gen("NET/ROM") }); break;
 			case 0xf0:  // no layer 3
-				fields.insert({ "TEXT", db_record_gen("NMEA") }); break;
+				fields.insert({ "payload-protocol", db_record_gen("NMEA") }); break;
 			case 0xff:  // next byte contains more info
 				log(LL_WARNING, "AX.25: \"next byte contains more info\" - UNHANDLED");
 				break;
