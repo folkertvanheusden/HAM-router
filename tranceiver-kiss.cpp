@@ -134,7 +134,7 @@ void escape_put(uint8_t **p, int *len, uint8_t c)
 
 bool tranceiver_kiss::send_mkiss(const uint8_t cmd, const uint8_t channel, const uint8_t *const p, const int len)
 {
-	int      max_len = len * 2 + 1;
+	int      max_len = len * 2 + 3;
 	uint8_t *out     = reinterpret_cast<uint8_t *>(malloc(max_len));
 	int      offset  = 0;
 
