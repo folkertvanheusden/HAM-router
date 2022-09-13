@@ -144,7 +144,7 @@ ax25::ax25(const std::vector<uint8_t> & in)
 	if (type == 0 || type == 1)  // I or S
 		msg_nr = in[offset++];
 
-	if (type == 0 || type == 2)  // I or U
+	if (type == 0 || type == 3)  // I or U
 		pid = in[offset++];
 
 	if (offset < in.size() - 1)
