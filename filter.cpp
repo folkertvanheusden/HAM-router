@@ -1,223 +1,128 @@
+#include <ctype.h>
+#include <optional>
+
 #include "error.h"
 #include "filter.h"
 #include "log.h"
+#include "str.h"
 
 
-filter_rule::filter_rule(const std::string & field_name, const db_record_data & value, const filter_compare_t how, const bool not_, const bool ignore_if_missing, const bool ignore_data_type_mismatch, const bool ignore_action_not_applicable_to_data_type) :
-	field_name               (field_name),
-	value                    (value),
-	how                      (how),
-	not_                     (not_),
-	ignore_if_missing        (ignore_if_missing),
-	ignore_data_type_mismatch(ignore_data_type_mismatch),
-	ignore_action_not_applicable_to_data_type(ignore_action_not_applicable_to_data_type)
+std::optional<std::string> retrieve_subfilter(const std::string & in)
 {
-	if (value.dt == dt_string && how == FC_regex) {
-		if (regcomp(&re, value.s_value.c_str(), REG_EXTENDED))
-			error_exit(false, "Failed to compile regular expression \"%s\"", value.s_value.c_str());
+	bool string = false;
+	int  level  = 1;
+
+	for(size_t i=0; i<in.size(); i++) {
+		if (in[i] == ')' && string == false) {
+			level--;
+
+			if (level == 0)
+				return in.substr(0, i);
+		}
+		else if (in[i] == '\"')
+			string = !string;
+
+		else if (in[i] == '(' && string == false) {
+			level++;
+		}
 	}
+
+	return { };  // end of subfilter not found
 }
 
-filter_rule::~filter_rule()
+bool execute_filter(const std::string & filter, const bool ignore_if_field_is_missing, const message & m)
 {
-	if (how == FC_regex)
-		regfree(&re);
-}
+	std::size_t position  = 0;
+	std::string operation;
+	bool        rc        = false;
 
-bool filter_rule::check(const message & m)
-{
-	const auto & meta = m.get_meta();
+	while(position < filter.size()) {
+		if (filter[position] == ' ') {
+			position++;
 
-	const auto it     = meta.find(field_name);
-
-	if (it == meta.end())
-		return ignore_if_missing;
-
-	if (it->second.dt != value.dt)
-		return ignore_data_type_mismatch;
-
-	if (value.dt == dt_string) {
-		if (how == FC_equal)
-			return not_ ? it->second.s_value != value.s_value : it->second.s_value == value.s_value;
-
-		if (how == FC_substr)
-			return not_ ? it->second.s_value.find(value.s_value) == std::string::npos : it->second.s_value.find(value.s_value) != std::string::npos;
-
-		if (how == FC_regex) {
-			int rc = regexec(&re, it->second.s_value.c_str(), 0, nullptr, 0);
-
-			if (rc == REG_NOMATCH)
-				return not_ ? true : false;
-
-			if (rc == 0)
-				return not_ ? false : true;
-
-			char errbuf[128] { 0 };
-			regerror(rc, &re, errbuf, sizeof errbuf);
-
-			log(LL_ERROR, "regexec failed on \"%s\" with \"%s\": %s", it->second.s_value.c_str(), value.s_value.c_str(), errbuf);
-
-			return false;
+			continue;
 		}
 
-		return ignore_action_not_applicable_to_data_type;
-	}
-	else {
-		error_exit(false, "filter_rule: internal error: unknown data type");
-	}
+		if (filter[position] == '(') {
+			auto temp = retrieve_subfilter(filter.substr(position + 1));
 
-	// TODO i_value and f_value
+			if (temp.has_value() == false)
+				error_exit(false, "End of sub-filter not found");
 
-	log(LL_ERROR, "filter_rule: this should not be reached");
+			bool cur_rc = execute_filter(temp.value(), ignore_if_field_is_missing, m);
 
-	return false;
-}
-
-filter_rule *filter_rule::instantiate(const libconfig::Setting & node_in)
-{
-	std::string      field_name;
-	std::string      value_type;
-	db_record_data   value;
-	bool             not_                      { false   };
-	bool             ignore_if_missing         { false   };
-	bool             ignore_data_type_mismatch { false   };
-	bool             ignore_action_not_applicable_to_data_type { false };
-	filter_compare_t fc                        { FC_invalid };
-
-        for(int i=0; i<node_in.getLength(); i++) {
-                const libconfig::Setting & node = node_in[i];
-
-		std::string type = node.getName();
-
-		if (type == "field-name")
-			field_name = node_in.lookup(type).c_str();
-		else if (type == "value-type")
-			value_type = node_in.lookup(type).c_str();
-		else if (type == "value-data") {
-			if (value_type.empty())
-				error_exit(false, "(line %d): Filter rule: need to set a \"value-type\" first", node.getSourceLine());
-
-			if (value_type == "string")
-				value.dt = dt_string, value.s_value = node_in.lookup(type).c_str();
-			else if (value_type == "integer")
-				value.dt = dt_signed64, value.i_value = node_in.lookup(type);
-			else if (value_type == "float")
-				value.dt = dt_float64, value.d_value = node_in.lookup(type);
+			if (operation.empty())
+				rc = cur_rc;
+			else if (operation == "&&")
+				rc = rc && cur_rc;
+			else if (operation == "||")
+				rc = rc || cur_rc;
 			else
-				error_exit(false, "(line %d): Filter rule: unknown value-type (%s)", node.getSourceLine(), value_type.c_str());
-		}
-		else if (type == "not")
-			not_ = node_in.lookup(type);
-		else if (type == "ignore-if-field-is-missing")
-			ignore_if_missing = node_in.lookup(type);
-		else if (type == "ignore-data-type-mismatch")
-			ignore_data_type_mismatch = node_in.lookup(type);
-		else if (type == "ignore-action-not-applicable-to-data-type")
-			ignore_action_not_applicable_to_data_type = node_in.lookup(type);
-		else if (type == "how-to-compare") {
-			std::string how_to = node_in.lookup(type).c_str();
+				error_exit(false, "Unknown operation \"%s\"", operation.c_str());
 
-			if (how_to == "equal")
-				fc = FC_equal;
-			else if (how_to == "substr")
-				fc = FC_substr;
-			else if (how_to == "less-than")
-				fc = FC_less_than;
-			else if (how_to == "bigger-than")
-				fc = FC_bigger_than;
-			else if (how_to == "regex")
-				fc = FC_regex;
-			else {
-				error_exit(false, "(line %d): How-to-compare \"%s\" is invalid", node.getSourceLine(), how_to.c_str());
-			}
+			operation.clear();
+
+			position += temp.value().size() + 2;
+		}
+		else if (filter[position] == '&' || filter[position] == '|') {
+			std::size_t token_end = filter.find_first_of(" ", position);
+
+			operation = filter.substr(position, token_end - position);
+
+			position = token_end;
 		}
 		else {
-			error_exit(false, "(line %d): Filter_rule: \"%s\" is not known", node.getSourceLine(), type.c_str());
-		}
-        }
+			std::size_t equal_sign  = filter.find_first_of("=",  position);
+			std::size_t nequal_sign = filter.find_first_of("!=", position);
 
-	if (value.dt == dt_none)
-		error_exit(false, "(line %d): No value-type set", node_in.getSourceLine());
+			std::size_t splitter    = (equal_sign != std::string::npos && equal_sign < nequal_sign) || nequal_sign == std::string::npos ? equal_sign : nequal_sign;
+			bool        equals      = splitter == equal_sign;
+			int         compare_len = equals ? 1 : 2;
 
-	if (fc == FC_invalid)
-		error_exit(false, "(line %d): How to compare not set", node_in.getSourceLine());
+			std::string left        = trim(filter.substr(position, splitter - position));
 
-	return new filter_rule(field_name, value, fc, not_, ignore_if_missing, ignore_data_type_mismatch, ignore_action_not_applicable_to_data_type);
+			std::size_t right_end   = filter.find_first_of(" ", splitter + compare_len);
 
-}
+			std::string right       = trim(filter.substr(splitter + compare_len, right_end - splitter - compare_len));
 
-filter::filter(const std::vector<filter_rule *> & rules, const filter_rule_matching_t how) :
-	rules(rules),
-	how  (how)
-{
-}
+			if (right[0] == '"') {
+				std::size_t dq  = filter.find_first_of("\"", splitter + 1 + compare_len);
 
-filter::~filter()
-{
-	for(auto rule : rules)
-		delete rule;
-}
+				right           = filter.substr(splitter + 1 + compare_len, dq - splitter - (1 + compare_len));
 
-bool filter::check(const message & m)
-{
-	for(auto rule : rules) {
-		bool rc = rule->check(m);
+				right_end       = dq + 1;
+			}
 
-		if (rc == false && how == FR_all)
-			return false;
-		
-		if (rc == true) {
-			if (how == FR_one)
-				return true;
+			auto        field       = m.get_meta().find(left);
 
-			if (how == FR_none)
-				return false;
+			bool        cur_rc      = false;
+
+			if (field == m.get_meta().end()) {
+				if (ignore_if_field_is_missing == false)
+					error_exit(false, "Filter (%s): field \"%s\" not found", filter.c_str(), left.c_str());
+
+				cur_rc = true;
+			}
+			else {
+				std::string value = field->second.s_value;
+
+				cur_rc            = equals ? value == right : value != right;
+			}
+
+			if (operation.empty())
+				rc = cur_rc;
+			else if (operation == "&&")
+				rc = rc && cur_rc;
+			else if (operation == "||")
+				rc = rc || cur_rc;
+			else
+				error_exit(false, "Unknown operation \"%s\"", operation.c_str());
+
+			position = right_end;
+
+			operation.clear();
 		}
 	}
 
-	return true;
-}
-
-filter *filter::instantiate(const libconfig::Setting & node_in)
-{
-	std::vector<filter_rule *> rules;
-	filter_rule_matching_t     how   { FR_invalid };
-
-        for(int i=0; i<node_in.getLength(); i++) {
-                const libconfig::Setting & node = node_in[i];
-
-		std::string type = node.getName();
-
-		if (type == "rules") {
-			for(int j=0; j<node.getLength(); j++) {
-				const libconfig::Setting & rule_node = node[j];
-
-				rules.push_back(filter_rule::instantiate(rule_node));
-			}
-		}
-		else if (type == "how-to-compare") {
-			std::string how_to = node_in.lookup(type).c_str();
-
-			if (how_to == "all")
-				how = FR_all;
-			else if (how_to == "one")
-				how = FR_one;
-			else if (how_to == "none")
-				how = FR_none;
-			else {
-				error_exit(false, "(line %d): How-to-compare is invalid (%s)", node.getSourceLine(), how_to.c_str());
-			}
-		}
-		else {
-			error_exit(false, "(line %d): Filter: \"%s\" is not known", node.getSourceLine(), type.c_str());
-		}
-        }
-
-	if (rules.empty())
-		error_exit(false, "(line %d): No rules defined", node_in.getSourceLine());
-
-	if (how == FR_invalid)
-		error_exit(false, "(line %d): How to compare not set", node_in.getSourceLine());
-
-	return new filter(rules, how);
+	return rc;
 }

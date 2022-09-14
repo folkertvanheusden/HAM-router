@@ -12,7 +12,7 @@ switchboard::~switchboard()
 		delete mapping;
 }
 
-void switchboard::add_bridge_mapping(tranceiver *const in, tranceiver *const out, filter *const f)
+void switchboard::add_bridge_mapping(tranceiver *const in, tranceiver *const out, const std::optional<filter_t> & f)
 {
 	if (in == out)
 		return;
@@ -28,9 +28,17 @@ void switchboard::add_bridge_mapping(tranceiver *const in, tranceiver *const out
 	}
 	else {
 		for(auto & mapping : it->second) {
-			if (mapping.f == f) {
+			if (mapping.f.has_value() == false && f.has_value() == false)  {
 				mapping.t.push_back(out);
+
 				return;
+			}
+			else if (mapping.f.has_value() == true && f.has_value() == true) {
+				if (mapping.f.value().pattern == f.value().pattern && mapping.f.value().ignore_if_field_is_missing == f.value().ignore_if_field_is_missing) {
+					mapping.t.push_back(out);
+
+					return;
+				}
 			}
 		}
 	}
@@ -59,7 +67,7 @@ transmit_error_t switchboard::put_message(tranceiver *const from, const message 
 	bool forwarded = false;
 
 	for(auto & target_filters_pair : it->second) {
-		if (target_filters_pair.f == nullptr || target_filters_pair.f->check(m)) {
+		if (target_filters_pair.f.has_value() == false || execute_filter(target_filters_pair.f.value().pattern, target_filters_pair.f.value().ignore_if_field_is_missing, m)) {
 			log(LL_DEBUG, "Forwarding %s to %zu tranceivers", m.get_id_short().c_str(), target_filters_pair.t.size());
 
 			for(auto t : target_filters_pair.t) {

@@ -160,7 +160,7 @@ transmit_error_t tranceiver::put_message(const message & m)
 	return put_message_low(m);
 }
 
-tranceiver *tranceiver::instantiate(const libconfig::Setting & node, work_queue_t *const w, gps_connector *const gps, stats *const st, const size_t device_nr, ws_global_context_t *const ws, const std::vector<tranceiver *> & tranceivers, std::map<std::string, filter *> & filters, configuration *const cfg)
+tranceiver *tranceiver::instantiate(const libconfig::Setting & node, work_queue_t *const w, gps_connector *const gps, stats *const st, const size_t device_nr, ws_global_context_t *const ws, const std::vector<tranceiver *> & tranceivers, const std::map<std::string, filter_t> & filters, configuration *const cfg)
 {
 	std::string type = node.lookup("type").c_str();
 

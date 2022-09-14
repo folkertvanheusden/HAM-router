@@ -30,7 +30,7 @@ private:
 
 	gps_connector             *gps       { nullptr };
 
-	std::map<std::string, filter *> filters;
+	std::map<std::string, filter_t> filters;
 
 	seen                      *global_repetition_filter { nullptr };
 

@@ -1,4 +1,5 @@
 #include <map>
+#include <optional>
 #include <regex.h>
 #include <set>
 
@@ -8,7 +9,7 @@
 
 typedef struct
 {
-	filter *f;
+	std::optional<filter_t>   f;
 	std::vector<tranceiver *> t;
 } sb_bridge_mapping_t;
 
@@ -35,7 +36,7 @@ public:
 	switchboard();
 	virtual ~switchboard();
 
-	void add_bridge_mapping(tranceiver *const in, tranceiver *const out, filter *const f);
+	void add_bridge_mapping(tranceiver *const in, tranceiver *const out, const std::optional<filter_t> & f);
 
 	void add_routing_mapping(sb_routing_mapping_t *const m);
 

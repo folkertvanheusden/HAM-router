@@ -75,7 +75,7 @@ public:
 
 	transmit_error_t       put_message(const message & m);
 
-	static tranceiver *instantiate(const libconfig::Setting & node, work_queue_t *const w, gps_connector *const gps, stats *const st, const size_t device_nr, ws_global_context_t *const ws, const std::vector<tranceiver *> & tranceivers, std::map<std::string, filter *> & filters, configuration *const cfg);
+	static tranceiver *instantiate(const libconfig::Setting & node, work_queue_t *const w, gps_connector *const gps, stats *const st, const size_t device_nr, ws_global_context_t *const ws, const std::vector<tranceiver *> & tranceivers, const std::map<std::string, filter_t> & filters, configuration *const cfg);
 
 	virtual void operator()() = 0;
 };
