@@ -76,3 +76,14 @@ std::vector<std::string> split(std::string in, std::string splitter)
 
 	return out;
 }
+
+std::string trim(std::string in, const std::string what)
+{
+	// right
+	in.erase(in.find_last_not_of(what) + 1);
+
+	// left
+	in.erase(0, in.find_first_not_of(what));
+
+	return in;
+}

@@ -55,7 +55,7 @@ transmit_error_t tranceiver_axudp::put_message_low(const message & m)
 	return TE_ok;
 }
 
-tranceiver_axudp::tranceiver_axudp(const std::string & id, seen *const s, work_queue_t *const w, gps_connector *const gps, const int listen_port, const std::vector<std::pair<std::string, filter *> > & peers, const bool continue_on_error, const bool distribute) :
+tranceiver_axudp::tranceiver_axudp(const std::string & id, seen *const s, work_queue_t *const w, gps_connector *const gps, const int listen_port, const std::vector<std::pair<std::string, std::optional<filter_t> > > & peers, const bool continue_on_error, const bool distribute) :
 	tranceiver(id, s, w, gps),
 	listen_port(listen_port),
 	peers(peers),
@@ -92,7 +92,7 @@ transmit_error_t tranceiver_axudp::send_to_other_axudp_targets(const message & m
 			continue;
 		}
 
-		if (p.second == nullptr || p.second->check(m)) {
+		if (p.second.has_value() == false || execute_filter(p.second.value().pattern, p.second.value().ignore_if_field_is_missing, m)) {
 			mlog(LL_DEBUG_VERBOSE, m, "send_to_other_axudp_targets", myformat("transmit to %s", p.first.c_str()));
 
 			auto content = m.get_content();
@@ -182,12 +182,12 @@ void tranceiver_axudp::operator()()
         }
 }
 
-tranceiver *tranceiver_axudp::instantiate(const libconfig::Setting & node_in, work_queue_t *const w, gps_connector *const gps, const std::map<std::string, filter *> & filters)
+tranceiver *tranceiver_axudp::instantiate(const libconfig::Setting & node_in, work_queue_t *const w, gps_connector *const gps, const std::map<std::string, filter_t> & filters)
 {
 	std::string  id;
 	seen        *s                 = nullptr;
 	int          listen_port       = -1;
-	std::vector<std::pair<std::string, filter *> > peers;
+	std::vector<std::pair<std::string, std::optional<filter_t> > > peers;
 	bool         continue_on_error = false;
 	bool         distribute        = false;
 
@@ -208,8 +208,8 @@ tranceiver *tranceiver_axudp::instantiate(const libconfig::Setting & node_in, wo
 			for(int j=0; j<node.getLength(); j++) {
 				const libconfig::Setting & peer_node = node[j];
 
-				std::string  host;
-				filter      *f    = nullptr;
+				std::string             host;
+				std::optional<filter_t> f;
 
 				for(int k=0; k<peer_node.getLength(); k++) {
 					const libconfig::Setting & peer_setting = peer_node[k];

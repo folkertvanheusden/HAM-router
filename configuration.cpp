@@ -76,9 +76,6 @@ configuration::~configuration()
 
 	delete d;
 
-	for(auto f : filters)
-		delete f.second;
-
 	if (global_repetition_filter) {
 		global_repetition_filter->stop();
 
@@ -136,7 +133,7 @@ void configuration::load_bridge_switchboard(const libconfig::Setting & node_in)
 		std::string from   = node.lookup("from"  ).c_str();
 		std::string tos    = node.lookup("to"    ).c_str();
 
-		filter *f { nullptr };
+		std::optional<filter_t> f;
 
 		try {
 			const std::string filter_name = node.lookup("filter");
@@ -272,8 +269,9 @@ void configuration::load_filters(const libconfig::Setting & node_in)
         for(int i=0; i<node_in.getLength(); i++) {
                 const libconfig::Setting & node = node_in[i];
 
-		std::string  name;
-		filter      *f { nullptr };
+		std::string name;
+		bool        ignore_if_field_is_missing = true;
+		std::string pattern;
 
 		for(int j=0; j<node.getLength(); j++) {
 			const libconfig::Setting & node_def = node[j];
@@ -282,19 +280,22 @@ void configuration::load_filters(const libconfig::Setting & node_in)
 
 			if (type == "name")
 				name = node.lookup(type).c_str();
-			else if (type == "definition") {
-				if (f)
-					error_exit(false, "(line %d): Multiple rules definitions found", node_def.getSourceLine());
-
-				f    = filter::instantiate(node_def);
-			}
+			else if (type == "pattern")
+				pattern = node.lookup(type).c_str();
+			else if (type == "ignore-if-field-is-missing")
+				ignore_if_field_is_missing = node.lookup(type).c_str();
 			else {
-				error_exit(false, "(line %d): General setting \"%s\" is not known", node_def.getSourceLine(), type.c_str());
+				error_exit(false, "(line %d): Filter setting \"%s\" is not known", node_def.getSourceLine(), type.c_str());
 			}
 		}
 
-		if (!f)
-			error_exit(false, "(line %d): No filter defination set for \"%s\"", node_in.getSourceLine(), name.c_str());
+		if (name.empty())
+			error_exit(false, "(line %d): No filter name set", node_in.getSourceLine());
+
+		if (pattern.empty())
+			error_exit(false, "(line %d): No filter definition set for \"%s\"", node_in.getSourceLine(), name.c_str());
+
+		filter_t f { ignore_if_field_is_missing, pattern };
 
 		filters.insert({ name, f });
         }
