@@ -283,7 +283,7 @@ void configuration::load_filters(const libconfig::Setting & node_in)
 			else if (type == "pattern")
 				pattern = node.lookup(type).c_str();
 			else if (type == "ignore-if-field-is-missing")
-				ignore_if_field_is_missing = node.lookup(type).c_str();
+				ignore_if_field_is_missing = node.lookup(type);
 			else {
 				error_exit(false, "(line %d): Filter setting \"%s\" is not known", node_def.getSourceLine(), type.c_str());
 			}
