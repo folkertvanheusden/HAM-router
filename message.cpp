@@ -96,3 +96,9 @@ std::string message_to_json(const message & m)
 
 	return json_out_str;
 }
+
+void dump_meta(const std::map<std::string, db_record_data> & meta)
+{
+	for(auto & entry : meta)
+		printf("%s:\t%s\n", entry.first.c_str(), entry.second.s_value.c_str());
+}

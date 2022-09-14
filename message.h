@@ -48,3 +48,5 @@ public:
 };
 
 std::string message_to_json(const message & m);
+
+void dump_meta(const std::map<std::string, db_record_data> & meta);
