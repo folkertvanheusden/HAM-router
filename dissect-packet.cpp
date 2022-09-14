@@ -18,7 +18,7 @@ std::optional<std::pair<std::map<std::string, db_record_data>, ax25 *> > parse_a
 	if (bit_0_set)
 		return { };
 
-	if ((data[14] & 3) == 1)  // non existing control-byte field
+	if ((data[14] & 3) == 2)  // non existing control-byte field
 		return { };
 
 	// may be ax.25:
