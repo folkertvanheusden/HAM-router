@@ -55,34 +55,29 @@ transmit_error_t switchboard::put_message(tranceiver *const from, const message 
 {
 	std::unique_lock<std::mutex> lck(lock);  // TODO: r/w lock
 
+	bool forwarded = false;
+
 	/* first process bridge mapping(s) */
 	auto it = bridge_map.find(from);
 
-	if (it == bridge_map.end()) {
-		log(LL_DEBUG, "put_message: tranceiver %s is not mapped", from->get_id().c_str());
+	if (it != bridge_map.end()) {
+		for(auto & target_filters_pair : it->second) {
+			if (target_filters_pair.f.has_value() == false || execute_filter(target_filters_pair.f.value().pattern, target_filters_pair.f.value().ignore_if_field_is_missing, m)) {
+				log(LL_DEBUG, "Forwarding %s to %zu tranceivers", m.get_id_short().c_str(), target_filters_pair.t.size());
 
-		return TE_hardware;
-	}
+				for(auto t : target_filters_pair.t) {
+					t->mlog(LL_DEBUG_VERBOSE, m, "put_message", "(bridge) Forwarding to " + t->get_id());
 
-	bool forwarded = false;
+					transmit_error_t rc = t->put_message(m);
 
-	for(auto & target_filters_pair : it->second) {
-		if (target_filters_pair.f.has_value() == false || execute_filter(target_filters_pair.f.value().pattern, target_filters_pair.f.value().ignore_if_field_is_missing, m)) {
-			log(LL_DEBUG, "Forwarding %s to %zu tranceivers", m.get_id_short().c_str(), target_filters_pair.t.size());
+					if (rc != TE_ok && continue_on_error == false)
+						return rc;
+				}
 
-			for(auto t : target_filters_pair.t) {
-				t->mlog(LL_DEBUG_VERBOSE, m, "put_message", "Forwarding to " + t->get_id());
-
-				transmit_error_t rc = t->put_message(m);
-
-				if (rc != TE_ok && continue_on_error == false)
-					return rc;
+				forwarded = true;
 			}
-
-			forwarded = true;
 		}
 	}
-
 
 	/* second, process routing mapping(s) */
 
@@ -126,7 +121,7 @@ transmit_error_t switchboard::put_message(tranceiver *const from, const message 
 			continue;
 
 		// all is fine, put in outgoing tranceiver's queue
-		mapping->t_outgoing_via->mlog(LL_DEBUG_VERBOSE, m, "put_message", "Forwarding to " + mapping->t_outgoing_via->get_id());
+		mapping->t_outgoing_via->mlog(LL_DEBUG_VERBOSE, m, "put_message", "(router) Forwarding to " + mapping->t_outgoing_via->get_id());
 
 		forwarded = true;
 
