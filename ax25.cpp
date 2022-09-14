@@ -230,7 +230,7 @@ std::pair<uint8_t *, size_t> ax25::generate_packet() const
 	if (type == 0 || type == 1)  // I or S
 		out[offset++] = msg_nr.value();
 
-	if (type == 0 || type == 2)  // I or U
+	if (type == 0 || type == 3)  // I or U
 		out[offset++] = pid.value();
 
 	memcpy(&out[offset], data.get_pointer(), data_size);
