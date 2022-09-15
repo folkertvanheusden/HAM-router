@@ -216,7 +216,7 @@ void tranceiver::register_snmp_counters(stats *const st, const size_t device_nr)
 
 void tranceiver::log(const int llevel, const std::string & str)
 {
-	::log(llevel, (get_type_name() + "(" + get_id() + "): " + str).c_str());
+	::log(llevel, "%s", (get_type_name() + "(" + get_id() + "): " + str).c_str());
 }
 
 void tranceiver::mlog(const int llevel, const message & m, const std::string & where, const std::string & str)
@@ -227,10 +227,10 @@ void tranceiver::mlog(const int llevel, const message & m, const std::string & w
 
 	auto crc  = it != meta.end() ? it->second.s_value : std::string("-");
 
-	::log(llevel, (get_type_name() + "(" + get_id() + "|" + where + ")[" + m.get_id_short() + "|" + crc + "]: " + str).c_str());
+	::log(llevel, "%s", (get_type_name() + "(" + get_id() + "|" + where + ")[" + m.get_id_short() + "|" + crc + "]: " + str).c_str());
 }
 
 void tranceiver::llog(const int llevel, const libconfig::Setting & node, const std::string & str)
 {
-	::log(llevel, (get_type_name() + "(" + get_id() + ")@" + myformat("%u", node.getSourceLine()) + ": " + str).c_str());
+	::log(llevel, "%s", (get_type_name() + "(" + get_id() + ")@" + myformat("%u", node.getSourceLine()) + ": " + str).c_str());
 }
