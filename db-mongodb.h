@@ -10,11 +10,14 @@ class configuration;
 class db_mongodb : public db
 {
 private:
+	const std::string  uri;
 	const std::string  database;
 	const std::string  collection;
 	mongocxx::client  *m_c  { nullptr };
 
 	std::vector<std::pair<std::string, uint32_t> > get_simple_groupby(const std::string & field);
+
+	void reconnect();
 
 public:
 	db_mongodb(const std::string & uri, const std::string & database, const std::string & collection);

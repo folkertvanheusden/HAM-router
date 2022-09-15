@@ -6,7 +6,7 @@
 #include <bsoncxx/builder/stream/document.hpp>
 #include <bsoncxx/json.hpp>
 #include <mongocxx/client.hpp>
-#include <mongocxx/instance.hpp>
+#include <mongocxx/exception/operation_exception.hpp>
 #include <mongocxx/instance.hpp>
 
 #include "configuration.h"
@@ -23,11 +23,9 @@ using bsoncxx::builder::basic::make_document;
 mongocxx::instance instance { };
 
 db_mongodb::db_mongodb(const std::string & uri, const std::string & database, const std::string & collection) :
-	database(database), collection(collection)
+	uri(uri), database(database), collection(collection)
 {
-	mongocxx::uri m_uri(uri);
-
-	m_c = new mongocxx::client(m_uri);
+	reconnect();
 }
 
 db_mongodb::~db_mongodb()
@@ -37,6 +35,16 @@ db_mongodb::~db_mongodb()
 
 void db_mongodb::init_database()
 {
+}
+
+void db_mongodb::reconnect()
+{
+	mongocxx::uri m_uri(uri);
+
+	if (m_c)
+		delete m_c;
+
+	m_c = new mongocxx::client(m_uri);
 }
 
 bool db_mongodb::insert(const db_record & dr)
@@ -135,8 +143,10 @@ bool db_mongodb::insert(const db_record & dr)
 			return false;
 		}
 	}
-	catch(const std::exception & e) {
+	catch(const mongocxx::exception & e) {
 		log(LL_WARNING, "db_mongodb::insert: unexpected exception: %s", e.what());
+
+		reconnect();
 
 		return false;
 	}
