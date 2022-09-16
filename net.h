@@ -7,8 +7,8 @@ int  connect_to(const char *host, const int portnr);
 bool transmit_udp(const std::string & dest, const uint8_t *const data, const size_t data_len);
 int  WRITE(int fd, const uint8_t *whereto, size_t len);
 
-void startiface(const char *dev);
-int  setifcall(int fd, const char *name);
+void startiface(const char *const dev);
+int  setifcall(const int fd, const char *const name);
 
 std::string get_ax25_addr(const uint8_t *const in);
 

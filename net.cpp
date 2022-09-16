@@ -130,7 +130,7 @@ bool transmit_udp(const std::string & dest, const uint8_t *const data, const siz
 	return ok;
 }
 
-void startiface(const char *dev)
+void startiface(const char *const dev)
 {
 	int fd = socket(AF_INET, SOCK_DGRAM, 0);
 	if (fd == -1)
@@ -153,8 +153,11 @@ void startiface(const char *dev)
 		error_exit(true, "startiface: failed retrieving current ax25 device settings");
 
 	ifr.ifr_flags &= IFF_NOARP;
+	ifr.ifr_flags &= ~IFF_MULTICAST;
 	ifr.ifr_flags |= IFF_UP;
 	ifr.ifr_flags |= IFF_RUNNING;
+	ifr.ifr_flags |= IFF_DEBUG;
+	ifr.ifr_flags &= ~IFF_BROADCAST;
 
 	if (ioctl(fd, SIOCSIFFLAGS, &ifr) == -1)
 		error_exit(true, "startiface: failed setting ax25 device settings");
@@ -185,7 +188,7 @@ std::string get_ax25_addr(const uint8_t *const in)
 	return out;
 }
 
-int setifcall(int fd, const char *name)
+int setifcall(const int fd, const char *const name)
 {
         char call[7] = { 0 };
 
