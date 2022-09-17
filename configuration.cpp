@@ -190,12 +190,20 @@ void configuration::load_routing_switchboard(const libconfig::Setting & node_in)
 				error_exit(false, "(line %d): \"incoming-via\": \"%s\" is an unknown tranceiver", node.getSourceLine(), incoming_via.c_str());
 		}
 
+		std::vector<tranceiver *> t_route_via_interfaces;
+
 		std::string route_via_interface = node.lookup("outgoing-via").c_str();
 
-                tranceiver *t_route_via_interface      = find_tranceiver(route_via_interface);
+		auto rv_parts = split(route_via_interface, " ");
 
-                if (!t_route_via_interface)
-                        error_exit(false, "(line %d): \"outgoing-via\": \"%s\" is an unknown tranceiver", node.getSourceLine(), route_via_interface.c_str());
+		for(auto & part : rv_parts) {
+			tranceiver *interface = find_tranceiver(part);
+
+			if (!interface)
+				error_exit(false, "(line %d): \"outgoing-via\": \"%s\" is an unknown tranceiver", node.getSourceLine(), route_via_interface.c_str());
+
+			t_route_via_interfaces.push_back(interface);
+		}
 
 		sb_routing_mapping_t *m = new sb_routing_mapping_t();
 
@@ -207,7 +215,7 @@ void configuration::load_routing_switchboard(const libconfig::Setting & node_in)
 
 		m->t_incoming_via = t_incoming_via;
 
-		m->t_outgoing_via = t_route_via_interface;
+		m->t_outgoing_via = t_route_via_interfaces;
 
 		sb->add_routing_mapping(m);
         }

@@ -20,7 +20,7 @@ typedef struct
 
 	tranceiver *t_incoming_via;
 
-	tranceiver *t_outgoing_via;
+	std::vector<tranceiver *> t_outgoing_via;
 } sb_routing_mapping_t;
 
 class switchboard

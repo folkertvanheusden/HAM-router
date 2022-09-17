@@ -120,15 +120,17 @@ transmit_error_t switchboard::put_message(tranceiver *const from, const message 
 		if (mapping->t_incoming_via != nullptr && mapping->t_incoming_via != m.get_source())
 			continue;
 
-		// all is fine, put in outgoing tranceiver's queue
-		mapping->t_outgoing_via->mlog(LL_DEBUG_VERBOSE, m, "put_message", "(router) Forwarding to " + mapping->t_outgoing_via->get_id());
+		// all is fine, put in outgoing tranceivers' queues
+		for(auto t : mapping->t_outgoing_via) {
+			transmit_error_t t_rc = t->put_message(m);
 
-		forwarded = true;
+			t->mlog(LL_DEBUG_VERBOSE, m, "put_message", "(router) Forwarding to " + t->get_id());
 
-		transmit_error_t t_rc = mapping->t_outgoing_via->put_message(m);
+			if (t_rc != TE_ok && continue_on_error == false)
+				return t_rc;
 
-		if (t_rc != TE_ok && continue_on_error == false)
-			return t_rc;
+			forwarded = true;
+		}
 	}
 
 	if (!forwarded) {
